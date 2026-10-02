@@ -1,0 +1,16 @@
+# Copia del /etc/nixos original (contiene datos propios del equipo)
+backup-original/
+
+# Resultados de compilación
+result
+result-*
+
+# Editores y sistema
+.direnv/
+*.swp
+*~
+.DS_Store
+
+# Registros y secretos locales
+*.log
+.env
