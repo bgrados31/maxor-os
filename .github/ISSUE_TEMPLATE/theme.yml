@@ -1,0 +1,30 @@
+name: Proponer un tema
+description: Sugiere o envía un tema para Maxor OS
+labels: [theme]
+body:
+  - type: input
+    id: nombre
+    attributes:
+      label: Nombre del tema
+    validations:
+      required: true
+  - type: textarea
+    id: paleta
+    attributes:
+      label: Paleta
+      description: Pega el `colors.json` (las ocho claves, en `#rrggbb`).
+      render: json
+    validations:
+      required: true
+  - type: dropdown
+    id: licencia
+    attributes:
+      label: Licencia
+      options: ["CC0-1.0", "MIT", "CC-BY-4.0", "Otra (indícala abajo)"]
+    validations:
+      required: true
+  - type: textarea
+    id: notas
+    attributes:
+      label: Notas
+      description: Capturas, referencias y la licencia si elegiste "Otra".

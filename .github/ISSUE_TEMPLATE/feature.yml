@@ -1,0 +1,22 @@
+name: Proponer una mejora
+description: Una idea para Maxor OS
+labels: [enhancement]
+body:
+  - type: textarea
+    id: problema
+    attributes:
+      label: Qué problema resuelve
+    validations:
+      required: true
+  - type: textarea
+    id: propuesta
+    attributes:
+      label: Propuesta
+      description: Cómo lo imaginas. Si ya existe en otro proyecto, enlázalo.
+    validations:
+      required: true
+  - type: dropdown
+    id: fase
+    attributes:
+      label: Fase de la hoja de ruta
+      options: ["Fase 2: repo y CLI", "Fase 3: temas", "Fase 4: shell y greeter", "Fase 5: tienda", "Fase 6: arranque e instalador", "No lo sé"]

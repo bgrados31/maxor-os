@@ -1,0 +1,34 @@
+name: Reportar un fallo
+description: Algo no funciona como debería
+labels: [bug]
+body:
+  - type: textarea
+    id: que
+    attributes:
+      label: Qué pasa
+      description: Describe el problema y lo que esperabas que ocurriera.
+    validations:
+      required: true
+  - type: textarea
+    id: pasos
+    attributes:
+      label: Cómo reproducirlo
+      placeholder: |
+        1. Ejecuto `maxor theme apply glaciar`
+        2. ...
+    validations:
+      required: true
+  - type: textarea
+    id: entorno
+    attributes:
+      label: Entorno
+      description: Salida de `nixos-version`, y la GPU (`lspci | grep -E 'VGA|3D'`).
+      render: text
+    validations:
+      required: true
+  - type: textarea
+    id: registros
+    attributes:
+      label: Registros
+      description: "`journalctl --user -b -p err --no-pager | tail -n 30`"
+      render: text
