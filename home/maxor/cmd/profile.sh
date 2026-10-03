@@ -66,6 +66,13 @@ profile_set() { # enable|disable nombre [opciones de update]
   jq -n --argjson p "$new" '{profiles: $p}' > "$f"
   track_file "$f"
   ui_say ok @profile.changed "$name" "$word" "${f/#$HOME/~}"
+  # --no-apply: solo se guarda la elección; se aplica con `maxor update`
+  case " $* " in
+    *" --no-apply "*)
+      ui_say info @profile.pending
+      return 0
+      ;;
+  esac
   cmd_update --no-lock "$@"
 }
 

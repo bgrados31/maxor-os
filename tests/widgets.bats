@@ -71,3 +71,16 @@ DIFF=$'firefox: 149.0 → 150.0, +12.3 MiB\nearlyoom: ∅ → 1.9.0, 52.3 KiB\nf
   load_lib
   [[ "$(ui_hints "q:quit" "⏎:go" | strip_ansi)" == *"q quit"*"⏎ go"* ]]
 }
+
+@test "diff_json clasifica los cambios y conserva los totales" {
+  load_lib
+  out="$(diff_json "$DIFF")"
+  echo "$out" | jq -e 'length == 5'
+  echo "$out" | jq -e '[.[] | select(.kind == "updated")] | length == 2'
+  echo "$out" | jq -e '.[] | select(.name == "firefox") | .from == "149.0" and .to == "150.0" and .size == "+12.3 MiB"'
+  echo "$out" | jq -e '.[] | select(.name == "earlyoom") | .kind == "new" and .to == "1.9.0"'
+  echo "$out" | jq -e '.[] | select(.name == "font-util") | .kind == "removed" and .from == "1.4.2"'
+  echo "$out" | jq -e '.[] | select(.name == "bash-interactive") | .kind == "changed" and .size == "7.2 MiB"'
+  diff_parse "$DIFF"
+  [ "$UI_DIFF_ADD" = 1 ] && [ "$UI_DIFF_UPD" = 2 ] && [ "$UI_DIFF_DEL" = 1 ] && [ "$UI_DIFF_CHG" = 1 ] && [ "$UI_DIFF_CFG" = 2 ]
+}

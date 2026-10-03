@@ -147,3 +147,51 @@ setup() {
   run "$MAXOR_BIN" version --json
   echo "$output" | jq -e '.os | type == "string" and length > 0'
 }
+
+@test "doctor --json devuelve los grupos y las comprobaciones" {
+  bats_require_minimum_version 1.5.0
+  run --separate-stderr "$MAXOR_BIN" doctor --json
+  echo "$output" | jq -e 'has("ok") and has("fails") and has("warns") and (.groups | length > 0) and all(.groups[]; has("title") and (.items | length > 0) and all(.items[]; has("level") and has("text")))'
+  # el código de salida refleja si hay fallos
+  fails="$(echo "$output" | jq -r .fails)"
+  if [ "$fails" = 0 ]; then [ "$status" = 0 ]; else [ "$status" = 1 ]; fi
+}
+
+@test "theme list --json lista los temas válidos con sus colores" {
+  mkdir -p "$XDG_DATA_HOME/maxor/themes/probe" "$XDG_DATA_HOME/maxor/themes/roto"
+  echo '{"bg":"#101010","s":"#202020","s2":"#303030","fg":"#ffffff","mu":"#aaaaaa","ac":"#ff0000","ac2":"#00ff00","on":"#000000","mode":"light"}' > "$XDG_DATA_HOME/maxor/themes/probe/colors.json"
+  printf 'id = "probe"\nname = "Tema de prueba"\n' > "$XDG_DATA_HOME/maxor/themes/probe/theme.toml"
+  echo '{"bg":"rojo"}' > "$XDG_DATA_HOME/maxor/themes/roto/colors.json"
+  run "$MAXOR_BIN" theme list --json
+  [ "$status" = 0 ]
+  echo "$output" | jq -e 'length == 1 and .[0].id == "probe" and .[0].name == "Tema de prueba" and .[0].mode == "light" and .[0].active == false and .[0].colors.ac == "#ff0000"'
+}
+
+@test "theme list --json marca el tema activo" {
+  mkdir -p "$XDG_DATA_HOME/maxor/themes/probe" "$XDG_STATE_HOME/maxor"
+  echo '{"bg":"#101010","s":"#202020","s2":"#303030","fg":"#ffffff","mu":"#aaaaaa","ac":"#ff0000","ac2":"#00ff00","on":"#000000"}' > "$XDG_DATA_HOME/maxor/themes/probe/colors.json"
+  echo probe > "$XDG_STATE_HOME/maxor/current"
+  run "$MAXOR_BIN" theme list --json
+  echo "$output" | jq -e '.[0].active == true and .[0].mode == "dark"'
+}
+
+@test "profile enable --no-apply guarda la elección sin reconstruir" {
+  mkdir -p "$MAXOR_FLAKE/hosts/$MAXOR_HOST"
+  touch "$MAXOR_FLAKE/flake.nix"
+  run "$MAXOR_BIN" profile enable gaming --no-apply
+  [ "$status" = 0 ]
+  [[ "$output" == *"maxor update"* ]]
+  jq -e '.profiles == ["gaming"]' "$MAXOR_FLAKE/hosts/$MAXOR_HOST/maxor.json"
+  run "$MAXOR_BIN" profile disable gaming --no-apply
+  jq -e '.profiles == []' "$MAXOR_FLAKE/hosts/$MAXOR_HOST/maxor.json"
+}
+
+@test "ui y setup sin terminal fallan con el código de «falta algo»" {
+  run "$MAXOR_BIN" ui
+  [ "$status" = 3 ]
+  [[ "$output" == *"needs a terminal"* ]]
+  run "$MAXOR_BIN" setup
+  [ "$status" = 3 ]
+  run "$MAXOR_BIN" ui nada
+  [ "$status" = 2 ]
+}

@@ -1,4 +1,6 @@
 # ── Herramientas: logs, debug, completions, version ──────────────────
+maxor_cmd ui tools "home store themes update doctor"
+maxor_cmd setup tools ""
 maxor_cmd logs tools "--last --path"
 maxor_cmd debug tools ""
 maxor_cmd completions tools "fish bash zsh"
@@ -6,6 +8,22 @@ maxor_cmd version tools "--json"
 
 # Versión del contrato --json: sube solo con cambios incompatibles.
 MAXOR_JSON_SCHEMA=1
+
+# La pantalla completa es un programa aparte (maxor-tui). `maxor ui [pantalla]`
+# la abre y `maxor setup` abre el asistente; sin terminal o sin el programa,
+# se explica por qué y se sale con el código de «falta algo».
+tui_run() { # tui_run pantalla
+  [ -t 0 ] && [ -t 1 ] || die_code "$EX_NEEDS" @ui.no_tty
+  command -v maxor-tui > /dev/null || die_code "$EX_NEEDS" @ui.no_tui
+  exec maxor-tui --screen "$1"
+}
+cmd_ui() {
+  case "${1:-home}" in
+    home | store | themes | update | doctor | setup) tui_run "${1:-home}" ;;
+    *) usage_error ui ;;
+  esac
+}
+cmd_setup() { tui_run setup; }
 
 cmd_version() {
   local pretty

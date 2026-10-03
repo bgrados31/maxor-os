@@ -2,19 +2,35 @@
 maxor_cmd doctor system ""
 
 cmd_doctor() {
-  local fails=0 warns=0
-  ok() { ui_row ok "$@"; }
-  warn() { ui_row warn "$@"; warns=$((warns + 1)); }
-  bad() { ui_row bad "$@"; fails=$((fails + 1)); }
+  local json=0 fails=0 warns=0 rows=() cur_title=""
+  case "${1:-}" in
+    --json) json=1 ;;
+    "") ;;
+    *) usage_error doctor ;;
+  esac
+  # Cada comprobación se anota (para --json) y, si no es --json, se dibuja.
+  sec() { msg cur_title "$@"; if [ "$json" = 0 ]; then ui_section "$@"; fi; }
+  rec() {
+    local lvl="$1" t
+    shift
+    msg t "$@"
+    rows+=("$cur_title"$'\t'"$lvl"$'\t'"$t")
+    if [ "$json" = 0 ]; then ui_row "$lvl" "$t"; fi
+  }
+  ok() { rec ok "$@"; }
+  warn() { rec warn "$@"; warns=$((warns + 1)); }
+  bad() { rec bad "$@"; fails=$((fails + 1)); }
 
-  echo
-  ui_intro @doctor.title "$host"
+  if [ "$json" = 0 ]; then
+    echo
+    ui_intro @doctor.title "$host"
+  fi
 
-  ui_section @doctor.sec_system
+  sec @doctor.sec_system
   ok "$(os_pretty) · kernel $(uname -r)"
   local nf nu
-  nf="$(systemctl --failed --no-legend 2> /dev/null | wc -l)"
-  nu="$(systemctl --user --failed --no-legend 2> /dev/null | wc -l)"
+  nf="$(systemctl --failed --no-legend 2> /dev/null | wc -l || true)"
+  nu="$(systemctl --user --failed --no-legend 2> /dev/null | wc -l || true)"
   if [ "$nf" = 0 ]; then ok @doctor.sys_ok; else bad @doctor.sys_bad "$nf"; fi
   if [ "$nu" = 0 ]; then ok @doctor.usr_ok; else bad @doctor.usr_bad "$nu"; fi
   if [ -e /run/booted-system/kernel ] && [ "$(readlink -f /run/booted-system/kernel)" != "$(readlink -f /run/current-system/kernel)" ]; then
@@ -23,7 +39,7 @@ cmd_doctor() {
     ok @doctor.kernel_ok
   fi
 
-  ui_section @doctor.sec_session
+  sec @doctor.sec_session
   local empty
   msg empty @doctor.empty
   if [ "${XDG_SESSION_TYPE:-}" = "wayland" ]; then ok @doctor.wayland_ok; else warn @doctor.wayland_warn "${XDG_SESSION_TYPE:-$empty}"; fi
@@ -38,7 +54,7 @@ cmd_doctor() {
     bad @doctor.pam_bad
   fi
 
-  ui_section @doctor.sec_graphics
+  sec @doctor.sec_graphics
   local gpus line
   gpus="$(lspci 2> /dev/null | grep -E 'VGA|3D' | sed 's/^[^ ]* //; s/^[A-Za-z0-9 ]*controller: //' || true)"
   if [ -n "$gpus" ]; then
@@ -51,7 +67,7 @@ cmd_doctor() {
     if command -v nvidia-smi > /dev/null && nvidia-smi -L > /dev/null 2>&1; then ok @doctor.nv_ok; else warn @doctor.nv_warn; fi
   fi
 
-  ui_section @doctor.sec_boot
+  sec @doctor.sec_boot
   local m use
   for m in /boot /efi; do
     if findmnt -n "$m" > /dev/null 2>&1; then
@@ -66,7 +82,7 @@ cmd_doctor() {
   use="$(df --output=pcent / | tail -n1 | tr -dc '0-9')"
   if [ "${use:-0}" -ge 90 ]; then warn @doctor.root "$use"; else ok @doctor.root "$use"; fi
 
-  ui_section @doctor.sec_identity
+  sec @doctor.sec_identity
   local f fams
   fams="$(fc-list : family 2> /dev/null || true)"
   for f in "Figtree" "Red Hat Mono" "Krona One"; do
@@ -79,7 +95,7 @@ cmd_doctor() {
     warn @doctor.theme_none
   fi
 
-  ui_section @doctor.sec_config
+  sec @doctor.sec_config
   if [ -f "$flake_dir/flake.nix" ]; then
     ok @doctor.flake_ok "${flake_dir/#$HOME/~}"
     if git -C "$flake_dir" rev-parse --git-dir > /dev/null 2>&1; then
@@ -101,6 +117,17 @@ cmd_doctor() {
     warn @doctor.hw_missing
   fi
 
+  if [ "$json" = 1 ]; then
+    printf '%s\n' "${rows[@]}" | jq -R -s -c --argjson f "$fails" --argjson w "$warns" '
+      split("\n") | map(select(length > 0) | split("\t")) as $r
+      | {ok: ($f == 0), fails: $f, warns: $w,
+         groups: (reduce $r[] as $x ([];
+           if length > 0 and .[-1].title == $x[0]
+           then .[-1].items += [{level: $x[1], text: $x[2]}]
+           else . + [{title: $x[0], items: [{level: $x[1], text: $x[2]}]}] end))}'
+    [ "$fails" -eq 0 ]
+    return
+  fi
   local txt
   if [ "$fails" -gt 0 ]; then
     msg txt @doctor.sum_bad "$fails" "$warns"

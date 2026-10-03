@@ -21,9 +21,14 @@ ui_hints() {
 # (unit-*, etc) y muestra cada paquete con su símbolo y sus versiones.
 # Deja los totales en UI_DIFF_ADD, UI_DIFF_UPD, UI_DIFF_DEL y UI_DIFF_CFG.
 UI_DIFF_ADD=0 UI_DIFF_UPD=0 UI_DIFF_DEL=0 UI_DIFF_CFG=0 UI_DIFF_CHG=0
-ui_diff() {
-  local text="${1//$'\e'\[*([0-9;])m/}" max="${2:-14}" line name rest ver size
-  local -a upd=() add=() del=() chg=()
+DIFF_UPD=() DIFF_ADD=() DIFF_DEL=() DIFF_CHG=()
+
+# diff_parse "texto": clasifica las líneas en DIFF_UPD, DIFF_ADD, DIFF_DEL y
+# DIFF_CHG ("nombre|versiones|tamaño") y deja los totales en UI_DIFF_*.
+# Lo comparten ui_diff (para personas) y diff_json (para la pantalla completa).
+diff_parse() {
+  local text="${1//$'\e'\[*([0-9;])m/}" line name rest ver size
+  DIFF_UPD=() DIFF_ADD=() DIFF_DEL=() DIFF_CHG=()
   UI_DIFF_ADD=0 UI_DIFF_UPD=0 UI_DIFF_DEL=0 UI_DIFF_CFG=0 UI_DIFF_CHG=0
   while IFS= read -r line; do
     [ -n "$line" ] || continue
@@ -38,16 +43,39 @@ ui_diff() {
     if [[ "$ver" == *ε* ]]; then
       UI_DIFF_CFG=$((UI_DIFF_CFG + 1))
     elif [[ "$ver" == "∅ →"* ]]; then
-      UI_DIFF_ADD=$((UI_DIFF_ADD + 1)); add+=("$name|${ver#∅ → }|$size")
+      UI_DIFF_ADD=$((UI_DIFF_ADD + 1)); DIFF_ADD+=("$name|${ver#∅ → }|$size")
     elif [[ "$ver" == *"→ ∅" ]]; then
-      UI_DIFF_DEL=$((UI_DIFF_DEL + 1)); del+=("$name|${ver% → ∅}|$size")
+      UI_DIFF_DEL=$((UI_DIFF_DEL + 1)); DIFF_DEL+=("$name|${ver% → ∅}|$size")
     elif [[ "$ver" == *"→"* ]]; then
-      UI_DIFF_UPD=$((UI_DIFF_UPD + 1)); upd+=("$name|$ver|$size")
+      UI_DIFF_UPD=$((UI_DIFF_UPD + 1)); DIFF_UPD+=("$name|$ver|$size")
     else
-      UI_DIFF_CHG=$((UI_DIFF_CHG + 1)); chg+=("$name||$size")
+      UI_DIFF_CHG=$((UI_DIFF_CHG + 1)); DIFF_CHG+=("$name||$size")
     fi
   done <<< "$text"
+}
 
+# diff_json "texto": los cambios como JSON (kind, name, from, to, size).
+diff_json() {
+  local it
+  diff_parse "$1"
+  {
+    for it in "${DIFF_UPD[@]}"; do printf 'updated|%s\n' "$it"; done
+    for it in "${DIFF_ADD[@]}"; do printf 'new|%s\n' "$it"; done
+    for it in "${DIFF_DEL[@]}"; do printf 'removed|%s\n' "$it"; done
+    for it in "${DIFF_CHG[@]}"; do printf 'changed|%s\n' "$it"; done
+  } | jq -R -s -c '
+    split("\n") | map(select(length > 0) | split("|") | {kind: .[0], name: .[1], v: .[2], size: .[3]})
+    | map(if .kind == "updated" then (.v | split(" → ")) as $v | {kind, name, from: $v[0], to: ($v[1] // ""), size}
+          elif .kind == "new" then {kind, name, to: .v, size}
+          elif .kind == "removed" then {kind, name, from: .v, size}
+          else {kind, name, size} end)'
+}
+
+# ui_diff "texto" [máximo de filas]
+ui_diff() {
+  local max="${2:-14}"
+  diff_parse "$1"
+  local -a upd=("${DIFF_UPD[@]}") add=("${DIFF_ADD[@]}") del=("${DIFF_DEL[@]}") chg=("${DIFF_CHG[@]}")
   local sum l_new l_upd l_del l_chg chgtxt=""
   msg l_new @diff.new; msg l_upd @diff.updated; msg l_del @diff.removed; msg l_chg @diff.changed
   if [ "$UI_DIFF_CHG" -gt 0 ]; then chgtxt="   ${E_MU}${G_CHG}${UI_DIFF_CHG} ${l_chg}${E_RST}"; fi

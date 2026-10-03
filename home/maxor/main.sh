@@ -27,7 +27,12 @@ main() {
   local c="${1:-}"
   shift || true
   case "$c" in
-    "") usage ;;
+    "")
+      # Sin argumentos, en una terminal y con la pantalla completa instalada, se abre;
+      # si no (o con MAXOR_NO_TUI=1), la lista de comandos.
+      if [ -t 0 ] && [ -t 1 ] && [ -z "${MAXOR_NO_TUI:-}" ] && command -v maxor-tui > /dev/null; then exec maxor-tui --screen home; fi
+      usage
+      ;;
     -h | --help) usage ;;
     -V | --version) cmd_version "$@" ;;
     help) cmd_help "${1:-}" ;;

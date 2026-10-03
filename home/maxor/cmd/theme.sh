@@ -26,8 +26,24 @@ theme_mode_word() { # theme_mode_word variable modo
 
 theme_list() {
   [ -d "$themes" ] || die_code "$EX_NEEDS" @theme.none "$themes"
-  local cur="" rows file mode s2 ac ac2 fg dir n name mark m label l
+  local json=0 a cur="" rows file mode s2 ac ac2 fg dir n name mark m label l
+  for a in "$@"; do [ "$a" = "--json" ] && json=1; done
   [ -f "$state/current" ] && cur="$(cat "$state/current")"
+  if [ "$json" = 1 ]; then
+    local f d id nm lines="" names
+    for f in "$themes"/*/colors.json; do
+      [ -f "$f" ] || continue
+      d="${f%/colors.json}"; id="${d##*/}"; nm="$(theme_meta "$d" name)"
+      lines+="$id"$'\t'"$nm"$'\n'
+    done
+    names="$(printf '%s' "$lines" | jq -R -s -c 'split("\n") | map(select(length > 0) | split("\t") | {(.[0]): (.[1] // .[0])}) | add // {}')"
+    jq -c --arg cur "$cur" --argjson names "$names" '
+      select([.bg,.s,.s2,.fg,.mu,.ac,.ac2,.on] | all(type == "string" and test("^#[0-9a-fA-F]{6}$")))
+      | (input_filename | split("/")[-2]) as $id
+      | {id: $id, name: ($names[$id] // $id), mode: (.mode // "dark"), active: ($id == $cur),
+         colors: {bg, s, s2, fg, mu, ac, ac2, on}}' "$themes"/*/colors.json | jq -s -c 'sort_by(.id)'
+    return 0
+  fi
   # Una sola lectura de todos los temas (y solo los válidos), no una por tema.
   rows="$(jq -r 'select([.bg,.s,.s2,.fg,.mu,.ac,.ac2,.on] | all(type == "string" and test("^#[0-9a-fA-F]{6}$")))
     | [input_filename, (.mode // "dark"), .s2, .ac, .ac2, .fg] | @tsv' "$themes"/*/colors.json 2> /dev/null || true)"
@@ -265,7 +281,7 @@ cmd_theme() {
   local sub="${1:-}"
   shift || true
   case "$sub" in
-    list) theme_list ;;
+    list) theme_list "$@" ;;
     current)
       if [ -f "$state/current" ]; then cat "$state/current"; else t theme.none_applied; echo; fi
       ;;
