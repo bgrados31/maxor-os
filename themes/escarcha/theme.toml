@@ -1,0 +1,7 @@
+name = "Escarcha"
+id = "escarcha"
+author = "Maxor OS"
+version = "1.0.0"
+license = "CC0-1.0"
+description = "Blanco azulado con azul océano."
+mode = "light"

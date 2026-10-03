@@ -1,0 +1,7 @@
+name = "Sakura nocturna"
+id = "sakura"
+author = "Maxor OS"
+version = "1.0.0"
+license = "CC0-1.0"
+description = "Ciruela oscura con rosa y durazno."
+mode = "dark"

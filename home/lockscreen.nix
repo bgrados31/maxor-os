@@ -15,6 +15,7 @@ let
     hint = "##fbe9f2a0";
     fail = "rgba(255, 107, 129, 1.0)";
     check = "rgba(140, 255, 190, 1.0)";
+    brightness = "0.60";
   };
   placeholders = sakura // {
     text = "rgba(@FG_RGB@, 1.0)";
@@ -22,6 +23,7 @@ let
     accent = "rgba(@AC_RGB@, 1.0)";
     inner = "rgba(@BG_RGB@, 0.55)";
     hint = "##@FG_HEX@a0";
+    brightness = "@LOCK_BRIGHTNESS@";
   };
   font = "Figtree";
   mono = "Red Hat Mono";
@@ -52,7 +54,7 @@ let
         blur_passes = 3;
         blur_size = 8;
         noise = 0.015;
-        brightness = 0.6;
+        brightness = c.brightness;
         vibrancy = 0.2;
       }];
 

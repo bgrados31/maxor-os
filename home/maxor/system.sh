@@ -6,12 +6,6 @@ need_flake() {
   [ -f "$flake_dir/flake.nix" ] || die "no encuentro el flake en $flake_dir (usa MAXOR_FLAKE=/ruta)"
 }
 
-confirm() { # confirm "pregunta"  →  0 si el usuario acepta
-  local r
-  read -r -p "$1 [s/N] " r
-  case "$r" in s | S | y | Y) return 0 ;; *) return 1 ;; esac
-}
-
 cmd_update() {
   local yes=0 lock=1 a
   for a in "$@"; do
@@ -22,79 +16,100 @@ cmd_update() {
     esac
   done
   need_flake
+  echo
   if [ "$lock" = 1 ]; then
-    echo "→ actualizando las entradas del flake (flake.lock)…"
-    nix flake update --flake "$flake_dir"
+    ui_run "Actualizando las entradas del flake" nix flake update --flake "$flake_dir" || exit 1
   fi
-  echo "→ compilando $host (todavía no se aplica nada)…"
-  local out
-  out="$(nix build --no-link --print-out-paths "$flake_dir#nixosConfigurations.$host.config.system.build.toplevel")"
+  ui_run "Compilando $host (todavía no se aplica nada)" \
+    nix build --no-link --print-out-paths "$flake_dir#nixosConfigurations.$host.config.system.build.toplevel" || exit 1
+  local out="$UI_OUT"
   if [ "$out" = "$(readlink -f /run/current-system)" ]; then
-    echo "El sistema ya está al día."
+    ui_say ok "El sistema ya está al día"
     return 0
   fi
+
+  local diff n=0 line
+  diff="$(nix store diff-closures /run/current-system "$out" 2> /dev/null || true)"
   echo
-  echo "Cambios respecto al sistema actual:"
-  nix store diff-closures /run/current-system "$out" || true
+  ui_open "maxor · cambios"
+  ui_line ""
+  if [ -z "$diff" ]; then
+    ui_row info "Solo cambia la configuración, ningún paquete"
+  else
+    while IFS= read -r line; do
+      n=$((n + 1))
+      if [ "$n" -le 18 ]; then ui_row info "$line"; fi
+    done <<< "$diff"
+    if [ "$n" -gt 18 ]; then ui_row info "… y $((n - 18)) más"; fi
+  fi
+  ui_line ""
+  ui_close
   echo
-  if [ "$yes" = 0 ] && ! confirm "¿Aplicar ahora?"; then
-    echo "Cancelado. No se aplicó nada."
-    [ "$lock" = 1 ] && echo "flake.lock sí se actualizó: revísalo con git diff flake.lock."
+  if [ "$yes" = 0 ] && ! ui_confirm "¿Aplicar ahora?"; then
+    ui_say info "Cancelado. No se aplicó nada."
+    if [ "$lock" = 1 ]; then ui_say info "flake.lock sí se actualizó: revísalo con git diff flake.lock"; fi
     return 0
   fi
   sudo nixos-rebuild switch --flake "$flake_dir#$host"
+  ui_say ok "Sistema actualizado"
 }
 
 cmd_rollback() {
-  local yes=0
-  [ "${1:-}" = "-y" ] && yes=1
-  echo "Generaciones recientes:"
-  nixos-rebuild list-generations 2>/dev/null | head -n 6 || true
+  local yes=0 line
+  if [ "${1:-}" = "-y" ]; then yes=1; fi
   echo
-  if [ "$yes" = 0 ] && ! confirm "¿Volver a la generación anterior?"; then
-    echo "Cancelado."
+  ui_open "maxor · generaciones"
+  ui_line ""
+  while IFS= read -r line; do ui_row info "$line"; done < <(nixos-rebuild list-generations 2> /dev/null | head -n 6 || true)
+  ui_line ""
+  ui_close
+  echo
+  if [ "$yes" = 0 ] && ! ui_confirm "¿Volver a la generación anterior?"; then
+    ui_say info "Cancelado."
     return 0
   fi
   sudo nixos-rebuild switch --rollback
+  ui_say ok "Vuelto a la generación anterior"
 }
 
 cmd_doctor() {
-  local fails=0 warns=0 c_ok="" c_warn="" c_bad="" c_off=""
-  if [ -t 1 ]; then c_ok=$'\e[32m'; c_warn=$'\e[33m'; c_bad=$'\e[31m'; c_off=$'\e[0m'; fi
-  ok() { printf '  %s✓%s %s\n' "$c_ok" "$c_off" "$*"; }
-  warn() { printf '  %s!%s %s\n' "$c_warn" "$c_off" "$*"; warns=$((warns + 1)); }
-  bad() { printf '  %s✗%s %s\n' "$c_bad" "$c_off" "$*"; fails=$((fails + 1)); }
-  section() { printf '\n%s\n' "$1"; }
+  local fails=0 warns=0
+  ok() { ui_row ok "$*"; }
+  warn() { ui_row warn "$*"; warns=$((warns + 1)); }
+  bad() { ui_row bad "$*"; fails=$((fails + 1)); }
 
-  section "Sistema"
+  echo
+  ui_open "maxor · doctor · $host"
+
+  ui_section "Sistema"
   ok "$(grep -m1 '^PRETTY_NAME=' /etc/os-release | cut -d= -f2 | tr -d '"') · kernel $(uname -r)"
   local nf nu
-  nf="$(systemctl --failed --no-legend 2>/dev/null | wc -l)"
-  nu="$(systemctl --user --failed --no-legend 2>/dev/null | wc -l)"
-  [ "$nf" = 0 ] && ok "sin servicios del sistema fallidos" || bad "$nf servicio(s) del sistema fallido(s): systemctl --failed"
-  [ "$nu" = 0 ] && ok "sin servicios de usuario fallidos" || bad "$nu servicio(s) de usuario fallido(s): systemctl --user --failed"
+  nf="$(systemctl --failed --no-legend 2> /dev/null | wc -l)"
+  nu="$(systemctl --user --failed --no-legend 2> /dev/null | wc -l)"
+  if [ "$nf" = 0 ]; then ok "sin servicios del sistema fallidos"; else bad "$nf servicio(s) del sistema fallido(s): systemctl --failed"; fi
+  if [ "$nu" = 0 ]; then ok "sin servicios de usuario fallidos"; else bad "$nu servicio(s) de usuario fallido(s): systemctl --user --failed"; fi
   if [ -e /run/booted-system/kernel ] && [ "$(readlink -f /run/booted-system/kernel)" != "$(readlink -f /run/current-system/kernel)" ]; then
-    warn "el kernel instalado no es el que está corriendo: reinicia para usarlo"
+    warn "el kernel instalado no es el que corre: reinicia para usarlo"
   else
     ok "el kernel en uso es el instalado"
   fi
 
-  section "Sesión"
-  [ "${XDG_SESSION_TYPE:-}" = "wayland" ] && ok "sesión Wayland" || warn "la sesión no es Wayland (XDG_SESSION_TYPE=${XDG_SESSION_TYPE:-vacío})"
-  [ "${XDG_CURRENT_DESKTOP:-}" = "Hyprland" ] && ok "escritorio Hyprland" || warn "XDG_CURRENT_DESKTOP=${XDG_CURRENT_DESKTOP:-vacío} (¿lo ejecutas desde una TTY?)"
+  ui_section "Sesión"
+  if [ "${XDG_SESSION_TYPE:-}" = "wayland" ]; then ok "sesión Wayland"; else warn "la sesión no es Wayland (XDG_SESSION_TYPE=${XDG_SESSION_TYPE:-vacío})"; fi
+  if [ "${XDG_CURRENT_DESKTOP:-}" = "Hyprland" ]; then ok "escritorio Hyprland"; else warn "XDG_CURRENT_DESKTOP=${XDG_CURRENT_DESKTOP:-vacío} (¿desde una TTY?)"; fi
   local u
   for u in dms hypridle xdg-desktop-portal xdg-desktop-portal-hyprland; do
     if systemctl --user is-active --quiet "$u"; then ok "$u activo"; else bad "$u no está activo: systemctl --user status $u"; fi
   done
   if [ -f /etc/pam.d/hyprlock ]; then
-    ok "hyprlock tiene su servicio PAM (podrás desbloquear)"
+    ok "hyprlock tiene servicio PAM: podrás desbloquear"
   else
     bad "falta /etc/pam.d/hyprlock: no podrías desbloquear la pantalla"
   fi
 
-  section "Gráficos"
-  local gpus
-  gpus="$(lspci 2>/dev/null | grep -E 'VGA|3D' | sed 's/^[^ ]* //' || true)"
+  ui_section "Gráficos"
+  local gpus line
+  gpus="$(lspci 2> /dev/null | grep -E 'VGA|3D' | sed 's/^[^ ]* //; s/^[A-Za-z0-9 ]*controller: //' || true)"
   if [ -n "$gpus" ]; then
     while IFS= read -r line; do ok "$line"; done <<< "$gpus"
   else
@@ -105,7 +120,7 @@ cmd_doctor() {
     if command -v nvidia-smi > /dev/null && nvidia-smi -L > /dev/null 2>&1; then ok "el controlador NVIDIA responde"; else warn "nvidia-smi no responde (¿driver sin cargar?)"; fi
   fi
 
-  section "Arranque y disco"
+  ui_section "Arranque y disco"
   local m use
   for m in /boot /efi; do
     if findmnt -n "$m" > /dev/null 2>&1; then
@@ -120,7 +135,7 @@ cmd_doctor() {
   use="$(df --output=pcent / | tail -n1 | tr -dc '0-9')"
   if [ "${use:-0}" -ge 90 ]; then warn "/ al ${use}%"; else ok "/ al ${use}%"; fi
 
-  section "Identidad"
+  ui_section "Identidad"
   local f fams
   fams="$(fc-list : family 2> /dev/null || true)"
   for f in "Figtree" "Red Hat Mono" "Krona One"; do
@@ -128,28 +143,30 @@ cmd_doctor() {
   done
   if [ -f "$state/current" ]; then
     ok "tema activo: $(cat "$state/current")"
-    if [ -f "$cfg/current/dms-theme.json" ]; then ok "tema de DMS generado"; else warn "falta $cfg/current/dms-theme.json: aplica un tema otra vez"; fi
+    if [ -f "$cfg/current/dms-theme.json" ]; then ok "tema de DMS generado"; else warn "falta el tema de DMS: aplica un tema otra vez"; fi
   else
     warn "ningún tema aplicado todavía: maxor theme apply sakura"
   fi
 
-  section "Configuración"
+  ui_section "Configuración"
   if [ -f "$flake_dir/flake.nix" ]; then
-    ok "flake en $flake_dir"
+    ok "flake en ${flake_dir/#$HOME/~}"
     if git -C "$flake_dir" rev-parse --git-dir > /dev/null 2>&1; then
-      if [ -n "$(git -C "$flake_dir" status --porcelain)" ]; then warn "hay cambios sin commit en $flake_dir"; else ok "repositorio sin cambios pendientes"; fi
+      if [ -n "$(git -C "$flake_dir" status --porcelain)" ]; then warn "hay cambios sin commit en el repositorio"; else ok "repositorio sin cambios pendientes"; fi
     fi
   else
     warn "no encuentro el flake en $flake_dir (MAXOR_FLAKE)"
   fi
 
+  ui_line ""
+  ui_close
   echo
   if [ "$fails" -gt 0 ]; then
-    printf '%s%d problema(s)%s y %d aviso(s).\n' "$c_bad" "$fails" "$c_off" "$warns"
+    printf ' %s  %d problema(s) y %d aviso(s)\n' "$(ui_pill bad "REVISAR")" "$fails" "$warns"
     return 1
   elif [ "$warns" -gt 0 ]; then
-    printf '%sTodo funciona%s, con %d aviso(s).\n' "$c_warn" "$c_off" "$warns"
+    printf ' %s  funciona, con %d aviso(s)\n' "$(ui_pill warn "AVISOS")" "$warns"
   else
-    printf '%sTodo en orden.%s\n' "$c_ok" "$c_off"
+    printf ' %s  todo en orden\n' "$(ui_pill ok "OK")"
   fi
 }
