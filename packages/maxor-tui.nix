@@ -17,6 +17,8 @@ buildGoModule {
   # contesta (consola de Linux, algunos SSH) la pantalla tardaría 5 s en abrirse. Maxor
   # usa solo colores explícitos, así que se quita esa consulta. Si una versión nueva
   # de Bubble Tea cambia esa línea, `--replace-fail` detiene la compilación.
+  # (no se aplica a la descarga de módulos: allí aún no existe vendor/)
+  overrideModAttrs = _: { preBuild = ""; };
   preBuild = ''
     substituteInPlace vendor/github.com/charmbracelet/bubbletea/tea_init.go \
       --replace-fail "_ = lipgloss.HasDarkBackground()" "_ = lipgloss.HasDarkBackground // (consulta omitida por Maxor)"
