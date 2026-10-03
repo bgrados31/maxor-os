@@ -42,8 +42,10 @@ fondo, y entre el acento y su texto.
 3. **Lockscreen**: se rellena la plantilla de hyprlock y se escribe
    `~/.config/maxor/current/hyprlock.conf`. En temas claros el fondo desenfocado se aclara para
    que el texto oscuro se lea.
-4. **Wallpaper**: si el tema trae `wallpaper.png`, se aplica con DMS.
-5. **kitty**: recibe `SIGUSR1` para releer su configuración.
+4. **Forma**: si el tema trae `style.json`, se genera `~/.config/maxor/current/hyprland.lua` y se
+   recarga Hyprland (esquinas, espacios, desenfoque y velocidad de las animaciones).
+5. **Wallpaper**: si el tema trae `wallpaper.png`, se aplica con DMS.
+6. **kitty**: recibe `SIGUSR1` para releer su configuración.
 
 Además, la propia terminal de `maxor` se dibuja con los colores del tema activo
 ([CLI.md](CLI.md#la-interfaz)). El tema anterior se guarda en `~/.local/state/maxor/history`;
@@ -55,6 +57,7 @@ Además, la propia terminal de `maxor` se dibuja con los colores del tema activo
 mi-tema/
 ├── theme.toml       metadatos
 ├── colors.json      paleta (obligatorio)
+├── style.json       forma: esquinas, espacios, desenfoque, animaciones (opcional)
 └── wallpaper.png    fondo (opcional, PNG de hasta 20 MB)
 ```
 
@@ -85,6 +88,31 @@ Ocho colores en formato `#rrggbb` y, opcionalmente, el modo. Cualquier otro form
 
 Para un tema claro, `bg` es el fondo más tintado, `s` una superficie más clara y `s2` el blanco
 de las tarjetas; el texto (`fg`) es oscuro.
+
+### `style.json`
+
+La forma del tema: solo números enteros, todos opcionales. `maxor` los valida y genera el Lua de
+Hyprland; el archivo nunca se ejecuta.
+
+| Clave | Rango | Efecto |
+|---|---|---|
+| `rounding` | 0 a 30 | Radio de las esquinas de las ventanas (px) |
+| `gaps_in` | 0 a 20 | Espacio entre ventanas (px) |
+| `gaps_out` | 0 a 40 | Espacio entre ventanas y bordes de pantalla (px) |
+| `border_size` | 0 a 6 | Grosor del borde (px) |
+| `blur_size` | 1 a 20 | Radio del desenfoque |
+| `blur_passes` | 1 a 5 | Pasadas del desenfoque |
+| `inactive` | 50 a 100 | Opacidad de las ventanas sin foco (%) |
+| `anim` | 0 a 300 | Duración de las animaciones (%): 100 es la normal, 60 más rápida, 0 las apaga |
+
+```json
+{
+  "rounding": 4, "gaps_in": 4, "gaps_out": 8, "border_size": 2,
+  "blur_size": 6, "blur_passes": 2, "inactive": 94, "anim": 60
+}
+```
+
+Si el tema no trae `style.json`, valen los valores por defecto de Maxor.
 
 ### `theme.toml`
 
@@ -121,8 +149,8 @@ Los temas oficiales viven en el store de Nix (solo lectura); los tuyos, en
 
 Un tema solo aporta datos. `maxor theme install` y `apply`:
 
-- validan que `colors.json` sea JSON, tenga las ocho claves y que cada valor sea `#rrggbb`;
-- copian **solo** `colors.json` (reescrito con las claves conocidas), `theme.toml` (hasta 4 KB) y
+- validan que `colors.json` sea JSON, tenga las ocho claves y que cada valor sea `#rrggbb`, y que cada número de `style.json` sea un entero dentro de su rango;
+- copian **solo** `colors.json` y `style.json` (reescritos con las claves conocidas), `theme.toml` (hasta 4 KB) y
   `wallpaper.png` (solo si empieza con la firma PNG y pesa menos de 20 MB). Cualquier otro archivo
   del tema se ignora;
 - rechazan archivos `.tar.gz` de más de 30 MB, con enlaces simbólicos o archivos especiales, con
@@ -141,8 +169,23 @@ código. Comprueba el contraste antes de proponerlo (ver [CONTRIBUTING.md](../CO
 
 - El tema se aplica a lo que DMS controla y al lockscreen. Las apps Qt necesitan haber elegido
   una vez el esquema de colores de DMS en `qt6ct`.
-- La forma de la barra (isla flotante, márgenes, transparencia) se configura en los ajustes de
-  DMS (`SUPER + ,`) y todavía no forma parte del tema.
-- Los temas aún no incluyen configuración de Hyprland ni del shell (esquinas, animaciones,
-  disposición). Está en la [hoja de ruta](ROADMAP.md).
+- La forma de la barra (isla flotante, márgenes, transparencia de DMS) se configura en los ajustes
+  de DMS (`SUPER + ,`) y todavía no forma parte del tema.
+- `style.json` cubre esquinas, espacios, bordes, desenfoque, opacidad y velocidad de animaciones;
+  la curva de las animaciones y la disposición del shell siguen pendientes ([hoja de ruta](ROADMAP.md)).
 - Instalar desde una URL todavía no existe.
+
+## Forma de los temas oficiales
+
+| Tema | Esquinas | Espacios (dentro / fuera) | Animaciones |
+|---|---|---|---|
+| Sakura nocturna | 8 px | 5 / 10 | 100 % |
+| Glaciar | 6 px | 4 / 8 | 90 % |
+| Obsidiana | 12 px | 5 / 12 | 100 % |
+| Brasa | 4 px | 4 / 8 | 60 % (rápidas) |
+| Ultravioleta | 14 px | 6 / 14 | 120 % (más suaves) |
+| Alba | 10 px | 5 / 12 | 100 % |
+| Escarcha | 8 px | 4 / 10 | 90 % |
+| Papel frío | 6 px | 4 / 8 | 80 % |
+| Brisa | 12 px | 6 / 12 | 110 % |
+| Ámbar | 8 px | 5 / 10 | 100 % |

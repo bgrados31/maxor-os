@@ -34,7 +34,8 @@ propio e instalador propio. Referencias de experiencia: Ryoku OS, Omarchy y los 
 - [x] `maxor theme list | current | apply | undo`.
 - [x] Modo claro: DMS, lockscreen y la CLI se adaptan al `mode` del tema.
 - [x] Diez temas oficiales: cinco oscuros y cinco claros, todos con contraste AA.
-- [ ] Incluir en el tema la configuración de Hyprland (esquinas, bordes, animaciones).
+- [x] Incluir en el tema la forma de Hyprland (esquinas, espacios, bordes, desenfoque, opacidad, velocidad de animaciones) con `style.json`.
+- [ ] Curva de animaciones por tema.
 - [ ] Incluir en el tema la disposición de la barra.
 - [x] `maxor theme install <carpeta|archivo>` con validación estricta de esquema y archivos.
 - [ ] `maxor theme install <url>` y firma opcional de temas.

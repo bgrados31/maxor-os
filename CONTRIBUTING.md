@@ -52,7 +52,7 @@ Tipos habituales: `feat`, `fix`, `docs`, `refactor`, `chore`, `ci`.
 
 ## Contribuir un tema
 
-Un tema es una carpeta con `colors.json` y `theme.toml`; el formato está en
+Un tema es una carpeta con `colors.json`, `theme.toml` y, opcionalmente, `style.json`; el formato está en
 [docs/THEMING.md](docs/THEMING.md). Los oficiales son las carpetas de `themes/`: añade una carpeta
 y el build se encarga del resto.
 

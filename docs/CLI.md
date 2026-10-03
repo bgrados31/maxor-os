@@ -58,10 +58,11 @@ La interfaz está en `home/maxor/ui.sh` y es la base que reutilizará el instala
 Referencia completa, formato y seguridad en [THEMING.md](THEMING.md). Resumen:
 
 - `theme list` agrupa en oscuros y claros, con una muestra de colores y el activo marcado.
-- `theme apply` actualiza DMS, el modo claro u oscuro, el lockscreen, el wallpaper y kitty, y
+- `theme apply` actualiza DMS, el modo claro u oscuro, el lockscreen, la forma de Hyprland (esquinas,
+  espacios, desenfoque y animaciones), el wallpaper y kitty, y
   termina con una ventana que resume cada paso.
 - `theme install <ruta>` valida el tema y copia solo los archivos permitidos. Acepta una carpeta o
-  un `.tar.gz`; rechaza enlaces, rutas peligrosas y colores inválidos.
+  un `.tar.gz`; rechaza enlaces, rutas peligrosas, colores inválidos y valores de forma fuera de rango.
 - `theme export <nombre>` crea `<nombre>.maxortheme` en el directorio actual.
 
 ## `maxor update`
@@ -108,6 +109,7 @@ en scripts.
 | `home/maxor.nix` | Empaquetado, temas oficiales y wallpapers |
 | `home/maxor/lib.sh` | Rutas y utilidades de color |
 | `home/maxor/ui.sh` | Ventanas, filas, spinner, confirmaciones |
+| `home/maxor/style.sh` | `style.json` → Lua de Hyprland (validación y generación) |
 | `home/maxor/theme.sh` | `maxor theme …` |
 | `home/maxor/system.sh` | `update`, `rollback` y `doctor` |
 | `home/maxor/main.sh` | Ayuda y despacho de comandos |

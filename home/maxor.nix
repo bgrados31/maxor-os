@@ -9,6 +9,7 @@
 #
 #   lib.sh      rutas y utilidades de color
 #   ui.sh       ventanas de terminal con la paleta del tema activo
+#   style.sh    style.json → Lua de Hyprland
 #   theme.sh    maxor theme …
 #   system.sh   maxor update | rollback | doctor
 #   main.sh     ayuda y despacho de comandos
@@ -17,11 +18,15 @@ let
   themeIds = builtins.attrNames (lib.filterAttrs (_: kind: kind == "directory") (builtins.readDir themesDir));
 
   mkTheme = id:
-    let colors = builtins.fromJSON (builtins.readFile (themesDir + "/${id}/colors.json"));
-    in pkgs.runCommand "maxor-theme-${id}" { nativeBuildInputs = [ pkgs.imagemagick ]; } ''
+    let
+      colors = builtins.fromJSON (builtins.readFile (themesDir + "/${id}/colors.json"));
+      styleFile = themesDir + "/${id}/style.json";
+    in
+    pkgs.runCommand "maxor-theme-${id}" { nativeBuildInputs = [ pkgs.imagemagick ]; } ''
       mkdir -p $out
       cp ${themesDir + "/${id}/colors.json"} $out/colors.json
       cp ${themesDir + "/${id}/theme.toml"} $out/theme.toml
+      ${lib.optionalString (builtins.pathExists styleFile) "cp ${styleFile} $out/style.json"}
       magick -size 2560x1600 radial-gradient:'${colors.s2}'-'${colors.bg}' -colorspace sRGB $out/wallpaper.png
     '';
 
@@ -34,6 +39,7 @@ let
     text = lib.concatMapStringsSep "\n" builtins.readFile [
       ./maxor/lib.sh
       ./maxor/ui.sh
+      ./maxor/style.sh
       ./maxor/theme.sh
       ./maxor/system.sh
       ./maxor/main.sh

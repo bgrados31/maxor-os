@@ -100,7 +100,23 @@ theme_apply() {
     steps+=("ok|Pantalla de bloqueo")
   fi
 
-  # 3) wallpaper del tema
+  # 3) forma del tema (esquinas, espacios, desenfoque, animaciones) → Lua de Hyprland
+  local shape=""
+  if [ -f "$dir/style.json" ]; then
+    if err="$(theme_check_style "$dir/style.json")"; then
+      theme_style_lua "$dir/style.json" > "$cfg/current/hyprland.lua"
+      shape="$(jq -r '"esquinas \(.rounding // "–") px · animaciones \(.anim // "–") %"' "$dir/style.json")"
+      steps+=("ok|Forma: $shape")
+    else
+      rm -f "$cfg/current/hyprland.lua"
+      steps+=("warn|style.json ignorado: $err")
+    fi
+  else
+    rm -f "$cfg/current/hyprland.lua"
+  fi
+  if [ -n "${HYPRLAND_INSTANCE_SIGNATURE:-}" ] && command -v hyprctl > /dev/null; then hyprctl reload > /dev/null 2>&1 || true; fi
+
+  # 4) wallpaper del tema
   if [ -f "$dir/wallpaper.png" ] && command -v dms > /dev/null; then
     if dms ipc call wallpaper set "$dir/wallpaper.png" > /dev/null 2>&1; then
       steps+=("ok|Fondo de pantalla")
@@ -109,7 +125,7 @@ theme_apply() {
     fi
   fi
 
-  # 4) kitty relee su configuración
+  # 5) kitty relee su configuración
   pkill -USR1 -x kitty 2> /dev/null || true
   steps+=("ok|kitty recargado")
 
@@ -178,6 +194,7 @@ theme_install() { # theme_install <carpeta|archivo.tar.gz> [--force]
 
   [ -f "$dir/colors.json" ] || die "falta colors.json en '$src'"
   err="$(theme_check "$dir/colors.json")" || die "$err"
+  if [ -f "$dir/style.json" ]; then err="$(theme_check_style "$dir/style.json")" || die "$err"; fi
 
   id="$(theme_meta "$dir" id)"
   [ -n "$id" ] || id="$(basename "$(readlink -f "$dir")")"
@@ -201,11 +218,15 @@ theme_install() { # theme_install <carpeta|archivo.tar.gz> [--force]
       ui_say warn "wallpaper.png ignorado (no es un PNG válido o pesa más de 20 MB)"
     fi
   fi
+  if [ -f "$dir/style.json" ]; then
+    jq '{rounding, gaps_in, gaps_out, border_size, blur_size, blur_passes, inactive, anim} | with_entries(select(.value != null))' "$dir/style.json" > "$dest/style.json"
+  fi
   ui_open "maxor · tema instalado"
   ui_line ""
   ui_line " ${E_BOLD}$(ui_c "$E_AC" "$id")${E_NB}  $(ui_swatch "$(jq -r .s2 "$dest/colors.json")" "$(jq -r .ac "$dest/colors.json")" "$(jq -r .ac2 "$dest/colors.json")" "$(jq -r .fg "$dest/colors.json")")"
   ui_line ""
   ui_row ok "Validado: ocho colores #rrggbb"
+  if [ -f "$dest/style.json" ]; then ui_row ok "Validada la forma (style.json: solo números)"; fi
   ui_row ok "Copiado a $(ui_trunc "${dest/#$HOME/~}" $((ui_w - 24)))"
   ui_row info "No se ejecutó nada del tema"
   ui_line ""
@@ -222,6 +243,7 @@ theme_export() { # theme_export <nombre>
   local files=(colors.json)
   [ -f "$dir/theme.toml" ] && files+=(theme.toml)
   [ -f "$dir/wallpaper.png" ] && files+=(wallpaper.png)
+  [ -f "$dir/style.json" ] && files+=(style.json)
   tar -czhf "$out" -C "$dir" "${files[@]}"
   ui_say ok "Exportado: ${out/#$HOME/~}"
 }

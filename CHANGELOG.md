@@ -7,6 +7,8 @@ no usa versiones numeradas.
 
 ### Añadido
 
+- **Forma de los temas** (`style.json`): cada tema define esquinas, espacios, bordes, desenfoque, opacidad de ventanas sin foco y velocidad de animaciones. Solo números validados; `maxor` genera el Lua de Hyprland y recarga. Los diez temas oficiales tienen su propia forma.
+
 - **Diez temas oficiales**: cinco oscuros (Sakura nocturna, Glaciar, Obsidiana, Brasa, Ultravioleta) y cinco claros (Alba, Escarcha, Papel frío, Brisa, Ámbar), todos con contraste AA. Los temas son carpetas en `themes/`.
 - **Modo claro** de extremo a extremo: DMS, lockscreen y CLI se adaptan al `mode` del tema.
 - **`maxor theme install` y `export`**: instalar desde carpeta o `.tar.gz` con validación estricta (solo datos permitidos, sin enlaces ni rutas peligrosas) y empaquetar temas.

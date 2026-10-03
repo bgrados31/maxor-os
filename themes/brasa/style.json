@@ -1,0 +1,4 @@
+{
+  "rounding": 4, "gaps_in": 4, "gaps_out": 8, "border_size": 2,
+  "blur_size": 6, "blur_passes": 2, "inactive": 94, "anim": 60
+}

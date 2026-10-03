@@ -22,7 +22,7 @@ home-manager como módulo de NixOS. La regla de diseño es separar cuatro cosas:
 | `modules/fonts.nix` | Fuentes del sistema y la que usa Plymouth |
 | `home/bryan.nix` | kitty, fish, starship, GTK/Qt, cursor, paquetes de usuario, `gh` |
 | `home/hyprland.nix` | Carga los módulos Lua de Hyprland y crea `user.lua` la primera vez |
-| `home/hyprland/*.lua` | `settings.lua` (apariencia), `rules.lua` (reglas), `binds.lua` (atajos), `user.lua.example` |
+| `home/hyprland/*.lua` | `settings.lua` (apariencia), `rules.lua` (reglas), `binds.lua` (atajos), `theme.lua` (forma del tema activo), `user.lua.example` |
 | `home/lockscreen.nix` | hyprlock (diseño) e hypridle (inactividad) |
 | `home/maxor.nix` | Empaquetado del CLI y de los temas oficiales (genera sus wallpapers) |
 | `home/maxor/*.sh` | El CLI: `lib`, `ui` (ventanas), `theme`, `system` (update, rollback, doctor) y `main` |
@@ -108,7 +108,7 @@ la [fase 2](ROADMAP.md).
 
 `hyprland.lua` solo carga módulos, en este orden:
 
-1. `maxor.settings`, `maxor.rules`, `maxor.binds`: de solo lectura, vienen de este repositorio.
+1. `maxor.settings`, `maxor.rules`, `maxor.binds`, `maxor.theme`: de solo lectura. El último carga la forma que `maxor theme apply` genera para el tema activo.
 2. `dms.*`: colores del tema, monitores, cursor y reglas que gestiona DankMaterialShell.
 3. `maxor.user`: **tuyo**. Se crea una sola vez desde `user.lua.example`, se carga el último y el
    sistema nunca lo modifica, así que lo que pongas ahí sobrescribe todo lo anterior.
