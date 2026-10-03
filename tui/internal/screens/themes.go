@@ -225,16 +225,22 @@ func (t *Themes) Side(env *core.Env, w, h int) []ui.Line {
 	pp := ui.NewPainter(pt, th.Colors.Bg)
 	pb := ui.NewPainter(pt, th.Colors.S2)
 	row := func(pa ui.Painter, segs ...ui.Seg) ui.Line { return ui.Line{L: ui.Cell(segs, w, pa.Fill)} }
-	sel := ui.Line{L: ui.Cell([]ui.Seg{ui.S(pp.Sel, " "+ui.G.Sel+" selected row")}, w, pp.Fill)}
+	// una ventana en miniatura con la forma real de la pantalla: pestañas, lista con una
+	// fila elegida, avisos, un botón y la barra de abajo
+	sel := ui.Line{L: ui.Cell([]ui.Seg{ui.S(pp.Sel, " "+ui.G.Sel+" "+ui.G.Swatch+" selected row")}, w, pp.Fill)}
 	sample := []ui.Line{
-		row(pb, ui.S(pb.Ac.Bold(true), " maxor "), ui.S(pb.Mu, ui.G.Arrow+" "+th.ID)),
+		row(pb, ui.S(pb.Mu, " Home  Store  "), ui.S(pb.Btn, " Themes "), ui.S(pb.Mu, "  Update")),
 		row(pp),
-		row(pp, ui.S(pp.Ok, " "+ui.G.Tick+" applied")),
-		row(pp, ui.S(pp.Warn, " "+ui.G.Warn+" one warning")),
-		row(pp, ui.S(pp.Bad, " "+ui.G.Bad+" a problem")),
+		row(pp, ui.S(pp.Mu, " SECTION")),
+		row(pp, ui.S(pp.Text, "   "+ui.G.Swatch+" first row")),
 		sel,
-		row(pp, ui.S(pp.Text, " plain text "), ui.S(pp.Mu, "muted")),
+		row(pp, ui.S(pp.Text, "   "+ui.G.Swatch+" third row")),
 		row(pp),
+		row(pp, ui.S(pp.Ok, " "+ui.G.Tick+" done  "), ui.S(pp.Warn, ui.G.Warn+" careful  "), ui.S(pp.Bad, ui.G.Bad+" failed")),
+		row(pp),
+		row(pp, ui.S(pp.Btn, " Apply "), ui.S(pp.Mu, "  muted hint")),
+		row(pp),
+		row(pb, ui.S(pb.Mu, " ↑↓ move  ⏎ choose"), ui.S(pb.Ac, "  "+th.ID)),
 	}
 	p := env.P
 	lines := []ui.Line{

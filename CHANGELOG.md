@@ -18,6 +18,10 @@ no usa versiones numeradas.
 
 ### Añadido
 
+- **Profiles sustituye a la pestaña Setup**: marcas o desmarcas perfiles y los aplicas con `a`. El asistente sigue existiendo, pero solo con `maxor setup` (para estrenar el equipo).
+- **La Tienda se maneja entera con flechas**: `↑` `↓` pasan de la caja de búsqueda a las pestañas y a la lista; con el foco en la caja todo lo que escribes es texto; `←` `→` cambian entre Results, Installed y un filtro por origen (All, nixpkgs, flathub).
+- **Doctor distingue «fix» de «look»**: lo que arregla algo pide confirmación; lo que solo enseña información (`git status`, `systemctl --failed`) se abre con un `⏎`. `doctor --json` suma `kind`.
+- **Themes**: la vista previa es una ventana en miniatura con la forma real de la pantalla.
 - **Mejoras de la pantalla completa**:
   - **← →** (y `h` `l`, `[` `]`) cambian de pestaña además de `Tab`; la ayuda `?` suma las teclas de la pantalla en la que estás.
   - **Themes**: cada tema es un punto de su color de acento, agrupados en oscuros y claros, con una vista previa más clara.

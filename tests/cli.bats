@@ -199,7 +199,7 @@ setup() {
 @test "doctor --json lleva el id de cada comprobación y su arreglo" {
   bats_require_minimum_version 1.5.0
   run --separate-stderr "$MAXOR_BIN" doctor --json
-  echo "$output" | jq -e 'all(.groups[].items[]; has("id") and has("fix") and has("confirm"))'
+  echo "$output" | jq -e 'all(.groups[].items[]; has("id") and has("fix") and has("confirm") and has("kind"))'
   # las que están bien nunca ofrecen arreglo
   echo "$output" | jq -e 'all(.groups[].items[] | select(.level == "ok"); .fix == null)'
 }

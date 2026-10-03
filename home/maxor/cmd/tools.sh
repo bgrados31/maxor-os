@@ -1,5 +1,5 @@
 # ── Herramientas: logs, debug, completions, version ──────────────────
-maxor_cmd ui tools "home store themes update doctor"
+maxor_cmd ui tools "home store themes update doctor profiles"
 maxor_cmd setup tools ""
 maxor_cmd logs tools "--last --path"
 maxor_cmd debug tools ""
@@ -19,7 +19,7 @@ tui_run() { # tui_run pantalla
 }
 cmd_ui() {
   case "${1:-home}" in
-    home | store | themes | update | doctor | setup) tui_run "${1:-home}" ;;
+    home | store | themes | update | doctor | profiles | setup) tui_run "${1:-home}" ;;
     *) usage_error ui ;;
   esac
 }

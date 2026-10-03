@@ -90,7 +90,7 @@ func New(opts Options, client *maxor.Client) *Model {
 	} else {
 		m.screens = []core.Screen{
 			screens.NewHome(), screens.NewStore(), screens.NewThemes(),
-			screens.NewUpdate(), screens.NewDoctor(), screens.NewSetup(),
+			screens.NewUpdate(), screens.NewDoctor(), screens.NewProfiles(),
 		}
 		if i := m.indexOf(opts.Screen); i >= 0 {
 			m.active = i
@@ -294,12 +294,22 @@ func (m *Model) key(k tea.KeyMsg, cmds []tea.Cmd) (tea.Model, tea.Cmd) {
 		}
 		if !m.setupFocus && len(m.screens) > 1 {
 			n := len(m.screens)
+			own := false
+			if o, ok := s.(interface{ OwnsHorizontal() bool }); ok {
+				own = o.OwnsHorizontal()
+			}
 			switch k.String() {
-			case "tab", "right", "l", "]":
-				add(core.Go(m.screens[(m.active+1)%n].ID()))
-				return m, tea.Batch(cmds...)
-			case "shift+tab", "left", "h", "[":
-				add(core.Go(m.screens[(m.active+n-1)%n].ID()))
+			case "right", "l", "left", "h":
+				if own {
+					break
+				}
+				fallthrough
+			case "tab", "]", "shift+tab", "[":
+				step := 1
+				if k.String() == "left" || k.String() == "h" || k.String() == "shift+tab" || k.String() == "[" {
+					step = n - 1
+				}
+				add(core.Go(m.screens[(m.active+step)%n].ID()))
 				return m, tea.Batch(cmds...)
 			}
 			if r := []rune(k.String()); len(r) == 1 && r[0] >= '1' && r[0] <= '9' && int(r[0]-'1') < n {

@@ -52,7 +52,7 @@ msgs_en() {
   MSG[help.doctor]=$'Usage: maxor doctor\n\n  Checks system, session, graphics, boot, identity and configuration.\n  Exit code 1 if something is wrong.'
   MSG[help.hardware]=$'Usage: maxor hardware [show | detect [--write [path]]]\n\n  show      detected machine and the drivers Maxor uses (default)\n  detect    print hardware.json; --write saves it for this machine'
   MSG[help.profile]=$'Usage: maxor profile [list [--json] | enable <name> [-y|--no-apply] | disable <name> [-y|--no-apply]]\n\n  Profiles: gaming, dev, creator, office.\n  --no-apply   only save the choice; apply it later with maxor update'
-  MSG[help.ui]=$'Usage: maxor ui [home|store|themes|update|doctor]\n\n  Opens the full-screen app on that screen (home by default).\n  It takes over your terminal and gives it back, with a short summary,\n  when you quit. Running maxor with no arguments does the same.\n  MAXOR_NO_TUI=1 disables that.'
+  MSG[help.ui]=$'Usage: maxor ui [home|store|themes|update|doctor|profiles]\n\n  Opens the full-screen app on that screen (home by default).\n  It takes over your terminal and gives it back, with a short summary,\n  when you quit. Running maxor with no arguments does the same.\n  MAXOR_NO_TUI=1 disables that.'
   MSG[help.setup]=$'Usage: maxor setup\n\n  Opens the setup assistant: pick a look, choose profiles and review\n  what was detected. Safe to run again any time.'
   MSG[help.logs]=$'Usage: maxor logs [--last | --path]\n\n  (none)    last 40 lines of the log\n  --last    details of the last failure\n  --path    path of the log file'
   MSG[help.debug]=$'Usage: maxor debug\n\n  Writes maxor-debug-<date>.txt here with version, hardware, doctor and log.\n  Review it before sharing.'

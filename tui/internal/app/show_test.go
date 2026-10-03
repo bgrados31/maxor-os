@@ -19,7 +19,7 @@ func TestShow(t *testing.T) {
 	m, _ := setup(t, Options{})
 	m.Update(tea.WindowSizeMsg{Width: 110, Height: 30})
 	send(m, core.GoMsg{ID: "update"}, key("c"))
-	for _, id := range []string{"home", "themes", "doctor", "update", "setup"} {
+	for _, id := range []string{"home", "store", "themes", "doctor", "update", "profiles", "setup"} {
 		send(m, core.GoMsg{ID: id})
 		fmt.Printf("\n══════ %s ══════\n%s\n", id, view(m))
 	}

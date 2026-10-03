@@ -13,6 +13,7 @@ import (
 
 	"github.com/bgrados31/maxor-os/tui/internal/core"
 	"github.com/bgrados31/maxor-os/tui/internal/maxor"
+	"github.com/bgrados31/maxor-os/tui/internal/screens"
 	"github.com/bgrados31/maxor-os/tui/internal/task"
 )
 
@@ -187,7 +188,7 @@ func TestLaVistaSiempreMideExactamenteElTerminal(t *testing.T) {
 	for _, size := range [][2]int{{80, 24}, {100, 30}, {120, 40}, {160, 50}, {200, 60}} {
 		m, _ := setup(t, Options{})
 		m.Update(tea.WindowSizeMsg{Width: size[0], Height: size[1]})
-		for _, id := range []string{"home", "store", "themes", "update", "doctor", "setup"} {
+		for _, id := range []string{"home", "store", "themes", "update", "doctor", "profiles"} {
 			send(m, core.GoMsg{ID: id})
 			for _, phase := range []string{"cargando", "cargado"} {
 				out := m.View()
@@ -228,7 +229,7 @@ func TestPestanasConTabNumerosYRaton(t *testing.T) {
 		t.Fatalf("tab: %s", m.screens[m.active].ID())
 	}
 	send(m, key("shift+tab"), key("shift+tab"))
-	if m.screens[m.active].ID() != "setup" {
+	if m.screens[m.active].ID() != "profiles" {
 		t.Fatalf("shift+tab da la vuelta: %s", m.screens[m.active].ID())
 	}
 	send(m, key("3"))
@@ -524,7 +525,7 @@ func TestHomeSinCliMuestraErroresSinCaerse(t *testing.T) {
 	if !strings.Contains(out, "could not check") || !strings.Contains(out, "maxor logs --last") {
 		t.Fatalf("errores:\n%s", out)
 	}
-	for _, id := range []string{"store", "themes", "doctor", "setup"} {
+	for _, id := range []string{"store", "themes", "doctor", "profiles"} {
 		send(m, core.GoMsg{ID: id})
 		if len(strings.Split(m.View(), "\n")) != 30 {
 			t.Fatalf("%s no mide 30 filas con la CLI rota", id)
@@ -623,7 +624,7 @@ func TestFlechasHYLCambianDePestana(t *testing.T) {
 		t.Fatal("] y [")
 	}
 	send(m, key("left"))
-	if id() != "setup" {
+	if id() != "profiles" {
 		t.Fatal("← desde la primera da la vuelta")
 	}
 	// dentro de un campo de texto son letras, no navegación
@@ -765,3 +766,155 @@ func TestElSkeletonDelInicioTieneLaFormaDeLaTarjeta(t *testing.T) {
 }
 
 var _ = fmt.Sprint
+
+func TestTiendaSeNavegaConFlechasEntreBusquedaPestanasYLista(t *testing.T) {
+	m, _ := setup(t, Options{Screen: "store"})
+	st := func() *screens.Store { return m.screens[m.active].(*screens.Store) }
+	// buscar para que haya pestañas y filtros
+	send(m, key("/"))
+	typeText(m, "brave")
+	send(m, key("enter"))
+	if st().Zone() != "list" {
+		t.Fatalf("tras buscar el foco queda en la lista: %s", st().Zone())
+	}
+	send(m, key("up"))
+	if st().Zone() != "chips" {
+		t.Fatalf("↑ desde la primera fila va a las pestañas: %s", st().Zone())
+	}
+	send(m, key("up"))
+	if st().Zone() != "search" {
+		t.Fatalf("↑ otra vez va a la búsqueda: %s", st().Zone())
+	}
+	// con el foco en la búsqueda, lo que se teclea es texto (incluida la q)
+	typeText(m, "q")
+	if !has(view(m), "braveq") {
+		t.Fatalf("la caja debe recibir el texto:\n%s", view(m))
+	}
+	send(m, key("down"))
+	if st().Zone() != "chips" {
+		t.Fatalf("↓ baja a las pestañas: %s", st().Zone())
+	}
+	// ← → cambian de pestaña de la Tienda y no de pantalla
+	send(m, key("right"))
+	if m.screens[m.active].ID() != "store" {
+		t.Fatal("→ no debe cambiar de pantalla")
+	}
+	if out := view(m); strings.Contains(out, "Brave Browser") || !strings.Contains(out, "vscode") {
+		t.Fatalf("→ elige Installed:\n%s", out)
+	}
+	send(m, key("left"))
+	if out := view(m); !strings.Contains(out, "Brave Browser") {
+		t.Fatalf("← vuelve a Results:\n%s", out)
+	}
+	// y siguen los filtros por origen
+	send(m, key("right"), key("right"), key("right"))
+	send(m, key("right"))
+	if out := view(m); !strings.Contains(out, "Fast Internet") || strings.Contains(out, "Privacy-oriented") {
+		t.Fatalf("el filtro flathub deja solo lo de flathub:\n%s", out)
+	}
+	send(m, key("down"))
+	if st().Zone() != "list" {
+		t.Fatalf("↓ vuelve a la lista: %s", st().Zone())
+	}
+}
+
+func TestTiendaFiltraPorOrigen(t *testing.T) {
+	m, _ := setup(t, Options{Screen: "store"})
+	send(m, key("/"))
+	typeText(m, "brave")
+	send(m, key("enter"), key("up"))
+	// Results, Installed, All, nixpkgs, flathub
+	send(m, key("right"), key("right"), key("right"))
+	out := view(m)
+	if !strings.Contains(out, "Privacy-oriented") || strings.Contains(out, "Fast Internet") {
+		t.Fatalf("nixpkgs deja solo lo de nixpkgs:\n%s", out)
+	}
+	send(m, key("right"))
+	out = view(m)
+	if !strings.Contains(out, "Fast Internet") || strings.Contains(out, "Privacy-oriented") {
+		t.Fatalf("flathub no debe enseñar lo de nixpkgs:\n%s", out)
+	}
+}
+
+func TestEnLaTiendaLasLetrasDeLaCajaNoSalenDeLaPantalla(t *testing.T) {
+	m, _ := setup(t, Options{Screen: "store"})
+	send(m, key("/"))
+	typeText(m, "hl:?")
+	if m.screens[m.active].ID() != "store" || m.overlay != ovNone {
+		t.Fatal("h, l, : y ? son texto mientras escribes")
+	}
+}
+
+func TestPerfilesSeMarcanYSeAplicanDesdeLaPestana(t *testing.T) {
+	m, f := setup(t, Options{Screen: "profiles"})
+	out := view(m)
+	for _, want := range []string{"Gaming", "Office", "0 of 2 active", "Steam, Proton and GameMode."} {
+		if !has(out, want) {
+			t.Fatalf("falta %q:\n%s", want, out)
+		}
+	}
+	send(m, key(" "))
+	out = view(m)
+	if !has(out, "will enable") || !has(out, "1 change to apply") || !strings.Contains(out, "Apply  a") {
+		t.Fatalf("marcar deja el cambio pendiente a la vista:\n%s", out)
+	}
+	if f.called("profile enable") {
+		t.Fatal("marcar no toca nada hasta aplicar")
+	}
+	send(m, key(" "))
+	if has(view(m), "will enable") {
+		t.Fatal("desmarcar vuelve a lo activo")
+	}
+	send(m, key("a"))
+	if f.called("profile enable") || f.called("profile disable") {
+		t.Fatal("sin cambios, a no guarda nada")
+	}
+	send(m, key(" "), key("down"), key("x"))
+	if has(view(m), "will enable") {
+		t.Fatal("x descarta lo marcado")
+	}
+	send(m, key("up"), key(" "), key("a"))
+	if !f.called("profile enable gaming --no-apply") {
+		t.Fatalf("a guarda la elección con la CLI: %v", f.calls)
+	}
+	// después se cede la terminal para reconstruir; al volver se recarga
+	before := f.n("profile list --json")
+	send(m, core.ExecDoneMsg{Tag: "profiles"})
+	if f.n("profile list --json") != before+1 || !strings.Contains(summaryText(m), "Applied the profiles") {
+		t.Fatal("al volver de reconstruir se recarga y queda el resumen")
+	}
+}
+
+func TestElAsistenteYaNoEsUnaPestana(t *testing.T) {
+	m, _ := setup(t, Options{})
+	if m.indexOf("setup") >= 0 {
+		t.Fatal("Setup solo existe con `maxor setup`, no entre las pestañas")
+	}
+	if m.indexOf("profiles") < 0 {
+		t.Fatal("Profiles ocupa su lugar")
+	}
+}
+
+func TestDoctorDiferenciaArreglarDeSoloMirar(t *testing.T) {
+	f := newCLI()
+	f.resp["doctor --json"] = `{"ok":true,"fails":0,"warns":2,"groups":[{"title":"Configuration","items":[{"level":"warn","text":"uncommitted changes","id":"git_dirty","fix":"git status","confirm":false,"kind":"inspect"},{"level":"warn","text":"hardware changed","id":"hw_changed","fix":"maxor hardware detect --write","confirm":false,"kind":"fix"}]}]}`
+	m, _ := setupWith(t, f, Options{Screen: "doctor"})
+	out := view(m)
+	if !strings.Contains(out, "look ⏎") || !strings.Contains(out, "fix ⏎") || !strings.Contains(out, "Show it") || !strings.Contains(out, "Only shows information") {
+		t.Fatalf("mirar y arreglar se distinguen:\n%s", out)
+	}
+	_, cmd := m.Update(key("enter"))
+	if cmd == nil {
+		t.Fatal("mirar no pide confirmación: un Intro basta")
+	}
+	send(m, core.ExecDoneMsg{Tag: "doctor"})
+	view(m)
+	send(m, key("down"))
+	out = view(m)
+	if !strings.Contains(out, "Prepare fix") {
+		t.Fatalf("arreglar pide preparar antes:\n%s", out)
+	}
+	if _, cmd := m.Update(key("enter")); cmd != nil {
+		t.Fatal("el primer Intro de un arreglo solo lo prepara")
+	}
+}

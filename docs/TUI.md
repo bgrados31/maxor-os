@@ -7,8 +7,8 @@ imita una terminal: dibuja su propia interfaz con la paleta del tema activo.
 
 ```
 maxor                 # sin argumentos, en una terminal: abre la pantalla
-maxor ui [pantalla]   # home, store, themes, update o doctor
-maxor setup           # el asistente de primer arranque, sin pestañas
+maxor ui [pantalla]   # home, store, themes, update, doctor o profiles
+maxor setup           # el asistente de primer arranque, sin pestañas (solo para estrenar el equipo)
 maxor search [texto]  # abre la Tienda (con la búsqueda ya lanzada)
 ```
 
@@ -23,8 +23,8 @@ siempre (la lista de comandos, o los resultados como lista), así que nada depen
 | **Store** | Buscar en nixpkgs y Flathub, marcar varias apps, instalar y quitar | `search --json`, `install --json`, `remove --json`, `apps --json` |
 | **Themes** | Ver los temas; al moverte, **toda la pantalla se pinta con ese tema** sin tocar el sistema; con Intro se aplica | `theme list --json`, `theme apply`, `theme undo` |
 | **Update** | Rama y canal de la configuración, escaneo automático de lo que cambiaría (sin aplicar nada), rescan y aplicar | `update --status`, `update --cached`, `update --json [--no-lock]`, `update --no-lock -y` |
-| **Doctor** | Las comprobaciones agrupadas; cada aviso con arreglo se prepara con `⏎` y se ejecuta con otro `⏎` | `doctor --json` (campos `id`, `fix`, `confirm`) |
-| **Setup** | El asistente: detecta el equipo, elige el aspecto y los perfiles, y lo guarda | `hardware detect`, `theme list`, `profile list --json`, `theme apply`, `profile enable\|disable --no-apply` |
+| **Doctor** | Las comprobaciones agrupadas. Cada aviso ofrece un comando fijo que decide la CLI: **fix** (arregla algo; `⏎` lo prepara y otro `⏎` lo ejecuta) o **look** (solo enseña información, un `⏎` basta). No hay IA: son comandos que se ven antes de ejecutarlos | `doctor --json` (campos `id`, `fix`, `confirm`, `kind`) |
+| **Profiles** | Marcar o desmarcar perfiles (juegos, desarrollo…) y aplicarlos con `a`; es lo que antes hacía el asistente, pero para el día a día | `profile list --json`, `profile enable\|disable --no-apply`, `update --no-lock -y` |
 
 La pantalla **no reimplementa nada**: llama a la CLI y lee su JSON (el contrato está en
 [APPS.md](APPS.md) y [CLI.md](CLI.md)). Si algo falla, el código de salida y la última línea de
@@ -39,7 +39,7 @@ La pantalla **no reimplementa nada**: llama a la CLI y lee su JSON (el contrato 
 | `⏎` | Elegir o ejecutar |
 | `espacio` | Marcar (Tienda y Setup) |
 | `r` / `c` | Update: repetir el escaneo / buscar versiones nuevas. Doctor: comprobar otra vez |
-| `/` | Buscar (Tienda) |
+| `/` o `↑` | Buscar (Tienda). Con `↑` y `↓` se recorren la caja, las pestañas Results/Installed/origen y la lista; `←` `→` cambian de pestaña dentro de la Tienda |
 | `:` | **Paleta de comandos**: escribe `go store`, `theme alba`, `search brave`, `update check`… |
 | `?` | Ayuda con todas las teclas |
 | `q`, `Ctrl-C` | Volver a tu terminal |

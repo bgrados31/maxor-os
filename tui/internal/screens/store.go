@@ -18,7 +18,10 @@ import (
 type Store struct {
 	core.Base
 	in       ui.Input
-	focus    bool
+	zone     int // dónde está el foco: caja de búsqueda, pestañas o lista
+	chip     int // pestaña con el foco (posición en chips())
+	src      string // filtro por origen: "", "nix" o "flatpak"
+	chipX    [][2]int
 	query    string
 	results  []maxor.Result
 	searched bool
@@ -28,6 +31,20 @@ type Store struct {
 	queue    []item
 	armed    string
 	rows     int // apps que caben en pantalla
+}
+
+// Zonas del foco: se recorren con ↑ y ↓.
+const (
+	zSearch = iota
+	zChips
+	zList
+)
+
+type chipDef struct {
+	label string
+	view  int    // 1 resultados · 2 instalado (0 si es un filtro)
+	src   string // valor del filtro cuando view == 0
+	group bool   // es un filtro de origen
 }
 
 type item struct {
@@ -43,7 +60,7 @@ const (
 )
 
 func NewStore() *Store {
-	s := &Store{marks: map[string]bool{}}
+	s := &Store{marks: map[string]bool{}, zone: zList}
 	s.in.Placeholder = "Search apps in nixpkgs and Flathub…"
 	return s
 }
@@ -58,7 +75,54 @@ func (s *Store) Init(env *core.Env) tea.Cmd {
 	return LoadApps(env, false)
 }
 
-func (s *Store) Captures() bool { return s.focus }
+// Captures: con el foco en la caja de búsqueda todo lo que se teclea es texto.
+func (s *Store) Captures() bool { return s.zone == zSearch }
+
+// OwnsHorizontal: en las pestañas, ← y → cambian de pestaña de la Tienda, no de pantalla.
+func (s *Store) OwnsHorizontal() bool { return s.zone == zChips }
+
+// chips son las pestañas: la vista (resultados o instalado) y, tras buscar, el origen.
+func (s *Store) chips(env *core.Env) []chipDef {
+	var out []chipDef
+	if s.searched {
+		out = append(out, chipDef{label: fmt.Sprintf("Results %d", len(s.results)), view: 1})
+	}
+	out = append(out, chipDef{label: fmt.Sprintf("Installed %d", len(env.Data.Apps)), view: 2})
+	if s.searched {
+		out = append(out, chipDef{label: "All", group: true}, chipDef{label: "nixpkgs", src: "nix", group: true}, chipDef{label: "flathub", src: "flatpak", group: true})
+	}
+	return out
+}
+
+// chipActive dice si una pestaña es la elegida (su vista o su filtro).
+func (s *Store) chipActive(c chipDef) bool {
+	switch {
+	case c.group:
+		return c.src == s.src
+	case c.view == 2:
+		return !s.searched || s.showInst
+	}
+	return s.searched && !s.showInst
+}
+
+// pickChip elige la pestaña i: cambia la vista o el filtro al instante.
+func (s *Store) pickChip(env *core.Env, i int) {
+	cs := s.chips(env)
+	if i < 0 || i >= len(cs) {
+		return
+	}
+	s.chip = i
+	c := cs[i]
+	switch {
+	case c.group:
+		s.src, s.showInst = c.src, false // un filtro siempre se ve sobre los resultados
+	case c.view == 2:
+		s.showInst = true
+	default:
+		s.showInst = false
+	}
+	s.list = listState{}
+}
 
 func (s *Store) installed(env *core.Env) map[string]bool {
 	m := map[string]bool{}
@@ -84,6 +148,9 @@ func (s *Store) items(env *core.Env) []item {
 	inst := s.installed(env)
 	out := make([]item, 0, len(s.results))
 	for _, r := range s.results {
+		if s.src != "" && r.Source != s.src {
+			continue
+		}
 		it := item{Source: r.Source, ID: r.ID, Name: r.Name, Version: r.Version, Desc: r.Description}
 		it.Installed = inst[it.key()]
 		out = append(out, it)
@@ -94,8 +161,8 @@ func (s *Store) items(env *core.Env) []item {
 func (s *Store) search(env *core.Env) tea.Cmd {
 	q := strings.TrimSpace(s.in.Text())
 	if q == "" {
-		s.searched, s.results, s.query, s.showInst = false, nil, "", false
-		s.list = listState{}
+		s.searched, s.results, s.query, s.showInst, s.src = false, nil, "", false, ""
+		s.list, s.chip = listState{}, 0
 		return nil
 	}
 	s.query = q
@@ -118,11 +185,11 @@ func (s *Store) startNext(env *core.Env) tea.Cmd {
 func (s *Store) Update(env *core.Env, msg tea.Msg) (core.Screen, tea.Cmd) {
 	switch m := msg.(type) {
 	case FocusSearchMsg:
-		s.focus = true
+		s.zone = zSearch
 		return s, nil
 	case core.SearchMsg:
 		s.in.Set(m.Query)
-		s.focus = false
+		s.zone = zList
 		return s, s.search(env)
 	case task.DoneMsg:
 		if m.Owner() != "store" {
@@ -134,8 +201,8 @@ func (s *Store) Update(env *core.Env, msg tea.Msg) (core.Screen, tea.Cmd) {
 				return s, core.Toast("bad", "Search failed: "+oneLine(m.Err.Error()))
 			}
 			s.results, _ = m.Value.([]maxor.Result)
-			s.searched, s.showInst = true, false
-			s.list = listState{}
+			s.searched, s.showInst, s.src = true, false, ""
+			s.list, s.chip = listState{}, 0
 			return s, nil
 		case "store.install":
 			it, _ := m.Value.(item)
@@ -158,19 +225,57 @@ func (s *Store) Update(env *core.Env, msg tea.Msg) (core.Screen, tea.Cmd) {
 }
 
 func (s *Store) key(env *core.Env, m tea.KeyMsg) (core.Screen, tea.Cmd) {
-	if s.focus {
+	switch s.zone {
+	case zSearch:
 		switch {
 		case isKey(m, "enter"):
-			s.focus = false
+			s.zone = zList
 			return s, s.search(env)
 		case isKey(m, "esc"):
-			s.focus = false
+			s.zone = zList
+			return s, nil
+		case isKey(m, "down"):
+			s.zone = zList
+			if s.searched {
+				s.zone = zChips
+			}
+			return s, nil
+		case isKey(m, "up"):
 			return s, nil
 		}
 		s.in.Key(m)
 		return s, nil
+	case zChips:
+		switch {
+		case isKey(m, "left", "h"):
+			s.pickChip(env, s.chip-1)
+			return s, nil
+		case isKey(m, "right", "l"):
+			s.pickChip(env, s.chip+1)
+			return s, nil
+		case isKey(m, "up", "k"):
+			s.zone = zSearch
+			return s, nil
+		case isKey(m, "down", "j", "enter"):
+			s.zone = zList
+			return s, nil
+		case isKey(m, "/"):
+			s.zone = zSearch
+			return s, nil
+		case isKey(m, "esc"):
+			s.zone = zList
+			return s, nil
+		}
+		return s, nil
 	}
 	its := s.items(env)
+	if isKey(m, "up", "k") && s.list.sel == 0 {
+		s.zone = zSearch
+		if s.searched {
+			s.zone = zChips
+		}
+		return s, nil
+	}
 	armed := s.armed
 	s.armed = ""
 	if d, mv := listKey(m); mv {
@@ -185,11 +290,16 @@ func (s *Store) key(env *core.Env, m tea.KeyMsg) (core.Screen, tea.Cmd) {
 	}
 	switch {
 	case isKey(m, "/"):
-		s.focus = true
+		s.zone = zSearch
 	case isKey(m, "i"):
 		if s.searched {
-			s.showInst = !s.showInst
-			s.list = listState{}
+			cs := s.chips(env)
+			for i, c := range cs {
+				if c.view != 0 && !s.chipActive(c) {
+					s.pickChip(env, i)
+					break
+				}
+			}
 		}
 	case isKey(m, "c"):
 		s.in.Set("")
@@ -249,13 +359,13 @@ func srcName(src string) string {
 func (s *Store) searchBox(env *core.Env, w int) []ui.Line {
 	p2 := ui.NewPainter(env.Theme, env.Theme.P.S2)
 	bar := ui.S(p2.Fill, " ")
-	hint := "/ to search "
-	if s.focus {
+	hint := "↑ or / to search "
+	if s.zone == zSearch {
 		bar = ui.S(p2.Ac.Bold(true), "▌")
-		hint = "⏎ search · esc cancel "
+		hint = "⏎ search · ↓ results · esc "
 	}
 	pad := ui.Line{L: ui.Spread([]ui.Seg{bar}, nil, w, p2.Fill)}
-	left := append([]ui.Seg{bar, ui.S(p2.Ac, "  "+ui.G.Find+"  ")}, s.in.Segs(p2, s.focus, w-30)...)
+	left := append([]ui.Seg{bar, ui.S(p2.Ac, "  "+ui.G.Find+"  ")}, s.in.Segs(p2, s.zone == zSearch, w-34)...)
 	mid := ui.Line{L: ui.Spread(left, []ui.Seg{ui.S(p2.Mu, hint)}, w, p2.Fill)}
 	return []ui.Line{pad, mid, pad}
 }
@@ -263,17 +373,33 @@ func (s *Store) searchBox(env *core.Env, w int) []ui.Line {
 // tabsRow son las dos vistas (resultados e instalado) y, a la derecha, el cargador.
 func (s *Store) tabsRow(env *core.Env, w int, nRes, nInst int) ui.Line {
 	p := env.P
-	chip := func(label string, active bool) ui.Seg {
-		if active {
-			return ui.S(p.Btn, " "+label+" ")
-		}
-		return ui.S(p.Mu, " "+label+" ")
-	}
 	var left []ui.Seg
-	if s.searched {
-		left = append(left, chip(fmt.Sprintf("Results %d", nRes), !s.showInst), ui.Seg{T: " "})
+	s.chipX = s.chipX[:0]
+	x := 0
+	for i, c := range s.chips(env) {
+		active, focused := s.chipActive(c), s.zone == zChips && i == s.chip
+		l, r := " ", " "
+		st := p.Mu
+		if active {
+			st = p.Btn
+		}
+		if focused {
+			l, r = "‹", "›"
+			st = p.Btn.Bold(true).Underline(true)
+			if !active {
+				st = p.Ac.Bold(true)
+			}
+		}
+		if c.group && (i == 0 || !s.chips(env)[i-1].group) {
+			left = append(left, ui.S(p.Mu, " │ "))
+			x += 3
+		}
+		seg := ui.S(st, l+c.label+r)
+		w := len([]rune(l + c.label + r))
+		s.chipX = append(s.chipX, [2]int{x, x + w})
+		x += w + 1
+		left = append(left, seg, ui.Seg{T: " "})
 	}
-	left = append(left, chip(fmt.Sprintf("Installed %d", nInst), !s.searched || s.showInst))
 	var right []ui.Seg
 	for _, st := range []struct{ id, label string }{
 		{"store.search", "Searching " + s.query},
@@ -322,7 +448,7 @@ func (s *Store) Main(env *core.Env, w, h int) []ui.Line {
 	from, to := s.list.window(len(its), s.rows)
 	for i := from; i < to; i++ {
 		it := its[i]
-		sel := i == s.list.sel
+		sel := i == s.list.sel && s.zone == zList
 		var mark ui.Seg
 		switch {
 		case it.Installed:
@@ -396,28 +522,28 @@ func (s *Store) Side(env *core.Env, w, h int) []ui.Line {
 }
 
 func (s *Store) Hints(env *core.Env) []ui.Hint {
-	if s.focus {
-		return []ui.Hint{{Key: "⏎", Action: "search"}, {Key: "esc", Action: "cancel"}}
+	switch s.zone {
+	case zSearch:
+		return []ui.Hint{{Key: "⏎", Action: "search"}, {Key: "↓", Action: "results"}, {Key: "esc", Action: "leave"}}
+	case zChips:
+		return []ui.Hint{{Key: "←→", Action: "switch"}, {Key: "↑", Action: "search"}, {Key: "↓", Action: "list"}}
 	}
-	h := []ui.Hint{{Key: "/", Action: "search"}, {Key: "↑↓", Action: "move"}, {Key: "space", Action: "mark"}, {Key: "⏎", Action: "install"}, {Key: "r", Action: "remove"}}
-	if s.searched {
-		h = append(h, ui.Hint{Key: "i", Action: "installed"})
-	}
-	return h
+	return []ui.Hint{{Key: "↑", Action: "search"}, {Key: "space", Action: "mark"}, {Key: "⏎", Action: "install"}, {Key: "r", Action: "remove"}, {Key: "/", Action: "search"}}
 }
 
 func (s *Store) Click(env *core.Env, x, y int) tea.Cmd {
 	switch {
 	case y < 3:
-		s.focus = true
-	case y == 4: // las pestañas Results / Installed
-		if s.searched {
-			res := len(fmt.Sprintf(" Results %d ", len(s.results)))
-			s.showInst = x >= res+1
-			s.list = listState{}
+		s.zone = zSearch
+	case y == 4: // las pestañas
+		s.zone = zChips
+		for i, r := range s.chipX {
+			if x >= r[0] && x < r[1]+1 {
+				s.pickChip(env, i)
+			}
 		}
 	case y >= storeHeader:
-		s.focus = false
+		s.zone = zList
 		its := s.items(env)
 		i := s.list.top + (y-storeHeader)/storeItemH
 		if i >= 0 && i < len(its) {
@@ -430,4 +556,9 @@ func (s *Store) Click(env *core.Env, x, y int) tea.Cmd {
 func (s *Store) Wheel(env *core.Env, dy int) tea.Cmd {
 	s.list.move(dy*2, len(s.items(env)), max(s.rows, 1))
 	return nil
+}
+
+// Zone dice dónde está el foco: «search», «chips» o «list» (para las pruebas).
+func (s *Store) Zone() string {
+	return [...]string{"search", "chips", "list"}[s.zone]
 }

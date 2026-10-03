@@ -118,7 +118,7 @@ func (d *Doctor) Update(env *core.Env, msg tea.Msg) (core.Screen, tea.Cmd) {
 				}
 				return d, core.Toast("info", "No automatic fix for this one: see the advice on the right")
 			}
-			if d.armed != row.it.ID {
+			if d.armed != row.it.ID && row.it.Kind != "inspect" {
 				d.armed = row.it.ID
 				return d, nil // el panel lateral enseña el comando y pide un segundo Intro
 			}
@@ -189,7 +189,11 @@ func (d *Doctor) Main(env *core.Env, w, h int) []ui.Line {
 		st, g := p.Level(r.it.Level)
 		ln := ui.Line{L: []ui.Seg{ui.S(st, g+" "), ui.S(p.Text, r.it.Text)}, Sel: i == selRow}
 		if r.it.Fix != "" {
-			ln.R = []ui.Seg{ui.S(p.Ac, "fix ⏎ ")}
+			tag := "fix ⏎ "
+			if r.it.Kind == "inspect" {
+				tag = "look ⏎ "
+			}
+			ln.R = []ui.Seg{ui.S(p.Ac, tag)}
 		}
 		lines = append(lines, ln)
 	}
@@ -212,7 +216,12 @@ func (d *Doctor) Side(env *core.Env, w, h int) []ui.Line {
 	if row.it.Level != "ok" {
 		lines = append(lines, gap())
 		if row.it.Fix != "" {
-			lines = append(lines, heading(env, "Fix"))
+			inspect := row.it.Kind == "inspect"
+			if inspect {
+				lines = append(lines, heading(env, "Take a look"), muted(env, "Only shows information: nothing changes."))
+			} else {
+				lines = append(lines, heading(env, "Fix"))
+			}
 			for i, l := range ui.Wrap(row.it.Fix, w-2) {
 				pre := "  "
 				if i == 0 {
@@ -224,8 +233,11 @@ func (d *Doctor) Side(env *core.Env, w, h int) []ui.Line {
 			switch {
 			case d.armed == row.it.ID && row.it.Confirm:
 				lines = append(lines, ui.T(p.Warn, ui.G.Warn+" this changes your system"), ui.Of(button(env, true, "Run it  ⏎")), muted(env, "or move away to cancel"))
+
 			case d.armed == row.it.ID:
 				lines = append(lines, ui.Of(button(env, true, "Run it  ⏎")), muted(env, "or move away to cancel"))
+			case inspect:
+				lines = append(lines, ui.Of(button(env, true, "Show it  ⏎")))
 			default:
 				lines = append(lines, ui.Of(button(env, true, "Prepare fix  ⏎")))
 			}

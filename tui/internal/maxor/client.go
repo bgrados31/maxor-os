@@ -120,6 +120,7 @@ type DoctorItem struct {
 	ID      string `json:"id"`      // clave de la comprobación (p. ej. git_dirty)
 	Fix     string `json:"fix"`     // comando que lo arregla o ayuda a verlo; vacío si no hay
 	Confirm bool   `json:"confirm"` // el arreglo pide confirmación (borra o cambia cosas)
+	Kind    string `json:"kind"`    // "fix" arregla algo; "inspect" solo enseña información
 }
 type DoctorGroup struct {
 	Title string       `json:"title"`
