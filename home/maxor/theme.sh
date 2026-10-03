@@ -19,27 +19,34 @@ theme_check() {
 
 theme_list() {
   [ -d "$themes" ] || die "no hay temas en $themes"
-  local cur="" d n f mode name mark
+  local cur="" rows file mode s2 ac ac2 fg dir n name mark m label l
   [ -f "$state/current" ] && cur="$(cat "$state/current")"
+  # Una sola lectura de todos los temas (y solo los válidos), no una por tema.
+  rows="$(jq -r 'select([.bg,.s,.s2,.fg,.mu,.ac,.ac2,.on] | all(type == "string" and test("^#[0-9a-fA-F]{6}$")))
+    | [input_filename, (.mode // "dark"), .s2, .ac, .ac2, .fg] | @tsv' "$themes"/*/colors.json 2> /dev/null || true)"
   ui_open "maxor · temas"
-  local m
   for m in dark light; do
-    local label="Oscuros"; [ "$m" = light ] && label="Claros"
+    label="Oscuros"; [ "$m" = light ] && label="Claros"
     ui_section "$label"
-    for d in "$themes"/*/; do
-      f="$d/colors.json"
-      [ -f "$f" ] || continue
-      theme_check "$f" > /dev/null || continue
-      mode="$(jq -r '.mode // "dark"' "$f")"
+    while IFS=$'\t' read -r file mode s2 ac ac2 fg; do
       [ "$mode" = "$m" ] || continue
-      n="$(basename "$d")"
-      name="$(theme_meta "$d" name)"; [ -n "$name" ] || name="$n"
-      mark=" "; [ "$n" = "$cur" ] && mark="$(ui_c "$E_AC" "●")"
-      ui_line " $mark $(printf '%-13s' "$n") $(ui_swatch "$(jq -r .s2 "$f")" "$(jq -r .ac "$f")" "$(jq -r .ac2 "$f")" "$(jq -r .fg "$f")")  $(ui_c "$E_MU" "$(ui_trunc "$name" 24)")"
-    done
+      dir="${file%/colors.json}"
+      n="${dir##*/}"
+      name=""
+      if [ -f "$dir/theme.toml" ]; then
+        while IFS= read -r l; do
+          if [[ "$l" =~ ^name\ *=\ *\"?([^\"]*) ]]; then name="${BASH_REMATCH[1]}"; break; fi
+        done < "$dir/theme.toml"
+      fi
+      [ -n "$name" ] || name="$n"
+      mark=" "; [ "$n" = "$cur" ] && mark="${E_AC}●${E_FG}"
+      ui_truncv name "$name" 24
+      printf -v n '%-13s' "$n"
+      ui_line " $mark $n $(ui_swatch "$s2" "$ac" "$ac2" "$fg")  ${E_MU}${name}${E_FG}"
+    done <<< "$rows"
   done
   ui_line ""
-  ui_line " $(ui_c "$E_MU" "● activo · maxor theme apply <nombre>")"
+  ui_line " ${E_MU}● activo · maxor theme apply <nombre>${E_FG}"
   ui_close
 }
 

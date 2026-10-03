@@ -62,10 +62,17 @@ app_search_frame() { # consulta paso listo_nix listo_flatpak
   ui_close
 }
 
-# Repinta un marco en su sitio: sube tantas líneas como tenía el anterior.
+# Líneas de un marco (con el salto final), sin lanzar procesos: deja el valor en APP_LINES.
+app_count_lines() { local s="${1//[^$'\n']/}"; APP_LINES=$((${#s} + 1)); }
+
+# Repinta un marco en su sitio: sube tantas líneas como tenía el anterior y
+# sobrescribe cada una (borrando solo el resto de la línea), sin vaciar antes
+# la pantalla. En salida sincronizada (kitty y otros) no hay parpadeo.
 app_paint() { # app_paint "marco" líneas_previas
-  if [ "$2" -gt 0 ]; then printf '\e[%dA\e[J' "$2"; fi
-  printf '%s\n' "$1"
+  local out=""
+  [ "$2" -gt 0 ] && out=$'\e['"$2"'A'
+  out+="${1//$'\n'/$'\e[K\n'}"$'\e[K\n'
+  printf '\e[?2026h%s\e[J\e[?2026l' "$out"
 }
 
 # Busca en los dos orígenes a la vez. Deja en SEARCH_ALL un JSON ordenado por
@@ -90,7 +97,7 @@ app_search_fetch() { # app_search_fetch animar palabras…
       kill -0 "$p2" 2> /dev/null || d2=1
       frame="$(app_search_frame "$*" "$i" "$d1" "$d2")"
       app_paint "$frame" "$prev"
-      prev=$(($(wc -l <<< "$frame") + 1))
+      app_count_lines "$frame"; prev=$APP_LINES
       i=$((i + 1))
       sleep 0.08
     done
@@ -137,10 +144,11 @@ app_installed_ids() {
 
 # Marco de la lista de resultados.
 #   app_pick_frame consulta cursor desde por_vista interactivo
+# Sin $(…) ni procesos: se repinta en cada tecla.
 app_pick_frame() {
   local q="$1" cur="$2" from="$3" view="$4" inter="$5"
-  local n="${#P_ID[@]}" marked=0 k to up down
-  for k in "${!P_SEL[@]}"; do [ "${P_SEL[k]}" = 1 ] && marked=$((marked + 1)); done
+  local n="${#P_ID[@]}" marked=0 k to up down info
+  for k in "${!P_SEL[@]}"; do [ "${P_SEL[k]:-0}" = 1 ] && marked=$((marked + 1)); done
   to=$((from + view))
   [ "$to" -gt "$n" ] && to="$n"
   up=$from
@@ -148,107 +156,138 @@ app_pick_frame() {
 
   ui_open "maxor · buscar"
   ui_line ""
-  local info="$n resultados"
+  info="$n resultados"
   [ "$inter" = 1 ] && [ "$marked" -gt 0 ] && info="$n resultados · $marked marcada(s)"
-  ui_split " $(ui_c "$E_AC" "⌕")  ${E_BOLD}${q}${E_NB}" "$(ui_c "$E_MU" "$info") "
-  if [ "$inter" = 1 ] && [ "$up" -gt 0 ]; then ui_line " $(ui_c "$E_MU" "   ↑ $up más arriba")"; else ui_line ""; fi
+  ui_split " ${E_AC}⌕${E_FG}  ${E_BOLD}${q}${E_NB}" "${E_MU}${info}${E_FG} "
+  if [ "$inter" = 1 ] && [ "$up" -gt 0 ]; then ui_line " ${E_MU}   ↑ $up más arriba${E_FG}"; else ui_line ""; fi
 
   local tag mark box name idp desc room
   for ((k = from; k < to; k++)); do
-    # cursor y casilla
-    if [ "$inter" = 1 ] && [ "$k" = "$cur" ]; then mark="$(ui_c "$E_AC" "❯")"; else mark=" "; fi
+    if [ "$inter" = 1 ] && [ "$k" = "$cur" ]; then mark="${E_AC}❯${E_FG}"; else mark=" "; fi
     if [ "${P_INST[k]}" = 1 ]; then
-      box="$(ui_c "$E_OK" "✓")"
-    elif [ "${P_SEL[k]}" = 1 ]; then
-      box="$(ui_c "$E_AC" "◼")"
+      box="${E_OK}✓${E_FG}"
+    elif [ "${P_SEL[k]:-0}" = 1 ]; then
+      box="${E_AC}◼${E_FG}"
     elif [ "$inter" = 1 ]; then
-      box="$(ui_c "$E_MU" "◻")"
+      box="${E_MU}◻${E_FG}"
     else
-      box="$(ui_c "$E_MU" "·")"
+      box="${E_MU}·${E_FG}"
     fi
-    # origen a la derecha
     if [ "${P_INST[k]}" = 1 ]; then
-      tag="$(ui_c "$E_OK" "instalada")"
+      tag="${E_OK}instalada${E_FG}"
     elif [ "${P_SRC[k]}" = nix ]; then
-      tag="$(ui_c "$E_AC2" "nixpkgs")"
+      tag="${E_AC2}nixpkgs${E_FG}"
     else
-      tag="$(ui_c "$E_AC" "flathub")"
+      tag="${E_AC}flathub${E_FG}"
     fi
-    name="$(ui_trunc "${P_NAME[k]}" $((ui_w - 24)))"
+    ui_truncv name "${P_NAME[k]}" $((ui_w - 24))
     if [ "$inter" = 1 ] && [ "$k" = "$cur" ]; then name="${E_BOLD}${name}${E_NB}"; fi
     ui_split " $mark $box  $name" "$tag "
     # segunda línea: el id, bien visible, y la descripción
-    idp="$(ui_trunc "${P_ID[k]}" 38)"
+    ui_truncv idp "${P_ID[k]}" 38
     room=$((ui_w - 15 - ${#idp}))
     [ "$room" -lt 0 ] && room=0
-    desc="$(ui_trunc "${P_DESC[k]}" "$room")"
-    ui_line "      $(ui_c "$E_MU" "id") $(ui_c "$E_AC" "$idp")  $(ui_c "$E_MU" "$desc")"
+    ui_truncv desc "${P_DESC[k]}" "$room"
+    ui_line "      ${E_MU}id${E_FG} ${E_AC}${idp}${E_FG}  ${E_MU}${desc}${E_FG}"
   done
 
-  if [ "$inter" = 1 ] && [ "$down" -gt 0 ]; then ui_line " $(ui_c "$E_MU" "   ↓ $down más abajo")"; else ui_line ""; fi
+  if [ "$inter" = 1 ] && [ "$down" -gt 0 ]; then ui_line " ${E_MU}   ↓ $down más abajo${E_FG}"; else ui_line ""; fi
   if [ "$inter" = 1 ]; then
-    ui_line " $(ui_c "$E_AC" "↑↓") mover   $(ui_c "$E_AC" "espacio") marcar   $(ui_c "$E_AC" "⏎") instalar   $(ui_c "$E_AC" "q") salir"
+    ui_line " ${E_AC}↑↓${E_FG} mover   ${E_AC}espacio${E_FG} marcar   ${E_AC}⏎${E_FG} instalar   ${E_AC}q${E_FG} salir"
   else
-    ui_line " $(ui_c "$E_MU" "Instalar con el id:") $(ui_c "$E_AC" "maxor install <id>")"
+    ui_line " ${E_MU}Instalar con el id:${E_FG} ${E_AC}maxor install <id>${E_FG}"
   fi
   ui_close
 }
 
+# Mueve el cursor de la lista y mantiene visible la fila resaltada.
+app_pick_move() { # app_pick_move +1|-1
+  PK_CUR=$((PK_CUR + $1))
+  [ "$PK_CUR" -lt 0 ] && PK_CUR=0
+  [ "$PK_CUR" -ge "$PK_N" ] && PK_CUR=$((PK_N - 1))
+  [ "$PK_CUR" -lt "$PK_FROM" ] && PK_FROM=$PK_CUR
+  [ "$PK_CUR" -ge $((PK_FROM + PK_VIEW)) ] && PK_FROM=$((PK_CUR - PK_VIEW + 1))
+  return 0
+}
+
+app_pick_restore() {
+  [ -n "${PK_STTY:-}" ] && stty "$PK_STTY" 2> /dev/null
+  printf '\e[?25h'
+}
+
 # Lista interactiva: flechas, espacio para marcar, Intro para instalar.
 # Deja en PICKED los elementos elegidos como "origen:id".
+#
+# Para que no se vea ni se sienta lenta:
+#  · el eco del terminal se apaga mientras dura: las teclas no se «escriben» debajo;
+#  · las teclas acumuladas (mantener una flecha) se procesan juntas y se repinta una vez;
+#  · el marco se repinta de una vez, en salida sincronizada, sin borrar antes.
 app_pick() { # app_pick consulta
-  local q="$1" n="${#P_ID[@]}" cur=0 from=0 view lines frame prev=0 key k2 i any
+  local q="$1" lines frame prev=0 keys k i any idx c c2 done_=0
+  PK_N="${#P_ID[@]}" PK_CUR=0 PK_FROM=0
   lines="$(tput lines 2> /dev/null || echo 24)"
-  view=$(((lines - 10) / 2))
-  [ "$view" -lt 3 ] && view=3
-  [ "$view" -gt 7 ] && view=7
-  [ "$view" -gt "$n" ] && view="$n"
+  PK_VIEW=$(((lines - 10) / 2))
+  [ "$PK_VIEW" -lt 3 ] && PK_VIEW=3
+  [ "$PK_VIEW" -gt 7 ] && PK_VIEW=7
+  [ "$PK_VIEW" -gt "$PK_N" ] && PK_VIEW="$PK_N"
   PICKED=()
 
+  PK_STTY="$(stty -g 2> /dev/null || true)"
+  stty -echo -icanon min 1 time 0 2> /dev/null || true
   printf '\e[?25l'
-  trap 'printf "\e[?25h"; exit 130' INT
-  while :; do
-    frame="$(app_pick_frame "$q" "$cur" "$from" "$view" 1)"
+  trap 'app_pick_restore; exit 130' INT TERM
+  while [ "$done_" = 0 ]; do
+    frame="$(app_pick_frame "$q" "$PK_CUR" "$PK_FROM" "$PK_VIEW" 1)"
     app_paint "$frame" "$prev"
-    prev=$(($(wc -l <<< "$frame") + 1))
-    IFS= read -rsn1 key || break
-    case "$key" in
-      $'\e')
-        k2=""
-        read -rsn2 -t 0.05 k2 || true
-        case "$k2" in
-          '[A') [ "$cur" -gt 0 ] && cur=$((cur - 1)) ;;
-          '[B') [ "$cur" -lt $((n - 1)) ] && cur=$((cur + 1)) ;;
-          "") break ;; # Esc solo
-        esac
-        ;;
-      k) [ "$cur" -gt 0 ] && cur=$((cur - 1)) ;;
-      j) [ "$cur" -lt $((n - 1)) ] && cur=$((cur + 1)) ;;
-      ' ')
-        if [ "${P_INST[cur]}" != 1 ]; then
-          if [ "${P_SEL[cur]}" = 1 ]; then P_SEL[cur]=0; else P_SEL[cur]=1; fi
-        fi
-        ;;
-      "")
-        # Intro: instala lo marcado; si no hay nada marcado, lo resaltado.
-        any=0
-        for i in "${!P_SEL[@]}"; do [ "${P_SEL[i]}" = 1 ] && any=1; done
-        if [ "$any" = 0 ] && [ "${P_INST[cur]}" != 1 ]; then P_SEL[cur]=1; fi
-        for i in "${!P_SEL[@]}"; do
-          [ "${P_SEL[i]}" = 1 ] && PICKED+=("${P_SRC[i]}:${P_ID[i]}")
-        done
-        break
-        ;;
-      q | Q) break ;;
-    esac
-    [ "$cur" -lt "$from" ] && from=$cur
-    [ "$cur" -ge $((from + view)) ] && from=$((cur - view + 1))
+    app_count_lines "$frame"; prev=$APP_LINES
+    IFS= read -rsn1 -d '' keys || break
+    while IFS= read -rsn1 -d '' -t 0.002 k; do keys+="$k"; done
+    idx=0
+    while [ "$idx" -lt "${#keys}" ] && [ "$done_" = 0 ]; do
+      c="${keys:idx:1}"
+      idx=$((idx + 1))
+      case "$c" in
+        $'\e')
+          if [ "${keys:idx:1}" = "[" ] || [ "${keys:idx:1}" = "O" ]; then
+            idx=$((idx + 1))
+            # parámetros (dígitos y «;») hasta la letra final
+            while [[ "${keys:idx:1}" == [0-9\;] ]]; do idx=$((idx + 1)); done
+            c2="${keys:idx:1}"
+            idx=$((idx + 1))
+            case "$c2" in
+              A) app_pick_move -1 ;;
+              B) app_pick_move +1 ;;
+            esac
+          else
+            done_=1 # Esc solo: salir
+          fi
+          ;;
+        k) app_pick_move -1 ;;
+        j) app_pick_move +1 ;;
+        ' ')
+          if [ "${P_INST[PK_CUR]}" != 1 ]; then
+            if [ "${P_SEL[PK_CUR]}" = 1 ]; then P_SEL[PK_CUR]=0; else P_SEL[PK_CUR]=1; fi
+          fi
+          ;;
+        $'\n' | $'\r')
+          # Intro: instala lo marcado; si no hay nada marcado, lo resaltado.
+          any=0
+          for i in "${!P_SEL[@]}"; do [ "${P_SEL[i]}" = 1 ] && any=1; done
+          if [ "$any" = 0 ] && [ "${P_INST[PK_CUR]}" != 1 ]; then P_SEL[PK_CUR]=1; fi
+          for i in "${!P_SEL[@]}"; do
+            [ "${P_SEL[i]}" = 1 ] && PICKED+=("${P_SRC[i]}:${P_ID[i]}")
+          done
+          done_=1
+          ;;
+        q | Q) done_=1 ;;
+      esac
+    done
   done
-  printf '\e[?25h'
-  trap - INT
+  app_pick_restore
+  trap - INT TERM
   [ "${#PICKED[@]}" = 0 ] && P_SEL=()
   # deja la lista a la vista, ya sin cursor ni atajos
-  frame="$(app_pick_frame "$q" -1 "$from" "$view" 0)"
+  frame="$(app_pick_frame "$q" -1 "$PK_FROM" "$PK_VIEW" 0)"
   app_paint "$frame" "$prev"
 }
 
@@ -274,7 +313,13 @@ cmd_search() {
   local anim=0
   { [ "$json" = 0 ] && [ "$ui_on" = 1 ] && [ -t 1 ]; } && anim=1
   [ "$anim" = 1 ] && echo
+  # Lo ya instalado se consulta mientras se busca, no después.
+  local inst_f ip
+  inst_f="$(mktemp)"
+  app_installed_ids > "$inst_f" 2> /dev/null &
+  ip=$!
   app_search_fetch "$anim" "${q[@]}"
+  wait "$ip" 2> /dev/null || true
 
   if [ "$json" = 1 ]; then
     jq -c 'map(del(.score))' <<< "$SEARCH_ALL"
@@ -284,7 +329,8 @@ cmd_search() {
   # Datos de la lista en arreglos de bash (más rápido de repintar).
   P_SRC=() P_ID=() P_NAME=() P_DESC=() P_INST=() P_SEL=()
   local installed src id name desc k=0
-  installed="$(app_installed_ids)"
+  installed="$(cat "$inst_f")"
+  rm -f "$inst_f"
   while IFS=$'\t' read -r src id name desc; do
     P_SRC[k]="$src"; P_ID[k]="$id"; P_NAME[k]="$name"; P_DESC[k]="$desc"; P_SEL[k]=0
     if grep -qxF "$src:$id" <<< "$installed"; then P_INST[k]=1; else P_INST[k]=0; fi

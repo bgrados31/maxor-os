@@ -5,6 +5,10 @@ no usa versiones numeradas.
 
 ## [Sin publicar]
 
+### Cambiado
+
+- **CLI mucho más rápida**: la interfaz de ventanas ya no lanza procesos por línea; el selector de `maxor search` no parpadea, no deja caracteres en pantalla y aguanta mantener una flecha. Ayuda 352 → 108 ms, `theme list` 1562 → 271 ms, `doctor` 3 s → 0,5 s. Ver [CLI.md](docs/CLI.md).
+
 ### Añadido
 
 - **Apps sin rebuild**: `maxor search` es un selector interactivo (barras de progreso por origen, lista con casillas, id visible); `install`, `remove` y `apps` instalan desde nixpkgs (perfil del usuario) y Flathub (Flatpak `--user`) sin sudo, con resultados por relevancia y salida `--json` para la futura Maxor Store. Ver [APPS.md](docs/APPS.md).

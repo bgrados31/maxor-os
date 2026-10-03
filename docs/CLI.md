@@ -122,3 +122,20 @@ en scripts.
 
 Los scripts se concatenan en ese orden y pasan `shellcheck` en cada compilación (lo ejecuta
 `writeShellApplication`).
+
+## Rendimiento de la interfaz
+
+La CLI pinta ventanas de terminal y, en el buscador, se repinta en cada tecla. Por eso
+`home/maxor/ui.sh` sigue una regla: **en los caminos que se repiten no se lanzan procesos**
+(nada de `sed`, `wc`, `cat` ni `$(…)` por línea).
+
+- El largo visible de un texto con colores se calcula con una expansión de bash (`ui_len`), no con `sed | wc`.
+- Los ayudantes con variante `…v` (`ui_repv`, `ui_truncv`, `ui_fgv`) dejan el resultado en una variable en vez de imprimirlo, para no crear subprocesos.
+- Los archivos pequeños de `/sys` se leen con `$(< archivo)` o `hw_read`, no con `cat`.
+- Una consulta de `jq` por lote de datos, no una por elemento (por ejemplo `maxor theme list`).
+
+El selector de `maxor search` además apaga el eco del terminal mientras dura, procesa juntas las
+teclas acumuladas (mantener una flecha) y repinta cada marco de una vez, en salida sincronizada.
+
+Tiempos en el Nitro, antes y después: ayuda 352 → 108 ms, `theme list` 1562 → 271 ms,
+`profile list` 184 → 67 ms, `hardware` 367 → 135 ms, `doctor` unos 3 s → 0,5 s (en caliente).

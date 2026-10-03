@@ -4,6 +4,12 @@
 # ajustes de portátil. Nix evalúa sin ver el equipo, por eso el resultado se
 # guarda en hosts/<equipo>/hardware.json y se versiona con el resto.
 
+# hw_read variable archivo → contenido del archivo, o vacío si no se puede leer.
+# Sin lanzar `cat`: el detector lee unos veinte archivos de /sys.
+hw_read() {
+  if [ -r "$2" ]; then printf -v "$1" '%s' "$(< "$2")"; else printf -v "$1" '%s' ""; fi
+}
+
 hw_pci_busid() { # 0000:01:00.0 → PCI:1:0:0 (decimal, como pide NixOS)
   local a="$1"
   printf 'PCI:%d:%d:%d' "0x${a:5:2}" "0x${a:8:2}" "${a:11:1}"
@@ -21,12 +27,12 @@ hw_detect() {
   esac
   model="$(grep -m1 '^model name' /proc/cpuinfo | cut -d: -f2- | sed 's/^ *//')"
 
-  chassis="$(cat /sys/class/dmi/id/chassis_type 2> /dev/null || echo 0)"
+  hw_read chassis /sys/class/dmi/id/chassis_type
   case "$chassis" in 8 | 9 | 10 | 11 | 14 | 30 | 31 | 32) laptop=true ;; esac
   hw_any '/sys/class/power_supply/BAT'* && laptop=true
 
   if grep -q -m1 -w hypervisor /proc/cpuinfo; then
-    sysv="$(cat /sys/class/dmi/id/sys_vendor 2> /dev/null)"
+    hw_read sysv /sys/class/dmi/id/sys_vendor
     case "$sysv" in
       innotek*) virt=virtualbox ;;
       VMware*) virt=vmware ;;
@@ -37,13 +43,15 @@ hw_detect() {
 
   hw_any '/sys/class/bluetooth/hci'* && bt=true
 
-  local d addr class ven dev gv gpus=""
+  local d addr class ven dev gv bv bvf gpus=""
   for d in /sys/bus/pci/devices/*; do
-    class="$(cat "$d/class")"
+    hw_read class "$d/class"
     case "$class" in 0x0300* | 0x0302* | 0x0380*) ;; *) continue ;; esac
-    addr="$(basename "$d")"
-    ven="$(cat "$d/vendor")"
-    dev="$(cat "$d/device")"
+    addr="${d##*/}"
+    hw_read ven "$d/vendor"
+    hw_read dev "$d/device"
+    hw_read bvf "$d/boot_vga"
+    if [ "$bvf" = 1 ]; then bv=true; else bv=false; fi
     case "$ven" in
       0x8086) gv=intel ;;
       0x1002) gv=amd ;;
@@ -51,7 +59,7 @@ hw_detect() {
       *) gv=other ;;
     esac
     gpus+="$(jq -cn --arg v "$gv" --arg id "${ven#0x}:${dev#0x}" --arg bus "$(hw_pci_busid "$addr")" \
-      --argjson primary "$([ "$(cat "$d/boot_vga" 2> /dev/null)" = 1 ] && echo true || echo false)" \
+      --argjson primary "$bv" \
       '{vendor: $v, id: $id, bus: $bus, primary: $primary}')"$'\n'
   done
 

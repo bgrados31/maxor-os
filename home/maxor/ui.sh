@@ -2,6 +2,7 @@
 # Cada comando se dibuja como una ventana con barra de título, pintada con
 # la paleta del tema activo (color de 24 bits). Si la salida no es una
 # terminal, o NO_COLOR está definido, todo se imprime como texto plano.
+shopt -s extglob # patrones como *([0-9;]) en las expansiones, sin procesos externos
 ui_on=0
 if [ -n "${MAXOR_FORCE_UI:-}" ] || { [ -t 1 ] && [ -z "${NO_COLOR:-}" ] && [ "${TERM:-dumb}" != "dumb" ]; }; then
   ui_on=1
@@ -14,6 +15,8 @@ ui_w="${COLUMNS:-$(tput cols 2> /dev/null || echo 80)}"
 E_RST="" E_BOLD="" E_NB="" E_FG="" E_MU="" E_AC="" E_AC2="" E_BG="" E_BG2=""
 E_OK="" E_WARN="" E_BAD="" E_BGOK="" E_BGWARN="" E_BGBAD="" E_INK=""
 
+ui_fgv() { local h="${2#\#}"; printf -v "$1" '\e[38;2;%d;%d;%dm' "0x${h:0:2}" "0x${h:2:2}" "0x${h:4:2}"; } # sin procesos: deja el color en la variable
+ui_bgv() { local h="${2#\#}"; printf -v "$1" '\e[48;2;%d;%d;%dm' "0x${h:0:2}" "0x${h:2:2}" "0x${h:4:2}"; }
 ui_fg() { local h; h="$(hex "$1")"; printf '\e[38;2;%d;%d;%dm' "0x${h:0:2}" "0x${h:2:2}" "0x${h:4:2}"; }
 ui_bg() { local h; h="$(hex "$1")"; printf '\e[48;2;%d;%d;%dm' "0x${h:0:2}" "0x${h:2:2}" "0x${h:4:2}"; }
 
@@ -24,79 +27,97 @@ ui_palette() {
   local cur="" f
   [ -f "$state/current" ] && cur="$(cat "$state/current")"
   f="$themes/$cur/colors.json"
-  if [ -n "$cur" ] && [ -f "$f" ] && jq -e '[.bg,.s,.s2,.fg,.mu,.ac,.ac2,.on] | all(test("^#[0-9a-fA-F]{6}$"))' "$f" > /dev/null 2>&1; then
-    IFS=$'\t' read -r pb ps ps2 pfg pmu pac pac2 _ pmode < <(jq -r '[.bg,.s,.s2,.fg,.mu,.ac,.ac2,.on,(.mode // "dark")] | @tsv' "$f")
+  # Una sola lectura: valida el tema y saca los colores a la vez.
+  local row
+  if [ -n "$cur" ] && [ -f "$f" ] && row="$(jq -er 'select([.bg,.s,.s2,.fg,.mu,.ac,.ac2,.on] | all(test("^#[0-9a-fA-F]{6}$")))
+      | [.bg,.s,.s2,.fg,.mu,.ac,.ac2,.on,(.mode // "dark")] | @tsv' "$f" 2> /dev/null)"; then
+    IFS=$'\t' read -r pb ps ps2 pfg pmu pac pac2 _ pmode <<< "$row"
   fi
   local ok warn bad
   if [ "$pmode" = "light" ]; then ok="#1a7f50"; warn="#9a6700"; bad="#c92a3e"; else ok="#7fe3a8"; warn="#ffc66b"; bad="#ff6b81"; fi
   E_RST=$'\e[0m' E_BOLD=$'\e[1m' E_NB=$'\e[22m'
-  E_FG="$(ui_fg "$pfg")" E_MU="$(ui_fg "$pmu")" E_AC="$(ui_fg "$pac")" E_AC2="$(ui_fg "$pac2")"
-  E_BG="$(ui_bg "$ps")" E_BG2="$(ui_bg "$ps2")"
-  E_OK="$(ui_fg "$ok")" E_WARN="$(ui_fg "$warn")" E_BAD="$(ui_fg "$bad")"
-  E_BGOK="$(ui_bg "$ok")" E_BGWARN="$(ui_bg "$warn")" E_BGBAD="$(ui_bg "$bad")"
-  E_INK="$(ui_fg "$pb")"
+  ui_fgv E_FG "$pfg"; ui_fgv E_MU "$pmu"; ui_fgv E_AC "$pac"; ui_fgv E_AC2 "$pac2";
+  ui_bgv E_BG "$ps"; ui_bgv E_BG2 "$ps2";
+  ui_fgv E_OK "$ok"; ui_fgv E_WARN "$warn"; ui_fgv E_BAD "$bad";
+  ui_bgv E_BGOK "$ok"; ui_bgv E_BGWARN "$warn"; ui_bgv E_BGBAD "$bad";
+  ui_fgv E_INK "$pb";
 }
 ui_palette
 
 # Texto con color; al terminar vuelve al color base de la ventana.
 ui_c() { printf '%s%s%s' "$1" "$2" "$E_FG"; }
-# Largo visible: cuenta caracteres sin las secuencias de color.
-ui_vlen() { printf '%s' "$1" | sed -E 's/\x1b\[[0-9;]*m//g' | wc -m | tr -d ' '; }
-ui_rep() { local n="$1" ch="$2" i; for ((i = 0; i < n; i++)); do printf '%s' "$ch"; done; }
-ui_trunc() { # ui_trunc texto máximo
-  if [ "${#1}" -gt "$2" ]; then printf '%s…' "${1:0:$(($2 - 1))}"; else printf '%s' "$1"; fi
+# Todo lo de abajo se ejecuta sin lanzar procesos (nada de sed, wc ni $(…) en
+# los caminos calientes): una ventana de 30 líneas se pinta en milisegundos.
+# Largo visible: quita las secuencias de color y cuenta caracteres.
+ui_len() { local s="${1//$'\e'\[*([0-9;])m/}"; UI_LEN=${#s}; }
+ui_vlen() { ui_len "$1"; printf '%s' "$UI_LEN"; }
+ui_repv() { # ui_repv variable n carácter  → repite el carácter n veces
+  local _s=""
+  if [ "$2" -gt 0 ]; then printf -v _s '%*s' "$2" ''; _s="${_s// /$3}"; fi
+  printf -v "$1" '%s' "$_s"
 }
+ui_rep() { local _r; ui_repv _r "$1" "$2"; printf '%s' "$_r"; }
+ui_truncv() { # ui_truncv variable texto máximo
+  local _t="$2"
+  if [ "${#2}" -gt "$3" ]; then _t="${2:0:$(($3 - 1))}…"; fi
+  printf -v "$1" '%s' "$_t"
+}
+ui_trunc() { local _o; ui_truncv _o "$1" "$2"; printf '%s' "$_o"; } # ui_trunc texto máximo
 
 ui_open() { # ui_open "título"
   if [ "$ui_on" = 0 ]; then printf '\n%s\n' "$1"; return 0; fi
   local inner=$((ui_w - 2)) pad t
-  t="$(ui_trunc "$1" $((inner - 10)))"
-  pad=$((inner - 8 - ${#t}))
+  ui_truncv t "$1" $((inner - 10))
+  ui_repv pad $((inner - 8 - ${#t})) ' '
   printf '%s╭%s %s●%s ●%s ●%s  %s%s%s%s%s%s╮%s\n' \
-    "$E_AC" "$E_BG2" "$E_AC" "$E_AC2" "$E_MU" "$E_FG" "$E_BOLD" "$t" "$E_NB" "$(ui_rep "$pad" ' ')" "$E_RST" "$E_AC" "$E_RST"
+    "$E_AC" "$E_BG2" "$E_AC" "$E_AC2" "$E_MU" "$E_FG" "$E_BOLD" "$t" "$E_NB" "$pad" "$E_RST" "$E_AC" "$E_RST"
 }
 ui_line() { # ui_line "texto (puede llevar color)"
   if [ "$ui_on" = 0 ]; then printf '  %s\n' "$1"; return 0; fi
-  local len pad
-  len="$(ui_vlen "$1")"
-  pad=$((ui_w - 4 - len))
-  [ "$pad" -lt 0 ] && pad=0
-  printf '%s│%s%s%s %s%s %s%s│%s\n' "$E_AC" "$E_RST" "$E_BG" "$E_FG" "$1" "$(ui_rep "$pad" ' ')" "$E_RST" "$E_AC" "$E_RST"
+  local pad
+  ui_len "$1"
+  ui_repv pad $((ui_w - 4 - UI_LEN)) ' '
+  printf '%s│%s%s%s %s%s %s%s│%s\n' "$E_AC" "$E_RST" "$E_BG" "$E_FG" "$1" "$pad" "$E_RST" "$E_AC" "$E_RST"
 }
 ui_split() { # ui_split "izquierda" "derecha"  → la derecha queda pegada al borde
   if [ "$ui_on" = 0 ]; then printf '  %s   %s\n' "$1" "$2"; return 0; fi
   local l r pad
-  l="$(ui_vlen "$1")"
-  r="$(ui_vlen "$2")"
-  pad=$((ui_w - 4 - l - r))
-  [ "$pad" -lt 1 ] && pad=1
-  ui_line "$1$(ui_rep "$pad" ' ')$2"
+  ui_len "$1"; l=$UI_LEN
+  ui_len "$2"; r=$UI_LEN
+  ui_repv pad $((ui_w - 4 - l - r < 1 ? 1 : ui_w - 4 - l - r)) ' '
+  ui_line "$1$pad$2"
 }
 ui_close() {
   if [ "$ui_on" = 0 ]; then return 0; fi
-  printf '%s╰%s╯%s\n' "$E_AC" "$(ui_rep $((ui_w - 2)) '─')" "$E_RST"
+  local bar
+  ui_repv bar $((ui_w - 2)) '─'
+  printf '%s╰%s╯%s\n' "$E_AC" "$bar" "$E_RST"
 }
 ui_section() { # título de bloque dentro de la ventana
   ui_line ""
-  ui_line "${E_BOLD}$(ui_c "$E_AC2" "${1^^}")${E_NB}"
+  ui_line "${E_BOLD}${E_AC2}${1^^}${E_FG}${E_NB}"
 }
 ui_row() { # ui_row ok|warn|bad|info "mensaje"
-  local glyph col
+  local glyph col t
   case "$1" in
     ok) glyph="✓"; col="$E_OK" ;;
     warn) glyph="!"; col="$E_WARN" ;;
     bad) glyph="✗"; col="$E_BAD" ;;
     *) glyph="·"; col="$E_MU" ;;
   esac
-  ui_line " $(ui_c "$col" "$glyph")  $(ui_trunc "$2" $((ui_w - 9)))"
+  ui_truncv t "$2" $((ui_w - 9))
+  ui_line " ${col}${glyph}${E_FG}  $t"
 }
 ui_kv() { # ui_kv clave valor
-  ui_line " $(ui_c "$E_MU" "$(printf '%-12s' "$1")") $(ui_trunc "$2" $((ui_w - 19)))"
+  local k v
+  printf -v k '%-12s' "$1"
+  ui_truncv v "$2" $((ui_w - 19))
+  ui_line " ${E_MU}${k}${E_FG} $v"
 }
 ui_swatch() { # ui_swatch #hex ...  → bloques de color
-  local h
+  local h c
   for h in "$@"; do
-    if [ "$ui_on" = 1 ]; then printf '%s██%s' "$(ui_fg "$h")" "$E_FG"; else printf '#'; fi
+    if [ "$ui_on" = 1 ]; then ui_fgv c "$h"; printf '%s██%s' "$c" "$E_FG"; else printf '#'; fi
   done
 }
 # Mensajes fuera de la ventana.
