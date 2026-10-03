@@ -1,0 +1,27 @@
+name: Release
+
+# Al subir una etiqueta vX.Y.Z se crea la GitHub Release con las notas de esa
+# versión, tomadas de CHANGELOG.md. La etiqueta la crea scripts/release.sh.
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    name: Publicar la release
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Notas desde el CHANGELOG
+        run: scripts/release-notes.sh "${GITHUB_REF_NAME#v}" > notes.md
+      - name: Crear la release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release create "$GITHUB_REF_NAME" \
+            --title "Maxor OS ${GITHUB_REF_NAME#v}" \
+            --notes-file notes.md \
+            --verify-tag

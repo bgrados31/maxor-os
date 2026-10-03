@@ -24,7 +24,7 @@ nix build .#nixosConfigurations.nitro.config.system.build.toplevel   # compila e
 
 ## Flujo de trabajo
 
-1. Haz un fork y crea una rama desde `main`: `feat/mi-cambio` o `fix/mi-arreglo`.
+1. Haz un fork y crea una rama desde `development`: `feat/mi-cambio` o `fix/mi-arreglo`, y abre el Pull Request contra `development`. `main` solo recibe releases (ver [RELEASING.md](docs/RELEASING.md)).
 2. Haz cambios pequeños y enfocados. Un cambio, un propósito.
 3. Comprueba que `nix flake check --no-build` pasa y que el sistema compila.
 4. Abre un pull request y completa la plantilla.
