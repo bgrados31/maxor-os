@@ -63,59 +63,72 @@ Los scripts y las apps reaccionan al código, no al texto del error.
 
 ## La interfaz
 
-Cada comando se dibuja como **una ventana dentro de la terminal**: marco redondeado, barra de
-título con tres puntos y superficie propia, todo con la paleta del tema activo en color de 24
-bits. Cambias de tema y la propia terminal de `maxor` cambia de color en el mismo instante.
+Toda la salida es **lineal y cuelga de un riel vertical**, con la paleta del tema activo en color
+de 24 bits. No imita una terminal ni dibuja marcos: no mide el ancho de cada línea, se copia y se
+pega limpia y se ve igual en una terminal estrecha o en un log.
 
 ```
-╭ ● ● ●  maxor · themes                                                      ╮
-│                                                                            │
-│ DARK                                                                       │
-│  ● sakura        ████████  Sakura nocturna                                 │
-│    glaciar       ████████  Glaciar                                         │
-│ …                                                                          │
-╰────────────────────────────────────────────────────────────────────────────╯
+┌  maxor update nitro
+│
+◇  Building nitro  14s
+│
+◇  Changes
+│  +1 new   ↑2 updated   −0 removed
+│  ↑ firefox                  149.0 → 150.0
+│
+◆  Apply now? [y/N]
+│
+└  Cancelled. Nothing was applied.
 ```
 
-Las comprobaciones llevan ✓ (correcta), `!` (aviso) o ✗ (problema). En temas claros se usan
-variantes más oscuras de verde, ámbar y rojo para mantener el contraste.
+| Glifo | Significa |
+|---|---|
+| `┌` `└` | Empieza y termina un comando (`ui_intro`, `ui_outro`) |
+| `│` | El riel; una sola línea vacía entre bloques, nunca dos |
+| `◇` | Un paso hecho (`ui_step`, `ui_run`) o el título de un bloque (`ui_section`) |
+| `◆` | Una pregunta (`ui_confirm`) |
+| `✓` `!` `✗` | Una comprobación correcta, un aviso o un problema (`ui_row`) |
+
+En temas claros se usan variantes más oscuras de verde, ámbar y rojo para mantener el contraste.
+Para lo que necesita teclado, ratón y pantalla completa (la tienda, el instalador) está
+[`maxor-tui`](TUI.md); `maxor` en una terminal lo abre.
 
 | Situación | Comportamiento |
 |---|---|
-| La salida no es una terminal (tubería, archivo) | Texto plano, sin marcos, colores ni animación |
-| `NO_COLOR` definida, `TERM=dumb` o `--no-color` | Texto plano |
-| `MAXOR_FORCE_UI=1` | Fuerza la interfaz incluso sin terminal |
-| `COLUMNS` | Ancho de la ventana (entre 50 y 78 columnas) |
+| La salida no es una terminal (tubería, archivo) | El mismo texto, sin colores ni animación |
+| `NO_COLOR` definida, `TERM=dumb` o `--no-color` | El mismo texto, sin colores |
+| `MAXOR_ASCII=1`, `TERM=linux` o un locale que no es UTF-8 | Glifos ASCII (`+ \| o v x`) con la misma estructura |
+| `MAXOR_FORCE_UI=1` | Fuerza colores y animación incluso sin terminal |
+| `MAXOR_NO_TUI=1` | No abre la pantalla completa: muestra la CLI de siempre |
+| `COLUMNS` | Ancho de las líneas (entre 50 y 78 columnas) |
 
-### Cargadores
+### El cargador
 
-Cada espera tiene el suyo. Todos animan solo en una terminal con color; en cualquier otro caso
-ejecutan igual y escriben líneas simples.
+Hay **uno solo**, `ui_run`, y la pantalla completa habla el mismo idioma (mismo spinner, mismos
+estados, mismos tiempos). Así no hay cargadores distintos según el comando.
 
-| Función | Para qué | Dónde se usa |
-|---|---|---|
-| `ui_run` | Una tarea corta, con spinner | pasos sueltos de varios comandos |
-| `ui_run_tail` | Una tarea larga: spinner y las últimas 4 líneas de su salida | compilaciones |
-| `ui_pipeline` | Varias tareas en secuencia: lista de pasos, «paso N de M» y tiempo total; muestra las últimas líneas del paso en curso | `maxor update` |
-| `ui_progress_*` | Avance conocido: barra con porcentaje | listo para copias y descargas |
-| `ui_skeleton_frame` | Huecos que parpadean mientras llegan los datos | `maxor apps` |
-| búsqueda en paralelo | Una barra por origen | `maxor search` |
+```
+⠹  Building nitro  12s           trabajando (y los segundos si pasan de 3)
+│  copying path …/firefox-150    lo último que imprime, si tarda más de 2 s
+◇  Built nitro  14s              hecho (con el tiempo si pasó de 2 s)
+✗  Building nitro                falló: las últimas líneas y `maxor logs --last`
+```
 
-Un fallo en cualquiera de ellos se anota en el registro (con el comando y su salida completa) y
-muestra la causa más `maxor logs --last`.
+- Nada aparece en los primeros 150 ms: las tareas rápidas no parpadean.
+- Fuera de una terminal, con `NO_COLOR` o con `--quiet` no hay animación: solo el resultado.
+- Un fallo se anota en el registro con el comando, el código de salida y su salida completa.
+- `ui_progress_*` es lo mismo cuando se conoce el avance: añade la barra con porcentaje.
+- La búsqueda en paralelo de `maxor search` usa las mismas líneas: una por origen.
 
 ### Componentes
 
-Viven en `lib/widgets.sh` y se usan dentro de una ventana (entre `ui_open` y `ui_close`).
+Viven en `lib/widgets.sh` y se usan dentro del riel.
 
 | Función | Qué dibuja |
 |---|---|
-| `ui_tabs ACTIVA etiqueta…` | Pestañas con subrayado bajo la activa |
-| `ui_status dato…` | Barra de estado: `dato • dato • dato` |
-| `ui_crumbs nivel…` | Migas de pan: `maxor › help › theme` |
-| `ui_hints tecla:acción…` | Ayuda de teclas para pantallas interactivas |
 | `ui_diff "texto" [filas]` | Cambios de paquetes con ↑ + − ~, totales y sin el ruido de archivos de configuración |
-| `ui_error título causa qué-probar [log]` | Error con su árbol: causa, qué probar y, si se pide, dónde está el registro |
+| `diff_json "texto"` | Lo mismo como JSON, para la pantalla completa y los scripts |
+| `ui_error título causa qué-probar [log]` | Error con su árbol (`├` causa, qué probar, `└` registro) |
 
 ## Registro y diagnóstico
 
@@ -142,7 +155,7 @@ Referencia completa, formato y seguridad en [THEMING.md](THEMING.md). Resumen:
 - `theme list` agrupa en oscuros y claros, con una muestra de colores y el activo marcado.
 - `theme apply` actualiza DMS, el modo claro u oscuro, el lockscreen, la forma de Hyprland (esquinas,
   espacios, desenfoque y animaciones), el wallpaper y kitty, y
-  termina con una ventana que resume cada paso.
+  termina con un resumen de cada paso.
 - `theme install <ruta>` valida el tema y copia solo los archivos permitidos. Acepta una carpeta o
   un `.tar.gz`; rechaza enlaces, rutas peligrosas, colores inválidos y valores de forma fuera de rango.
 - `theme export <nombre>` crea `<nombre>.maxortheme` en el directorio actual.
@@ -154,7 +167,7 @@ Actualiza el sistema en pasos y **no aplica nada sin preguntar**:
 1. Actualiza `flake.lock` (`nix flake update`). Con `--no-lock` se salta este paso y solo se
    recompila la configuración actual.
 2. Compila la nueva generación sin activarla, mostrando las últimas líneas de la compilación.
-3. Compara con el sistema en marcha y muestra en una ventana qué cambia: paquetes nuevos,
+3. Compara con el sistema en marcha y muestra qué cambia: paquetes nuevos,
    actualizados, eliminados y con otro tamaño, y un aviso si incluye un kernel nuevo.
 
 Después pregunta si aplicarla. Con `-y` aplica sin preguntar. Si el sistema ya coincide con lo
@@ -165,7 +178,7 @@ Si cancelas después de actualizar `flake.lock`, el archivo queda modificado: re
 
 ## `maxor rollback`
 
-Enseña las últimas generaciones en una ventana y, tras confirmar, ejecuta
+Enseña las últimas generaciones y, tras confirmar, ejecuta
 `sudo nixos-rebuild switch --rollback`. Con `-y` no pregunta. Si el sistema ni siquiera
 arranca, elige la generación anterior en el menú de arranque.
 
@@ -194,9 +207,9 @@ home/maxor/
 │   ├── i18n.sh        msg / t: mensajes por clave
 │   ├── lang/en.sh     catálogo de mensajes (inglés)
 │   ├── term.sh        capacidades, paleta del tema, texto, repintado en el sitio
-│   ├── frame.sh       ventana, líneas, filas y mensajes
-│   ├── loaders.sh     spinner, ventana de salida, pasos, barra, esqueleto
-│   ├── widgets.sh     pestañas, estado, migas, teclas, diff y errores
+│   ├── frame.sh       el riel, las líneas, las filas y los mensajes
+│   ├── loaders.sh     el cargador único (ui_run) y la barra de avance
+│   ├── widgets.sh     diff y errores
 │   ├── style.sh       style.json → Lua de Hyprland
 │   └── registry.sh    registro de comandos, ayuda y errores de uso
 ├── cmd/               un archivo por grupo de comandos
@@ -236,7 +249,7 @@ propia clave, y las pruebas fallan si el código usa una clave que no está en e
 
 ## Rendimiento de la interfaz
 
-La CLI pinta ventanas de terminal y, en el buscador, se repinta en cada tecla. Por eso
+La CLI pinta muchas líneas por comando y el cargador se repinta varias veces por segundo. Por eso
 `lib/term.sh` y `lib/frame.sh` siguen una regla: **en los caminos que se repiten no se lanzan
 procesos** (nada de `sed`, `wc`, `cat` ni `$(…)` por línea).
 
@@ -260,9 +273,9 @@ Tiempos en el Nitro, antes y después: ayuda 352 → 108 ms, `theme list` 1562 �
 | Archivo | Qué cubre |
 |---|---|
 | `i18n.bats` | Todas las claves usadas existen, ninguna sobra, cada comando tiene resumen y ayuda |
-| `ui.bats` | Ancho de las ventanas con y sin colores, texto plano, recorte, repintado |
-| `widgets.bats` | `ui_diff` (conteos, ruido de configuración, colores de nix), `ui_error`, pestañas |
-| `loaders.bats` | Pasos en orden y su salida, fallo con código, registro del error, `--quiet` |
+| `ui.bats` | El riel (estructura exacta, sin líneas vacías dobles), con y sin colores, respaldo ASCII, recorte, repintado |
+| `widgets.bats` | `ui_diff` y `diff_json` (conteos, ruido de configuración, colores de nix), `ui_error` |
+| `loaders.bats` | El cargador único: salida, fallo con código y registro, riel en secuencia, `--quiet` |
 | `core.bats` | Códigos de salida, registro y rotación, validación de temas y de forma |
 | `cli.bats` | El binario completo: versión, ayuda, códigos, JSON, autocompletado, sin `LANG` |
 | `release.bats` | Extracción de notas del CHANGELOG |

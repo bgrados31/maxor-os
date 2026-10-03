@@ -24,3 +24,5 @@ jobs:
         run: nix eval --raw .#nixosConfigurations.nitro.config.system.build.toplevel.drvPath
       - name: Pruebas de la CLI (bats, shellcheck, catálogo de mensajes)
         run: nix build .#checks.x86_64-linux.cli-tests --print-build-logs
+      - name: Pantalla completa (compila y corre go test)
+        run: nix build .#packages.x86_64-linux.maxor-tui --print-build-logs

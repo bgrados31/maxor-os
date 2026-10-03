@@ -90,8 +90,9 @@ maxor rollback     # vuelve a la generación anterior
 maxor doctor       # diagnóstico: servicios, sesión, GPU, arranque, fuentes
 ```
 
-Cada comando se dibuja como una ventana dentro de la terminal, con los colores del tema activo.
-Referencia completa en [docs/CLI.md](docs/CLI.md).
+La salida es lineal, colgada de un riel y con los colores del tema activo. `maxor` a secas abre la
+pantalla completa (tienda, temas, actualizaciones, instalador). Referencia en
+[docs/CLI.md](docs/CLI.md) y [docs/TUI.md](docs/TUI.md).
 
 ## Atajos principales
 

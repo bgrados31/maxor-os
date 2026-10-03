@@ -76,9 +76,10 @@ un solo acento, superficies tintadas hacia ese acento y contraste AA como mínim
 son una inversión de los oscuros: cada uno parte de su propio matiz (rosa, azul océano, azul
 tinta, verde humo, arena). Lista completa en [THEMING.md](THEMING.md).
 
-## La terminal de `maxor`
+## La CLI y la pantalla de `maxor`
 
-La CLI se dibuja como una ventana dentro de la terminal: marco redondeado en el color de acento,
-barra de título con tres puntos (acento, acento secundario y gris), superficie propia y verde,
-ámbar y rojo ajustados al modo del tema. Es el sello visual de las herramientas de Maxor y la
-base del futuro instalador. Detalles en [CLI.md](CLI.md#la-interfaz).
+La CLI es lineal: un riel vertical con `┌ │ ◇ └`, el acento del tema en el riel y en los pasos, y
+verde, ámbar y rojo ajustados al modo del tema. Es sobria a propósito y no imita una terminal.
+Lo que necesita teclado y pantalla completa (la tienda, el instalador) es `maxor-tui`, la pantalla
+propia de Maxor, con superficies de tono (sin marcos) y los mismos glifos y estados. Un solo
+vocabulario visual para todo. Detalles en [CLI.md](CLI.md#la-interfaz) y [TUI.md](TUI.md).

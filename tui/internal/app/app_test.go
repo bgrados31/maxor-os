@@ -1,0 +1,528 @@
+package app
+
+import (
+	"time"
+	"context"
+	"fmt"
+	"strings"
+	"sync"
+	"testing"
+
+	tea "github.com/charmbracelet/bubbletea"
+	"github.com/charmbracelet/x/ansi"
+
+	"github.com/bgrados31/maxor-os/tui/internal/core"
+	"github.com/bgrados31/maxor-os/tui/internal/maxor"
+	"github.com/bgrados31/maxor-os/tui/internal/task"
+)
+
+// ── CLI de mentira ───────────────────────────────────────────────────
+
+type fakeCLI struct {
+	mu    sync.Mutex
+	resp  map[string]string
+	fail  map[string]string
+	calls []string
+}
+
+func (f *fakeCLI) Run(_ context.Context, args ...string) ([]byte, []byte, int, error) {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	key := strings.Join(args, " ")
+	f.calls = append(f.calls, key)
+	if msg, ok := f.fail[key]; ok {
+		return nil, []byte(msg), 1, nil
+	}
+	if out, ok := f.resp[key]; ok {
+		return []byte(out), nil, 0, nil
+	}
+	return nil, []byte("sin respuesta para " + key), 99, nil
+}
+
+func (f *fakeCLI) called(prefix string) bool {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	for _, c := range f.calls {
+		if strings.HasPrefix(c, prefix) {
+			return true
+		}
+	}
+	return false
+}
+
+const themesJSON = `[
+ {"id":"alba","name":"Alba","mode":"light","active":false,"colors":{"bg":"#fbeff4","s":"#fff7fa","s2":"#ffffff","fg":"#2a1622","mu":"#7d5a6c","ac":"#c2255c","ac2":"#d9480f","on":"#ffffff"}},
+ {"id":"brasa","name":"Brasa","mode":"dark","active":false,"colors":{"bg":"#100c0b","s":"#1a1412","s2":"#251c19","fg":"#f6ece6","mu":"#a08c82","ac":"#ff6a3d","ac2":"#ffb347","on":"#1a0d08"}},
+ {"id":"sakura","name":"Sakura nocturna","mode":"dark","active":true,"colors":{"bg":"#120b12","s":"#1d121d","s2":"#2a1a2a","fg":"#fbe9f2","mu":"#a88a9d","ac":"#ff86b8","ac2":"#ffc2a6","on":"#1b0b14"}}]`
+
+func newCLI() *fakeCLI {
+	return &fakeCLI{resp: map[string]string{
+		"theme list --json": themesJSON,
+		"apps --json":       `[{"source":"nix","id":"vscode","name":"vscode","version":"vscode-1.119.0"}]`,
+		"doctor --json":     `{"ok":true,"fails":0,"warns":1,"groups":[{"title":"System","items":[{"level":"ok","text":"no failed system services"},{"level":"ok","text":"the running kernel is the installed one"}]},{"title":"Configuration","items":[{"level":"warn","text":"uncommitted changes in the repository"}]}]}`,
+		"hardware detect":   `{"version":1,"cpu":{"vendor":"intel","model":"13th Gen Intel(R) Core(TM) i5-13500H"},"gpus":[{"vendor":"intel","id":"8086:a7a0","bus":"PCI:0:2:0","primary":true},{"vendor":"nvidia","id":"10de:28e1","bus":"PCI:1:0:0","primary":false}],"laptop":true,"virt":"none","bluetooth":true}`,
+		"profile list --json": `[{"id":"gaming","title":"Gaming","description":"Steam, Proton and GameMode. More.","enabled":false},{"id":"office","title":"Office","description":"LibreOffice and Thunderbird.","enabled":false}]`,
+		"search brave --json": `[{"source":"nix","id":"brave","name":"brave","version":"1.96.59","description":"Privacy-oriented browser"},{"source":"flatpak","id":"com.brave.Browser","name":"Brave Browser","version":"","description":"Fast Internet, AI, Adblock"}]`,
+		"install --nix brave --json": `[{"id":"brave","source":"nix","ok":true}]`,
+		"update --json":              `{"up_to_date":false,"kernel":true,"counts":{"new":1,"updated":2,"removed":0,"changed":1,"config":3},"changes":[{"kind":"updated","name":"firefox","from":"149.0","to":"150.0","size":"+1 MiB"},{"kind":"updated","name":"mesa","from":"26.0.1","to":"26.0.2","size":""},{"kind":"new","name":"earlyoom","to":"1.9.0","size":"52 KiB"},{"kind":"changed","name":"maxor","size":"38 KiB"}]}`,
+		"theme apply alba":           ``,
+		"theme apply brasa":          ``,
+		"profile enable gaming --no-apply": ``,
+	}}
+}
+
+// ── arnés ────────────────────────────────────────────────────────────
+
+func setup(t *testing.T, opts Options) (*Model, *fakeCLI) {
+	t.Helper()
+	dir := t.TempDir()
+	t.Setenv("XDG_DATA_HOME", dir)
+	t.Setenv("XDG_STATE_HOME", dir)
+	f := newCLI()
+	m := New(opts, maxor.NewWith(f))
+	m.Update(tea.WindowSizeMsg{Width: 110, Height: 34})
+	run(m, m.Init())
+	return m, f
+}
+
+// run ejecuta un comando y entrega sus mensajes al modelo, sin esperar a los ticks.
+func run(m *Model, cmd tea.Cmd) {
+	if cmd == nil {
+		return
+	}
+	msg := cmd()
+	switch v := msg.(type) {
+	case nil:
+	case tickMsg:
+	case tea.BatchMsg:
+		for _, c := range v {
+			run(m, c)
+		}
+	default:
+		_, next := m.Update(v)
+		run(m, next)
+	}
+}
+
+func send(m *Model, msgs ...tea.Msg) {
+	for _, msg := range msgs {
+		_, cmd := m.Update(msg)
+		run(m, cmd)
+	}
+}
+
+func key(s string) tea.Msg {
+	switch s {
+	case "enter":
+		return tea.KeyMsg{Type: tea.KeyEnter}
+	case "esc":
+		return tea.KeyMsg{Type: tea.KeyEsc}
+	case "tab":
+		return tea.KeyMsg{Type: tea.KeyTab}
+	case "shift+tab":
+		return tea.KeyMsg{Type: tea.KeyShiftTab}
+	case "up":
+		return tea.KeyMsg{Type: tea.KeyUp}
+	case "down":
+		return tea.KeyMsg{Type: tea.KeyDown}
+	case "space":
+		return tea.KeyMsg{Type: tea.KeySpace}
+	case "ctrl+c":
+		return tea.KeyMsg{Type: tea.KeyCtrlC}
+	}
+	return tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune(s)}
+}
+
+func typeText(m *Model, s string) {
+	for _, r := range s {
+		send(m, tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{r}})
+	}
+}
+
+func view(m *Model) string { return ansi.Strip(m.View()) }
+
+// has compara sin distinguir mayúsculas: los encabezados se dibujan en mayúsculas.
+func has(out, want string) bool { return strings.Contains(strings.ToLower(out), strings.ToLower(want)) }
+
+func summaryText(m *Model) string {
+	var b strings.Builder
+	for _, s := range m.Summary() {
+		b.WriteString(s.Text + "\n")
+	}
+	return b.String()
+}
+
+// ── pruebas ──────────────────────────────────────────────────────────
+
+func TestLaVistaSiempreMideExactamenteElTerminal(t *testing.T) {
+	for _, size := range [][2]int{{80, 24}, {100, 30}, {120, 40}, {160, 50}, {200, 60}} {
+		m, _ := setup(t, Options{})
+		m.Update(tea.WindowSizeMsg{Width: size[0], Height: size[1]})
+		for _, id := range []string{"home", "store", "themes", "update", "doctor", "setup"} {
+			send(m, core.GoMsg{ID: id})
+			for _, phase := range []string{"cargando", "cargado"} {
+				out := m.View()
+				lines := strings.Split(out, "\n")
+				if len(lines) != size[1] {
+					t.Fatalf("%dx%d %s (%s): %d filas, se esperaban %d", size[0], size[1], id, phase, len(lines), size[1])
+				}
+				for i, l := range lines {
+					if w := ansi.StringWidth(l); w != size[0] {
+						t.Fatalf("%dx%d %s (%s) fila %d: ancho %d\n%q", size[0], size[1], id, phase, i, w, ansi.Strip(l))
+					}
+				}
+				if phase == "cargando" {
+					// con tareas en marcha el reloj avanza: se ven los esqueletos
+					m.env.Frame += 3
+				}
+			}
+		}
+	}
+}
+
+func TestDemasiadoPequenoAvisaEnLugarDeRomperse(t *testing.T) {
+	m, _ := setup(t, Options{})
+	m.Update(tea.WindowSizeMsg{Width: 60, Height: 20})
+	out := view(m)
+	if !strings.Contains(out, "needs at least 80×24") || len(strings.Split(out, "\n")) != 20 {
+		t.Fatalf("aviso de tamaño:\n%s", out)
+	}
+}
+
+func TestPestanasConTabNumerosYRaton(t *testing.T) {
+	m, _ := setup(t, Options{})
+	if m.screens[m.active].ID() != "home" {
+		t.Fatal("arranca en Home")
+	}
+	send(m, key("tab"))
+	if m.screens[m.active].ID() != "store" {
+		t.Fatalf("tab: %s", m.screens[m.active].ID())
+	}
+	send(m, key("shift+tab"), key("shift+tab"))
+	if m.screens[m.active].ID() != "setup" {
+		t.Fatalf("shift+tab da la vuelta: %s", m.screens[m.active].ID())
+	}
+	send(m, key("3"))
+	if m.screens[m.active].ID() != "themes" {
+		t.Fatalf("tecla 3: %s", m.screens[m.active].ID())
+	}
+	view(m) // deja calculadas las pestañas para el ratón
+	r := m.tabs[4]
+	send(m, tea.MouseMsg{X: r.x0 + 1, Y: 0, Button: tea.MouseButtonLeft, Action: tea.MouseActionPress})
+	if m.screens[m.active].ID() != "doctor" {
+		t.Fatalf("clic en la pestaña: %s", m.screens[m.active].ID())
+	}
+}
+
+func TestAyudaYSalir(t *testing.T) {
+	m, _ := setup(t, Options{})
+	send(m, key("?"))
+	if !strings.Contains(view(m), "back to your terminal") {
+		t.Fatal("la ayuda debe abrirse con ?")
+	}
+	send(m, key("x"))
+	if m.overlay != ovNone {
+		t.Fatal("cualquier tecla cierra la ayuda")
+	}
+	send(m, key("q"))
+	if !m.quitting {
+		t.Fatal("q sale")
+	}
+	m2, _ := setup(t, Options{})
+	send(m2, key("ctrl+c"))
+	if !m2.quitting {
+		t.Fatal("ctrl+c sale")
+	}
+}
+
+func TestStoreBuscaMarcaEInstalaYDejaResumen(t *testing.T) {
+	m, f := setup(t, Options{Screen: "store"})
+	send(m, key("/"))
+	if !m.screens[m.active].Captures() {
+		t.Fatal("con el foco en el campo, las teclas globales no se interpretan")
+	}
+	typeText(m, "q") // «q» es texto aquí, no salir
+	if m.quitting {
+		t.Fatal("q dentro del campo no debe salir")
+	}
+	send(m, key("esc"))
+	send(m, key("/"))
+	// borra la q y escribe la búsqueda
+	send(m, tea.KeyMsg{Type: tea.KeyBackspace})
+	typeText(m, "brave")
+	send(m, key("enter"))
+	out := view(m)
+	if !strings.Contains(out, "2 results") || !strings.Contains(out, "Brave Browser") || !strings.Contains(out, "Privacy-oriented browser") {
+		t.Fatalf("resultados:\n%s", out)
+	}
+	send(m, key("space"), key("enter"))
+	if !f.called("install --nix brave") {
+		t.Fatalf("debe instalar con el origen del resultado: %v", f.calls)
+	}
+	if !strings.Contains(summaryText(m), "Installed brave") {
+		t.Fatalf("resumen: %q", summaryText(m))
+	}
+	if !f.called("apps --json") {
+		t.Fatal("tras instalar se vuelve a leer lo instalado")
+	}
+}
+
+func TestStoreMuestraLoInstaladoSinBusqueda(t *testing.T) {
+	m, _ := setup(t, Options{Screen: "store"})
+	out := view(m)
+	if !has(out, "Installed with maxor") || !has(out, "vscode") || !has(out, "1.119.0") {
+		t.Fatalf("instaladas:\n%s", out)
+	}
+}
+
+func TestStoreUnaBusquedaNuevaReemplazaALaAnterior(t *testing.T) {
+	m, f := setup(t, Options{Screen: "store"})
+	f.resp["search bra --json"] = `[{"source":"nix","id":"bra","name":"bra","version":"1","description":"viejo"}]`
+	send(m, key("/"))
+	typeText(m, "bra")
+	_, c1 := m.Update(key("enter"))
+	typeText(m, "")
+	send(m, key("/"))
+	typeText(m, "ve")
+	_, c2 := m.Update(key("enter"))
+	// llega primero lo nuevo y después lo viejo: lo viejo se ignora
+	run(m, c2)
+	run(m, c1)
+	if out := view(m); strings.Contains(out, "viejo") || !strings.Contains(out, "Brave Browser") {
+		t.Fatalf("debe verse solo la última búsqueda:\n%s", out)
+	}
+}
+
+func TestPaletaAplicaUnTemaYNavega(t *testing.T) {
+	m, f := setup(t, Options{})
+	send(m, key(":"))
+	if m.overlay != ovPalette {
+		t.Fatal("«:» abre la paleta")
+	}
+	typeText(m, "go store")
+	send(m, key("enter"))
+	if m.screens[m.active].ID() != "store" || m.overlay != ovNone {
+		t.Fatal("la paleta debe navegar")
+	}
+	send(m, key(":"))
+	typeText(m, "theme alba")
+	send(m, key("enter"))
+	if !f.called("theme apply alba") {
+		t.Fatalf("debe aplicar el tema: %v", f.calls)
+	}
+	if !strings.Contains(summaryText(m), "Applied theme alba") {
+		t.Fatalf("resumen: %q", summaryText(m))
+	}
+}
+
+func TestArrancarConBusquedaAbreLaTiendaYBusca(t *testing.T) {
+	m, f := setup(t, Options{Search: "brave"})
+	if m.screens[m.active].ID() != "store" || !f.called("search brave --json") {
+		t.Fatalf("--search debe abrir la Tienda y buscar: %v", f.calls)
+	}
+	if !has(view(m), "2 results for “brave”") {
+		t.Fatalf("resultados:\n%s", view(m))
+	}
+}
+
+func TestPaletaBuscaEnLaTienda(t *testing.T) {
+	m, f := setup(t, Options{})
+	send(m, key(":"))
+	typeText(m, "search brave")
+	send(m, key("enter"))
+	if m.screens[m.active].ID() != "store" || !f.called("search brave --json") {
+		t.Fatalf("la paleta debe ir a la tienda y buscar: %v", f.calls)
+	}
+}
+
+func TestPaletaSinResultadosDaPistas(t *testing.T) {
+	m, _ := setup(t, Options{})
+	send(m, key(":"))
+	typeText(m, "zzzz")
+	if !strings.Contains(view(m), "No matches") {
+		t.Fatal("sin coincidencias debe sugerir qué escribir")
+	}
+	send(m, key("esc"))
+	if m.overlay != ovNone {
+		t.Fatal("esc cierra la paleta")
+	}
+}
+
+func TestTemasVistaPreviaYVuelta(t *testing.T) {
+	m, _ := setup(t, Options{Screen: "themes"})
+	base := m.env.Theme.Name
+	send(m, key("up")) // de sakura (activo) al anterior en el orden
+	if m.env.Theme.Name == base || !m.previewing {
+		t.Fatalf("mover debe previsualizar otro tema: %s", m.env.Theme.Name)
+	}
+	prev := m.env.Theme.Name
+	send(m, key("esc"))
+	if m.env.Theme.Name != base || m.previewing {
+		t.Fatalf("esc debe volver a %s, hay %s (antes %s)", base, m.env.Theme.Name, prev)
+	}
+	send(m, key("up"), key("tab"))
+	if m.env.Theme.Name != base {
+		t.Fatal("al cambiar de pestaña vuelve el tema activo")
+	}
+}
+
+func TestDoctorMuestraGruposYConsejo(t *testing.T) {
+	m, _ := setup(t, Options{Screen: "doctor"})
+	out := view(m)
+	for _, want := range []string{"SYSTEM", "CONFIGURATION", "uncommitted changes", "works, with warnings"} {
+		if !strings.Contains(out, want) {
+			t.Fatalf("falta %q:\n%s", want, out)
+		}
+	}
+	send(m, key("down"), key("down"))
+	if out := view(m); !strings.Contains(out, "Needs attention") || !strings.Contains(out, "git -C ~/nixos-config status") {
+		t.Fatalf("el aviso debe traer su consejo:\n%s", out)
+	}
+}
+
+func TestUpdateComprueba(t *testing.T) {
+	m, f := setup(t, Options{Screen: "update"})
+	if !strings.Contains(view(m), "Not checked yet") {
+		t.Fatal("al abrir no comprueba solo: tarda minutos")
+	}
+	send(m, key("c"))
+	out := view(m)
+	for _, want := range []string{"1 new", "2 updated", "includes a new kernel", "firefox", "149.0 → 150.0", "3 configuration files"} {
+		if !strings.Contains(out, want) {
+			t.Fatalf("falta %q:\n%s", want, out)
+		}
+	}
+	if !f.called("update --json") {
+		t.Fatal("llama a update --json (con la actualización de entradas)")
+	}
+	send(m, key("b"))
+	if !f.called("update --json --no-lock") {
+		t.Fatal("b comprueba sin tocar flake.lock")
+	}
+}
+
+func TestUpdateAplicarCedeLaTerminal(t *testing.T) {
+	m, _ := setup(t, Options{Screen: "update"})
+	send(m, key("c"))
+	_, cmd := m.Update(key("a"))
+	if cmd == nil {
+		t.Fatal("aplicar debe devolver el comando que cede la terminal")
+	}
+	// al volver sin error se limpia el resultado y queda en el resumen
+	send(m, core.ExecDoneMsg{Tag: "update"})
+	if m.env.Data.Update != nil || !strings.Contains(summaryText(m), "Updated the system") {
+		t.Fatal("tras aplicar se descarta la comprobación y queda el resumen")
+	}
+}
+
+func TestHomeCargaTodoEnSegundoPlanoYEnlazaLasAcciones(t *testing.T) {
+	m, f := setup(t, Options{})
+	out := view(m)
+	for _, want := range []string{"1 warning", "1 installed", "Sakura nocturna", "13th Gen Intel", "Quick actions"} {
+		if !has(out, want) {
+			t.Fatalf("falta %q:\n%s", want, out)
+		}
+	}
+	for _, c := range []string{"doctor --json", "apps --json", "theme list --json", "hardware detect"} {
+		if !f.called(c) {
+			t.Fatalf("Home debe cargar %s", c)
+		}
+	}
+	send(m, key("u"))
+	if m.screens[m.active].ID() != "update" || !f.called("update --json") {
+		t.Fatal("u va a Actualizar y comprueba")
+	}
+}
+
+func TestHomeSinCliMuestraErroresSinCaerse(t *testing.T) {
+	dir := t.TempDir()
+	t.Setenv("XDG_DATA_HOME", dir)
+	t.Setenv("XDG_STATE_HOME", dir)
+	f := &fakeCLI{resp: map[string]string{}}
+	m := New(Options{}, maxor.NewWith(f))
+	m.Update(tea.WindowSizeMsg{Width: 100, Height: 30})
+	run(m, m.Init())
+	out := view(m)
+	if !strings.Contains(out, "could not check") || !strings.Contains(out, "maxor logs --last") {
+		t.Fatalf("errores:\n%s", out)
+	}
+	for _, id := range []string{"store", "themes", "doctor", "setup"} {
+		send(m, core.GoMsg{ID: id})
+		if len(strings.Split(m.View(), "\n")) != 30 {
+			t.Fatalf("%s no mide 30 filas con la CLI rota", id)
+		}
+	}
+}
+
+func TestSetupRecorreLosPasosYGuardaLasElecciones(t *testing.T) {
+	m, f := setup(t, Options{Screen: "setup"})
+	if m.screens[0].ID() != "setup" || len(m.screens) != 1 {
+		t.Fatal("el asistente arranca solo, sin pestañas")
+	}
+	if out := view(m); !strings.Contains(out, "Welcome to Maxor OS") || !strings.Contains(out, "hybrid graphics") {
+		t.Fatalf("bienvenida:\n%s", out)
+	}
+	send(m, key("enter")) // → aspecto
+	if !strings.Contains(view(m), "Pick a look") {
+		t.Fatal("paso 2")
+	}
+	send(m, key("up")) // previsualiza otro
+	if !m.previewing {
+		t.Fatal("el aspecto se previsualiza al mover")
+	}
+	send(m, key("enter"))
+	if !strings.Contains(view(m), "What will you use it for?") {
+		t.Fatal("paso 3")
+	}
+	send(m, key("space"), key("enter")) // marca gaming
+	out := view(m)
+	if !strings.Contains(out, "gaming") || !strings.Contains(out, "Review") {
+		t.Fatalf("revisión:\n%s", out)
+	}
+	send(m, key("enter"))
+	if !f.called("profile enable gaming --no-apply") {
+		t.Fatalf("debe guardar el perfil sin reconstruir: %v", f.calls)
+	}
+	if !strings.Contains(view(m), "All saved") || !strings.Contains(view(m), "Build the system now") {
+		t.Fatalf("final:\n%s", view(m))
+	}
+	if !strings.Contains(summaryText(m), "Profiles saved") {
+		t.Fatalf("resumen: %q", summaryText(m))
+	}
+	send(m, key("enter"))
+	if !m.quitting {
+		t.Fatal("Intro en el último paso termina")
+	}
+}
+
+func TestSetupPuedeVolverAtras(t *testing.T) {
+	m, _ := setup(t, Options{Screen: "setup"})
+	send(m, key("enter"), key("esc"))
+	if !strings.Contains(view(m), "Welcome to Maxor OS") || m.previewing {
+		t.Fatal("esc vuelve al paso anterior y quita la vista previa")
+	}
+}
+
+func TestElResumenNoRepiteLineas(t *testing.T) {
+	m, _ := setup(t, Options{})
+	send(m, core.SummaryMsg{Kind: "ok", Text: "Installed x"}, core.SummaryMsg{Kind: "ok", Text: "Installed x"})
+	if len(m.Summary()) != 1 {
+		t.Fatal("sin repeticiones")
+	}
+}
+
+func TestIndicadorMuestraLaTareaLenta(t *testing.T) {
+	m, _ := setup(t, Options{Screen: "doctor"})
+	// una tarea lenta simulada: arranca y el reloj avanza
+	now := m.env.Now()
+	m.env.Now = func() time.Time { return now }
+	m.env.Tasks = task.NewManagerWithClock(func() time.Time { return now })
+	m.env.Tasks.Start(task.Task{ID: "x.slow", Label: "Doing something slow", Run: func(context.Context) (any, error) { return nil, nil }})
+	now = now.Add(5 * time.Second)
+	out := view(m)
+	if !strings.Contains(out, "Doing something slow") || !strings.Contains(out, "5s") {
+		t.Fatalf("el indicador debe mostrar la tarea y los segundos:\n%s", strings.Split(out, "\n")[0])
+	}
+}
+
+var _ = fmt.Sprint

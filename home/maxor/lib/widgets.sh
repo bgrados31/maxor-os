@@ -1,19 +1,7 @@
-# ── Componentes: ayuda de teclas, diff y errores ─────────────────────
+# ── Componentes: diff y errores ──────────────────────────────────────
 # Piezas reutilizables que cualquier comando puede pedir en lugar de dibujar la
 # suya. Van dentro del riel (entre ui_intro y ui_outro). Las etiquetas aceptan
 # «@clave» (ver i18n.sh).
-
-# ── Ayuda de teclas ──────────────────────────────────────────────────
-# ui_hints tecla:acción…         ayuda de teclas fija al pie de una pantalla interactiva
-ui_hints() {
-  local out="" h k a
-  for h in "$@"; do
-    k="${h%%:*}"
-    msg a "${h#*:}"
-    out+="${E_AC}${k}${E_RST} ${a}   "
-  done
-  ui_text " $out"
-}
 
 # ── Diff de cambios (salida de `nix store diff-closures`) ────────────
 # ui_diff "texto" [máximo de filas]

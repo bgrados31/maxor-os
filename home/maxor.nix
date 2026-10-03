@@ -25,9 +25,10 @@ let
   officialThemes = lib.genAttrs themeIds mkTheme;
 
   maxor = pkgs.callPackage ../packages/maxor.nix { };
+  maxorTui = pkgs.callPackage ../packages/maxor-tui.nix { };
 in
 {
-  home.packages = [ maxor ];
+  home.packages = [ maxor maxorTui ];
 
   # Temas oficiales: carpetas de solo lectura junto a los tuyos, y sus
   # wallpapers en ~/Pictures/Wallpapers para el selector de DMS.

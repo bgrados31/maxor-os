@@ -1,0 +1,53 @@
+package ui
+
+import (
+	"github.com/charmbracelet/lipgloss"
+
+	"github.com/bgrados31/maxor-os/tui/internal/theme"
+)
+
+// Painter reúne los estilos sobre un fondo concreto. Cada trozo de texto lleva
+// su propio fondo, porque lipgloss reinicia los colores después de cada uno: así
+// no quedan huecos con el fondo de la terminal dentro de un panel.
+type Painter struct {
+	Bg                                     lipgloss.Color
+	Fill                                   lipgloss.Style
+	Text, Mu, Ac, Ac2, Ok, Warn, Bad, Bold lipgloss.Style
+	Sel                                    lipgloss.Style // fila seleccionada: fondo de acento
+	Btn, Btn2                              lipgloss.Style // botones principal y secundario
+}
+
+// NewPainter crea los estilos de un tema sobre el color de fondo bg (#rrggbb).
+func NewPainter(t theme.Theme, bg string) Painter {
+	b := lipgloss.Color(bg)
+	base := lipgloss.NewStyle().Background(b)
+	fg := func(c string) lipgloss.Style { return base.Foreground(lipgloss.Color(c)) }
+	return Painter{
+		Bg:   b,
+		Fill: base,
+		Text: fg(t.P.Fg),
+		Mu:   fg(t.P.Mu),
+		Ac:   fg(t.P.Ac),
+		Ac2:  fg(t.P.Ac2),
+		Ok:   fg(t.OK),
+		Warn: fg(t.Warn),
+		Bad:  fg(t.Bad),
+		Bold: fg(t.P.Fg).Bold(true),
+		Sel:  lipgloss.NewStyle().Background(lipgloss.Color(t.P.Ac)).Foreground(lipgloss.Color(t.P.On)).Bold(true),
+		Btn:  lipgloss.NewStyle().Background(lipgloss.Color(t.P.Ac)).Foreground(lipgloss.Color(t.P.On)).Bold(true),
+		Btn2: lipgloss.NewStyle().Background(lipgloss.Color(t.P.S2)).Foreground(lipgloss.Color(t.P.Fg)),
+	}
+}
+
+// Level devuelve el estilo y el glifo de fila de un nivel: ok, warn, bad o info.
+func (p Painter) Level(level string) (lipgloss.Style, string) {
+	switch level {
+	case "ok":
+		return p.Ok, G.Tick
+	case "warn":
+		return p.Warn, G.Warn
+	case "bad":
+		return p.Bad, G.Bad
+	}
+	return p.Mu, G.Info
+}

@@ -7,6 +7,10 @@ no usa versiones numeradas.
 
 ### Cambiado
 
+- **La CLI es lineal y cuelga de un riel** (`┌ │ ◇ └`) en vez de dibujar una ventana que imita una terminal: no mide el ancho de cada línea, se copia limpia y se ve igual en un log. Glifos Unicode con respaldo ASCII automático (`TERM=linux`, un locale que no es UTF-8 o `MAXOR_ASCII=1`).
+- **Un solo cargador para todo** (`ui_run`): spinner, las últimas líneas si tarda, el tiempo y el fallo con `maxor logs --last`. Desaparecen `ui_run_tail`, `ui_pipeline`, el esqueleto y las pestañas de la CLI; la pantalla completa habla el mismo idioma.
+- **`maxor search` en una terminal abre la Tienda** de la pantalla completa; sin ella, o con `--list` y `--json`, imprime la lista. Se quitó el selector interactivo de bash.
+
 - **La CLI habla inglés** (por ahora). Todos los mensajes salen de un catálogo (`home/maxor/lib/lang/en.sh`) y el código solo usa claves, así que añadir español es crear un archivo. Los perfiles también describen sus paquetes en inglés.
 - **CLI reorganizada** en `lib/` (núcleo, mensajes, terminal, marco, cargadores, componentes) y `cmd/` (un archivo por grupo de comandos), con el paquete propio `packages/maxor.nix`. Las salidas existentes se conservan.
 - **`maxor update` usa la lista de pasos**: «paso 1 de 3», tiempo total y las últimas líneas de la compilación bajo el paso en curso. El diff muestra ↑ + − ~, oculta los archivos de configuración y avisa si hay un kernel nuevo.
@@ -14,12 +18,19 @@ no usa versiones numeradas.
 
 ### Añadido
 
+- **`maxor-tui`, la pantalla completa** (Go y Bubble Tea, en `tui/`): se abre sobre tu terminal, con pestañas Home, Store, Themes, Update, Doctor y Setup; paleta de comandos con `:`, teclas vim, ratón, y al salir deja un resumen corto. Ver [TUI.md](docs/TUI.md).
+  - Un solo cargador (spinner único en la barra de pestañas, nada antes de 150 ms, esqueletos mientras llegan los datos).
+  - Los temas se previsualizan en toda la pantalla al moverte, sin tocar el sistema.
+  - Reconstruir el sistema cede un momento la terminal a `maxor update` (se ve el progreso y funciona sudo).
+  - `maxor` sin argumentos, `maxor ui [pantalla]` y `maxor setup` la abren; sin terminal, la CLI de siempre.
+- **Salidas JSON para la pantalla**: `maxor doctor --json`, `theme list --json`, `update --check`/`--json` (cambios clasificados) y `profile enable|disable --no-apply`.
+
 - **Cargadores**: `ui_run_tail` (spinner con las últimas líneas de la salida), `ui_pipeline` (pasos en secuencia), `ui_progress_*` (barra con porcentaje) y `ui_skeleton_frame` (huecos que parpadean, usado en `maxor apps`).
 - **Componentes**: pestañas con subrayado, barra de estado, migas de pan, ayuda de teclas, `ui_diff` y `ui_error` (causa, qué probar y registro).
 - **Registro de comandos**: la pantalla principal, `maxor help <comando>` y el autocompletado salen del mismo registro. `maxor completions fish|bash|zsh`.
 - **Banderas globales** `--no-color`, `-q/--quiet`, `-v/--verbose` y `--lang`; **códigos de salida** distintos para uso, falta de algo, red, permisos y cancelación.
 - **`maxor logs`, `maxor debug` y `maxor version [--json]`**: registro con rotación, informe para adjuntar a un error y versión con el schema del contrato JSON.
-- **Pruebas de la CLI** (bats, 73) y `nix flake check` que las ejecuta en el sandbox; la CI las corre en cada push. Detectaron y corrigieron dos fallos: la CLI se caía sin `LANG` y sin `/etc/os-release`.
+- **Pruebas de la CLI** (bats, 83) y de la pantalla completa (Go, ~50) y `nix flake check` que las ejecuta en el sandbox; la CI las corre en cada push. Detectaron y corrigieron dos fallos: la CLI se caía sin `LANG` y sin `/etc/os-release`.
 - **`VERSION`** en la raíz: `maxor --version` la lee al compilar y `scripts/release.sh` la actualiza.
 - **Apps sin rebuild**: `maxor search` es un selector interactivo (barras de progreso por origen, lista con casillas, id visible); `install`, `remove` y `apps` instalan desde nixpkgs (perfil del usuario) y Flathub (Flatpak `--user`) sin sudo, con resultados por relevancia y salida `--json` para la futura Maxor Store. Ver [APPS.md](docs/APPS.md).
 - **Perfiles**: `maxor profile enable|disable` activa gaming, dev, creator u office; el equipo guarda lo activo en `hosts/<equipo>/maxor.json`.

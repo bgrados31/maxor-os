@@ -26,7 +26,8 @@ propio e instalador propio. Referencias de experiencia: Ryoku OS, Omarchy y los 
 - [ ] Exportar `homeModules.default` para reutilizar la configuración de usuario.
 - [x] Configuración de Hyprland en módulos Lua (`settings`, `rules`, `binds`) y un `user.lua` que nunca se sobrescribe.
       Los monitores los gestiona DMS.
-- [x] `maxor update`, `maxor rollback` y `maxor doctor`, con interfaz de ventanas de terminal.
+- [x] `maxor update`, `maxor rollback` y `maxor doctor`, con salida lineal y un solo cargador.
+- [x] `maxor-tui`: la pantalla completa en Go (tienda, temas, actualizaciones, doctor e instalador de primer arranque).
 
 ## Fase 3: motor de temas
 

@@ -67,11 +67,6 @@ DIFF=$'firefox: 149.0 → 150.0, +12.3 MiB\nearlyoom: ∅ → 1.9.0, 52.3 KiB\nf
   grep -q "Disk exploded" "$logfile"
 }
 
-@test "ui_hints separa tecla y acción" {
-  load_lib
-  [[ "$(ui_hints "q:quit" "⏎:go" | strip_ansi)" == *"q quit"*"⏎ go"* ]]
-}
-
 @test "diff_json clasifica los cambios y conserva los totales" {
   load_lib
   out="$(diff_json "$DIFF")"
