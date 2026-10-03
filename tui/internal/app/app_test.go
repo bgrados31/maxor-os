@@ -650,8 +650,10 @@ func TestTemasUnSoloColorPorTemaYGrupos(t *testing.T) {
 			t.Fatalf("falta %q:\n%s", want, out)
 		}
 	}
-	if strings.Contains(out, "████") {
-		t.Fatal("ya no se dibuja una paleta de bloques por tema")
+	for _, l := range strings.Split(out, "\n") {
+		if strings.Contains(l, "Brasa") && strings.Contains(l, "██") {
+			t.Fatal("la lista ya no dibuja una paleta de bloques por tema")
+		}
 	}
 	if strings.Count(out, "●") < 3 {
 		t.Fatalf("cada tema lleva un punto de su color de acento:\n%s", out)
@@ -983,5 +985,105 @@ func TestQuitarSinDatosNoPregunta(t *testing.T) {
 	send(m, key("r"), key("r"))
 	if has(view(m), "Its data is still here") {
 		t.Fatal("sin carpetas sobrantes no hay pregunta")
+	}
+}
+
+func TestInstaladasTienenMenuDeAccionesSinLetras(t *testing.T) {
+	f := newCLI()
+	f.resp["apps updates"] = `[{"source":"nix","id":"vscode","current":"1.119.0","latest":"1.120.0"}]`
+	f.resp["remove vscode --list-data"] = `[{"path":"/home/b/.config/Code","bytes":10485760}]`
+	f.resp["apps update vscode --json"] = `[{"id":"vscode","source":"nix","ok":true}]`
+	f.resp["apps open vscode --json"] = `[{"id":"vscode","ok":true}]`
+	f.resp["remove vscode --json"] = `[{"id":"vscode","source":"nix","ok":true,"purged":false,"leftovers":[{"path":"/home/b/.config/Code","bytes":10485760}]}]`
+	f.resp["remove vscode --purge --json"] = `[{"id":"vscode","source":"nix","ok":true,"purged":true,"leftovers":[]}]`
+	m, _ := setupWith(t, f, Options{Screen: "store"})
+	out := view(m)
+	if !strings.Contains(out, "1.120.0") || !has(out, "Installed 1 ↑1") {
+		t.Fatalf("la lista avisa de la versión nueva:\n%s", out)
+	}
+	send(m, key("enter"))
+	out = view(m)
+	for _, want := range []string{"What do you want to do?", "Open", "Update", "1.119.0 → 1.120.0", "Remove", "keeps your saves", "Remove and delete its data", "frees 10.0 MiB"} {
+		if !has(out, want) {
+			t.Fatalf("falta %q en el menú:\n%s", want, out)
+		}
+	}
+	// Abrir
+	send(m, key("enter"))
+	if !f.called("apps open vscode --json") || !has(view(m), "Opening Visual") && !has(view(m), "Opening vscode") {
+		t.Fatalf("abrir llama a la CLI y lo dice: %v", f.calls)
+	}
+	// Actualizar
+	send(m, key("enter"), key("down"), key("enter"))
+	if !f.called("apps update vscode --json") {
+		t.Fatalf("actualizar llama a la CLI: %v", f.calls)
+	}
+	// Quitar y borrar los datos pide un sí final y enseña qué se borra
+	send(m, key("enter"), key("down"), key("down"), key("down"), key("enter"))
+	out = view(m)
+	if !has(out, "This cannot be undone") || !strings.Contains(out, "/home/b/.config/Code") || !has(out, "Yes, delete") {
+		t.Fatalf("pide confirmar el borrado de datos:\n%s", out)
+	}
+	if f.called("remove vscode --json") {
+		t.Fatal("no se quita nada antes del sí final")
+	}
+	send(m, key("esc"))
+	if f.called("remove vscode --json") {
+		t.Fatal("esc cancela")
+	}
+	if !has(view(m), "What do you want to do?") {
+		t.Fatalf("el menú sigue abierto tras cancelar el borrado:\n%s", view(m))
+	}
+	send(m, key("enter"), key("enter"))
+	if !f.called("remove vscode --json") || !f.called("remove vscode --purge --json") {
+		t.Fatalf("quitar con datos: %v", f.calls)
+	}
+}
+
+func TestMenuQuitarSinBorrarPreguntaPorLosDatos(t *testing.T) {
+	f := newCLI()
+	f.resp["remove vscode --list-data"] = `[]`
+	f.resp["remove vscode --json"] = `[{"id":"vscode","source":"nix","ok":true,"purged":false,"leftovers":[{"path":"/home/b/.config/Code","bytes":1048576}]}]`
+	m, _ := setupWith(t, f, Options{Screen: "store"})
+	send(m, key("enter"), key("down"), key("enter"))
+	if !f.called("remove vscode --json") || !has(view(m), "Its data is still here") {
+		t.Fatalf("Remove quita y pregunta por los datos:\n%s", view(m))
+	}
+}
+
+func TestElMenuNoDejaHacerDosCosasAlMismoTiempo(t *testing.T) {
+	m, f := setup(t, Options{Screen: "store"})
+	send(m, key("/"))
+	typeText(m, "brave")
+	send(m, key("enter"))
+	m.Update(key("enter")) // instalando brave, sin terminar
+	send(m, key("i"))
+	send(m, key("enter"), key("down"), key("enter"))
+	if f.called("remove vscode --json") {
+		t.Fatalf("no se puede quitar mientras se instala otra app: %v", f.calls)
+	}
+}
+
+func TestTemasSeparaOscurosDeClarosYEnseñaUnFastfetch(t *testing.T) {
+	m, _ := setup(t, Options{Screen: "themes"})
+	lines := strings.Split(view(m), "\n")
+	dark, light := -1, -1
+	for i, l := range lines {
+		if strings.Contains(l, "DARK ·") {
+			dark = i
+		}
+		if strings.Contains(l, "LIGHT ·") {
+			light = i
+		}
+	}
+	// oscuros (cabecera + 2 temas) y una fila de aire antes de los claros
+	if dark < 0 || light-dark != 4 {
+		t.Fatalf("debe haber una fila en blanco entre los grupos (dark %d, light %d)", dark, light)
+	}
+	out := view(m)
+	for _, want := range []string{"@", "Maxor OS", "Hyprland", "Theme"} {
+		if !strings.Contains(out, want) {
+			t.Fatalf("falta %q en la muestra de fastfetch:\n%s", want, out)
+		}
 	}
 }

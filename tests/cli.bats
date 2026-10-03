@@ -261,3 +261,32 @@ setup() {
   run "$MAXOR_BIN" remove ab --purge --json
   [ -d "$HOME/.ssh" ] && [ -d "$HOME/.config/ab" ]
 }
+
+@test "remove --list-data solo mira: no quita ni borra nada" {
+  mkdir -p "$HOME/.config/Fooapp" "$HOME/logs"
+  echo x > "$HOME/logs/fooapp.log"
+  run "$MAXOR_BIN" remove fooapp --list-data
+  [ "$status" = 0 ]
+  echo "$output" | jq -e 'map(.path | sub(".*/"; "")) | sort == ["Fooapp", "fooapp.log"]'
+  [ -d "$HOME/.config/Fooapp" ] && [ -f "$HOME/logs/fooapp.log" ]
+}
+
+@test "remove --purge también limpia el registro que la app dejó en ~/logs" {
+  mkdir -p "$HOME/logs"
+  echo x > "$HOME/logs/fooapp.log"
+  run "$MAXOR_BIN" remove fooapp --purge --json
+  echo "$output" | jq -e '.[0].purged == true'
+  [ ! -e "$HOME/logs/fooapp.log" ]
+}
+
+@test "apps open de algo que no está instalado falla con JSON" {
+  run "$MAXOR_BIN" apps open noexisteunapp --json
+  [ "$status" = 1 ]
+  echo "$output" | jq -e '.[0].ok == false'
+}
+
+@test "apps updates siempre da una lista JSON" {
+  run "$MAXOR_BIN" apps updates
+  [ "$status" = 0 ]
+  echo "$output" | jq -e 'type == "array"'
+}

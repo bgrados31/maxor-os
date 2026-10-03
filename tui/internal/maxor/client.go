@@ -364,3 +364,35 @@ func (c *Client) UpdateCached(ctx context.Context) (u *UpdateCheck, err error) {
 	err = c.getJSON(ctx, &u, false, "update", "--cached")
 	return
 }
+
+// AppUpdate es una app instalada que tiene una versión nueva.
+type AppUpdate struct {
+	Source  string `json:"source"`
+	ID      string `json:"id"`
+	Current string `json:"current"`
+	Latest  string `json:"latest"`
+}
+
+// AppUpdates lista las apps con versión nueva (las de nix, frente al nixpkgs de este sistema).
+func (c *Client) AppUpdates(ctx context.Context) (u []AppUpdate, err error) {
+	err = c.getJSON(ctx, &u, false, "apps", "updates")
+	return
+}
+
+// UpdateApp actualiza una sola app.
+func (c *Client) UpdateApp(ctx context.Context, id string) error {
+	_, err := c.outcomes(ctx, "apps", "update", id, "--json")
+	return err
+}
+
+// OpenApp abre una app instalada, separada de la terminal.
+func (c *Client) OpenApp(ctx context.Context, id string) error {
+	_, err := c.outcomes(ctx, "apps", "open", id, "--json")
+	return err
+}
+
+// AppData lista las carpetas que la app tiene en tu casa, sin tocar nada.
+func (c *Client) AppData(ctx context.Context, id string) (l []Leftover, err error) {
+	err = c.getJSON(ctx, &l, false, "remove", id, "--list-data")
+	return
+}

@@ -3,6 +3,7 @@ package screens
 import (
 	"context"
 	"fmt"
+	"os"
 	"sort"
 	"strings"
 
@@ -75,6 +76,9 @@ func (t *Themes) layout(env *core.Env) []themeRow {
 	last := ""
 	for i, th := range list {
 		if th.Mode != last {
+			if last != "" {
+				rows = append(rows, themeRow{idx: -1}) // aire entre oscuros y claros
+			}
 			last = th.Mode
 			name := "Dark"
 			if th.Mode == "light" {
@@ -200,7 +204,11 @@ func (t *Themes) Main(env *core.Env, w, h int) []ui.Line {
 	for i := t.top; i < len(rows) && i < t.top+avail; i++ {
 		r := rows[i]
 		if r.idx < 0 {
-			lines = append(lines, ui.T(p.Mu.Bold(true), r.header))
+			if r.header == "" {
+				lines = append(lines, gap())
+			} else {
+				lines = append(lines, ui.T(p.Mu.Bold(true), r.header))
+			}
 			continue
 		}
 		th := list[r.idx]
@@ -248,12 +256,66 @@ func (t *Themes) Side(env *core.Env, w, h int) []ui.Line {
 		ui.Of(ui.S(p.Fill.Foreground(lipgloss.Color(th.Colors.Ac)).Bold(true), ui.G.Swatch+"  "), ui.S(p.Bold, th.Name)),
 		muted(env, "   "+th.Mode+" theme"), gap(),
 	}
-	lines = append(lines, sample...)
+	// Con poco alto se enseña lo más propio de Maxor (el fastfetch de muestra); con
+	// más, también la ventana en miniatura.
+	card := fetchCard(env, th)
+	room := h - len(lines) - 4 // los botones y el aviso de «en uso»
+	switch {
+	case room >= len(sample)+len(card)+1:
+		lines = append(lines, sample...)
+		lines = append(lines, gap())
+		lines = append(lines, card...)
+	case room >= len(card):
+		lines = append(lines, card...)
+	default:
+		lines = append(lines, sample...)
+	}
 	lines = append(lines, gap(), ui.Of(button(env, true, "Apply  ⏎"), space(1), button(env, false, "Undo  u")))
 	if th.Active {
 		lines = append(lines, gap(), ui.T(p.Ok, ui.G.Tick+" this is the theme in use"))
 	}
 	return lines
+}
+
+// fetchCard imita la salida de fastfetch con los colores del tema que se está mirando
+// (toda la pantalla ya está pintada con él): el logo de Maxor, los datos del equipo y
+// la tira de colores de siempre.
+func fetchCard(env *core.Env, th maxor.Theme) []ui.Line {
+	p := env.P
+	user := os.Getenv("USER")
+	if user == "" {
+		user = "you"
+	}
+	host := env.Host
+	if host == "" {
+		host = "maxor"
+	}
+	logo := []string{"██▄  ▄██", "██ ▀▀ ██", "██    ██", "▀▀    ▀▀"}
+	info := func(k, v string) []ui.Seg {
+		return []ui.Seg{ui.S(p.Ac, fmt.Sprintf("%-6s", k)), ui.S(p.Text, v)}
+	}
+	pad := func(i int) ui.Seg {
+		if i < len(logo) {
+			return ui.S(p.Ac.Bold(true), logo[i]+"   ")
+		}
+		return ui.S(p.Fill, strings.Repeat(" ", 11))
+	}
+	rows := [][]ui.Seg{
+		{ui.S(p.Ac.Bold(true), user), ui.S(p.Mu, "@"), ui.S(p.Ac.Bold(true), host)},
+		{ui.S(p.Mu, strings.Repeat("─", len(user)+len(host)+1))},
+		info("OS", "Maxor OS"),
+		info("WM", "Hyprland"),
+		info("Shell", "fish"),
+		info("Theme", th.Name),
+	}
+	var out []ui.Line
+	for i, r := range rows {
+		out = append(out, ui.Line{L: append([]ui.Seg{pad(i)}, r...)})
+	}
+	sw := func(st lipgloss.Style) ui.Seg { return ui.S(st, "███") }
+	acc := func(c string) lipgloss.Style { return p.Fill.Foreground(lipgloss.Color(c)) }
+	out = append(out, ui.Line{L: []ui.Seg{ui.S(p.Fill, strings.Repeat(" ", 11)), sw(acc(th.Colors.Ac)), sw(acc(th.Colors.Ac2)), sw(p.Ok), sw(p.Warn), sw(p.Bad), sw(acc(th.Colors.Mu)), sw(acc(th.Colors.Fg))}})
+	return out
 }
 
 func (t *Themes) Hints(env *core.Env) []ui.Hint {

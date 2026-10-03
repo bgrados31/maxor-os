@@ -41,6 +41,10 @@ func LoadUpdateCache(env *core.Env, quiet bool) tea.Cmd {
 	return load(env, "updatecache", "Reading the last scan", quiet, func(ctx context.Context) (any, error) { return env.Client.UpdateCached(ctx) })
 }
 
+func LoadAppUpdates(env *core.Env, quiet bool) tea.Cmd {
+	return load(env, "appupdates", "Looking for new versions", quiet, func(ctx context.Context) (any, error) { return env.Client.AppUpdates(ctx) })
+}
+
 // ApplyData guarda en env.Data el resultado de una carga. Devuelve false si el
 // mensaje no era de una carga compartida.
 func ApplyData(env *core.Env, d task.DoneMsg) bool {
@@ -66,6 +70,8 @@ func ApplyData(env *core.Env, d task.DoneMsg) bool {
 		env.Data.Hardware = &v
 	case []maxor.Profile:
 		env.Data.Profiles = v
+	case []maxor.AppUpdate:
+		env.Data.AppUpdates, env.Data.UpdatesKnown = v, true
 	case maxor.UpdateStatus:
 		env.Data.UpdateStatus = &v
 	case *maxor.UpdateCheck:

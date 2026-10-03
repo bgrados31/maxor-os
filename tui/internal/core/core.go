@@ -99,6 +99,8 @@ func (Base) Wheel(*Env, int) tea.Cmd         { return nil }
 type Data struct {
 	Apps         []maxor.App
 	AppsLoaded   bool
+	AppUpdates   []maxor.AppUpdate
+	UpdatesKnown bool // ya se comprobó si hay versiones nuevas de las apps
 	Doctor       *maxor.Doctor
 	Themes       []maxor.Theme
 	ThemesLoaded bool

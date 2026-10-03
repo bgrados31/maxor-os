@@ -80,6 +80,10 @@ estándar, sin colores ni mensajes.
 | `maxor search <texto> --json` | `[{source, id, name, version, description}]` en una sola lista por relevancia, nixpkgs y Flathub mezclados (máx. 14) |
 | `maxor apps --json` | `[{source, id, name, version}]` |
 | `maxor install <app…> --json` | `[{id, source, ok}]` |
+| `maxor apps updates` | `[{source, id, current, latest}]`: solo las apps con versión nueva (nix frente al nixpkgs del sistema; flatpak según Flathub) |
+| `maxor apps update <app…> --json` | `[{id, source, ok}]` |
+| `maxor apps open <app> --json` | `[{id, ok}]`: la abre separada de la terminal |
+| `maxor remove <app> --list-data` | `[{path, bytes}]`: solo mira, no quita nada |
 | `maxor remove <app…> [--purge] --json` | `[{id, source, ok, purged, leftovers: [{path, bytes}]}]`. Las carpetas sobrantes son las que se llaman exactamente como la app (`~/.config`, `~/.local/share`, `~/.cache`, `~/.var/app`, `~/.nombre`); sin `--purge` no se borra nada. Una sola operación de paquetes a la vez (`apps.lock`) |
 | `maxor profile list --json` | `[{id, title, description, enabled}]` |
 | `maxor hardware detect` | el contenido de `hardware.json` ([HARDWARE.md](HARDWARE.md)) |

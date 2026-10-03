@@ -18,6 +18,8 @@ no usa versiones numeradas.
 
 ### Añadido
 
+- **Las apps instaladas se manejan con un menú, sin letras que aprender**: en Installed, `⏎` abre un menú con Abrir, Actualizar (solo si hay versión nueva), Quitar y «Quitar y borrar sus datos» (con el tamaño que libera y un sí final). La lista avisa de las versiones nuevas con `↑ 1.2.3` y la pestaña con `Installed 3 ↑1`. La CLI suma `maxor apps updates`, `apps update <app>`, `apps open <app>` y `remove --list-data`.
+- **Themes**: aire entre los temas oscuros y los claros, y debajo de la vista previa un fastfetch de muestra con los colores del tema (logo de Maxor, datos del equipo y la tira de colores).
 - **Quitar una app ya no deja su carpeta olvidada**: `maxor remove` avisa de lo que dejó en tu casa (por ejemplo `~/.local/share/ATLauncher`) y `--purge` lo borra, también cuando la app ya no está instalada. En la Tienda, tras quitar una app con datos aparece la pregunta «Delete data  y / Keep  n» con las rutas y el tamaño.
 - **Sin instalaciones repetidas**: una app que se está instalando, está en cola o se está quitando no se puede volver a lanzar (la fila dice `installing…`), y `maxor install` y `remove` esperan su turno si hay otra en marcha.
 - **Profiles sustituye a la pestaña Setup**: marcas o desmarcas perfiles y los aplicas con `a`. El asistente sigue existiendo, pero solo con `maxor setup` (para estrenar el equipo).

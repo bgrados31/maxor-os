@@ -2,7 +2,7 @@
 maxor_cmd search apps ""
 maxor_cmd install apps ""
 maxor_cmd remove apps ""
-maxor_cmd apps apps "list update"
+maxor_cmd apps apps "list update updates open"
 # Dos orígenes, ninguno pide root ni toca archivos .nix:
 #   nix      paquetes de nixpkgs en el perfil del usuario (nix profile)
 #   flatpak  apps de Flathub, instaladas para el usuario (flatpak --user)
@@ -293,6 +293,13 @@ app_leftovers() {
       printf '%s\t%s\n' "$p" "$(du -sb -- "$p" 2> /dev/null | cut -f1 || echo 0)"
     done
   done
+  # algunas apps (ATLauncher) escriben su registro en ~/logs/<nombre>.log
+  for p in "$HOME"/logs/*; do
+    [ -f "$p" ] || continue
+    base="${p##*/}"
+    [ "${base,,}" = "$name.log" ] || continue
+    printf '%s\t%s\n' "$p" "$(du -sb -- "$p" 2> /dev/null | cut -f1 || echo 0)"
+  done
 }
 
 # Borra las carpetas de app_leftovers; nunca sale de tu casa ni toca las raíces.
@@ -311,16 +318,22 @@ app_leftovers_json() {
 }
 
 cmd_remove() {
-  local json=0 purge=0 ids=() a
+  local json=0 purge=0 ids=() a list_data=0
   for a in "$@"; do
     case "$a" in
       --json) json=1 ;;
       --purge) purge=1 ;;
+      --list-data) list_data=1 ;;
       -*) die_code "$EX_USAGE" @err.unknown_option "$a" ;;
       *) ids+=("$a") ;;
     esac
   done
   [ "${#ids[@]}" -gt 0 ] || usage_error remove
+  # Solo mirar: qué carpetas tiene la app en tu casa, sin quitar ni borrar nada.
+  if [ "$list_data" = 1 ]; then
+    app_leftovers_json "${ids[0]}"
+    return 0
+  fi
   app_lock
 
   local id s m rc=0 results="[]" left total count purged
@@ -386,6 +399,61 @@ app_list_load() { # → APPS_ALL (con el cargador único; la línea de resultado
   APPS_ALL="$UI_OUT"
 }
 
+# Apps con versión nueva. nix: lo que ofrece el nixpkgs de este sistema frente a lo instalado
+# (las versiones nuevas llegan con `maxor update`); flatpak: lo que anuncia Flathub.
+app_updates_json() {
+  local out="[]" id name cur latest tmp
+  tmp="$(mktemp -d)"
+  while IFS=$'\t' read -r id name; do
+    [ -n "$id" ] || continue
+    (app_nix eval --raw "nixpkgs#$id.name" > "$tmp/$id" 2> /dev/null || true) &
+  done < <(nix profile list --json 2> /dev/null | jq -r '.elements | to_entries[] | [.key, ((.value.storePaths[0] // "") | split("/") | last | .[33:])] | @tsv')
+  wait
+  while IFS=$'\t' read -r id name; do
+    [ -n "$id" ] || continue
+    latest="$(< "$tmp/$id")"
+    [ -n "$latest" ] && [ "$latest" != "$name" ] || continue
+    cur="$(sed -E 's/^.*-([0-9][^-]*)$/\1/' <<< "$name")"
+    latest="$(sed -E 's/^.*-([0-9][^-]*)$/\1/' <<< "$latest")"
+    out="$(jq -c --arg id "$id" --arg c "$cur" --arg l "$latest" '. + [{source: "nix", id: $id, current: $c, latest: $l}]' <<< "$out")"
+  done < <(nix profile list --json 2> /dev/null | jq -r '.elements | to_entries[] | [.key, ((.value.storePaths[0] // "") | split("/") | last | .[33:])] | @tsv')
+  rm -rf "$tmp"
+  local fp
+  fp="$(flatpak remote-ls --user --updates --app --columns=application,version 2> /dev/null \
+    | jq -R -s -c '[split("\n")[] | select(length > 0) | split("\t") | {source: "flatpak", id: .[0], current: "", latest: (.[1] // "")}]' 2> /dev/null || true)"
+  jq -e 'type == "array"' <<< "$fp" > /dev/null 2>&1 || fp='[]'
+  jq -c -n --argjson a "$out" --argjson b "$fp" '$a + $b'
+}
+
+# Abre una app instalada sin que haya que saber su comando: usa su entrada de menú
+# (.desktop) y, si no la hay, el programa con el mismo nombre. Se separa de la terminal.
+app_open() {
+  local id="$1" s d f exec_line dirs
+  s="$(app_installed_source "$id")"
+  case "$s" in
+    flatpak) setsid -f flatpak run "$id" > /dev/null 2>&1 < /dev/null ;;
+    nix)
+      dirs="$HOME/.nix-profile/share:$HOME/.local/state/nix/profile/share:${XDG_DATA_DIRS:-}"
+      IFS=: read -ra dl <<< "$dirs"
+      for d in "${dl[@]}"; do
+        for f in "$d"/applications/*"$id"*.desktop; do
+          [ -f "$f" ] || continue
+          exec_line="$(grep -m1 '^Exec=' "$f" | cut -d= -f2- | sed -E 's/ %[a-zA-Z]//g')"
+          [ -n "$exec_line" ] || continue
+          setsid -f bash -c "$exec_line" > /dev/null 2>&1 < /dev/null
+          return 0
+        done
+      done
+      if command -v "$id" > /dev/null 2>&1 || [ -x "$HOME/.nix-profile/bin/$id" ]; then
+        setsid -f "$id" > /dev/null 2>&1 < /dev/null || setsid -f "$HOME/.nix-profile/bin/$id" > /dev/null 2>&1 < /dev/null
+      else
+        return 1
+      fi
+      ;;
+    *) return 1 ;;
+  esac
+}
+
 cmd_apps() {
   local sub="${1:-list}" json=0 a
   shift || true
@@ -414,7 +482,40 @@ cmd_apps() {
       ui_outro
       echo
       ;;
+    updates)
+      app_updates_json
+      ;;
+    open)
+      local oid="${1:-}" ok=true
+      [ -n "$oid" ] && [ "${oid#-}" = "$oid" ] || usage_error apps
+      app_open "$oid" || ok=false
+      if [ "$json" = 1 ]; then
+        jq -cn --arg id "$oid" --argjson ok "$ok" '[{id: $id, ok: $ok}]'
+      elif [ "$ok" = false ]; then
+        ui_say warn @apps.not_installed "$oid"
+      fi
+      [ "$ok" = true ]
+      ;;
     update)
+      # con nombres: solo esas apps y salida JSON; sin nombres: todas, con la interfaz de siempre
+      local uids=() u uok uresults="[]" us
+      for u in "$@"; do [ "${u#-}" = "$u" ] && uids+=("$u"); done
+      if [ "${#uids[@]}" -gt 0 ]; then
+        app_lock
+        for u in "${uids[@]}"; do
+          uok=true
+          us="$(app_installed_source "$u")"
+          case "$us" in
+            nix) app_nix profile upgrade "$u" > /dev/null 2>&1 || uok=false ;;
+            flatpak) flatpak update --user -y --noninteractive "$u" > /dev/null 2>&1 || uok=false ;;
+            *) uok=false ;;
+          esac
+          uresults="$(jq -c --arg id "$u" --arg s "$us" --argjson ok "$uok" '. + [{id: $id, source: $s, ok: $ok}]' <<< "$uresults")"
+        done
+        [ "$json" = 1 ] && printf '%s\n' "$uresults"
+        jq -e 'all(.[]; .ok)' <<< "$uresults" > /dev/null
+        return $?
+      fi
       [ "$json" = 1 ] && die_code "$EX_USAGE" @apps.no_json
       echo
       ui_intro @apps.upd_title
