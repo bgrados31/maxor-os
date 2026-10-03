@@ -18,6 +18,9 @@ no usa versiones numeradas.
 
 ### Añadido
 
+- **Volver a una versión anterior del sistema desde Update**: `g` abre las últimas generaciones (con fecha, versión y kernel), se elige una y `⏎` vuelve a ella; tras volver se escanea otra vez. La CLI suma `maxor rollback <N>` y `maxor rollback --list [--json]`. Los datos y las apps instaladas con maxor no se tocan.
+- **Exit es una pestaña más**: al llegar a ella no sale; enseña lo que queda pendiente (apps por actualizar, avisos del doctor, una actualización lista) y sale con `⏎` o con un clic en su botón.
+- **La Tienda tiene una barra de acciones rápidas** bajo las pestañas, con botones que también se pulsan con el ratón: con apps marcadas, `Update n` (o `Check for updates`) y `Remove n`; sin marcar, `Update all n` y `Check for updates`; en los resultados, `Install n`. Se quitan los filtros nixpkgs/All/flathub: cada fila ya dice de dónde viene.
 - **Las apps de Flathub salen en Super+Espacio y en la terminal**: Flatpak deja sus entradas de menú, iconos y comandos en una carpeta que solo ven las sesiones que arrancaron con ella en el entorno (la tuya empezó antes de que el sistema la añadiera). Ahora `maxor install` enlaza cada app a las carpetas del usuario (entrada de menú, icono y un comando corto con su nombre, como `atlauncher`), `remove` lo deshace y `maxor apps repair` arregla las ya instaladas. El doctor avisa si alguna no se vería.
 - **Botón Exit** a la derecha de las pestañas (`⏻ Exit`), y `exit` en la paleta de comandos. La paleta también abre apps: `open atlauncher`.
 - **Más rápido**: `maxor apps updates` guarda su resultado 10 minutos (de ~1,1 s a ~0,08 s) y se descarta al instalar, quitar o actualizar; `R` en la Tienda lo vuelve a mirar. La tarjeta Apps de Inicio avisa de las versiones nuevas y, al instalar, el aviso dice dónde encontrar la app.

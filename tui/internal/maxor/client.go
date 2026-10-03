@@ -402,3 +402,18 @@ func (c *Client) AppData(ctx context.Context, id string) (l []Leftover, err erro
 	err = c.getJSON(ctx, &l, false, "remove", id, "--list-data")
 	return
 }
+
+// Generation es una versión anterior del sistema a la que se puede volver.
+type Generation struct {
+	Generation int    `json:"generation"`
+	Date       string `json:"date"`
+	Nixos      string `json:"nixos"`
+	Kernel     string `json:"kernel"`
+	Current    bool   `json:"current"`
+}
+
+// Generations lista las últimas generaciones del sistema (la más nueva primero).
+func (c *Client) Generations(ctx context.Context) (g []Generation, err error) {
+	err = c.getJSON(ctx, &g, false, "rollback", "--list", "--json")
+	return
+}

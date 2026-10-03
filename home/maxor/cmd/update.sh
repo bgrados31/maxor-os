@@ -1,6 +1,6 @@
 # ── Actualización: update y rollback ─────────────────────────────────
 maxor_cmd update system ""
-maxor_cmd rollback system ""
+maxor_cmd rollback system "--list"
 
 # Compara el resultado compilado (UPDATE_OUT) con el sistema en marcha.
 update_compare() {
@@ -134,18 +134,48 @@ cmd_update() {
   ui_outro @update.done
 }
 
+# Generaciones del sistema (las 12 últimas) como JSON para la pantalla completa.
+rollback_list_json() {
+  nixos-rebuild list-generations --json 2> /dev/null \
+    | jq -c '[.[:12][] | {generation: .generation, date: .date, nixos: .nixosVersion, kernel: .kernelVersion, current: .current}]' \
+    || echo '[]'
+}
+
 cmd_rollback() {
-  local yes=0 line
-  if [ "${1:-}" = "-y" ]; then yes=1; fi
+  local yes=0 list=0 json=0 target="" a line
+  for a in "$@"; do
+    case "$a" in
+      -y | --yes) yes=1 ;;
+      --list) list=1 ;;
+      --json) json=1 ;;
+      -*) die_code "$EX_USAGE" @err.unknown_option "$a" ;;
+      *) [[ "$a" =~ ^[0-9]+$ ]] || usage_error rollback; target="$a" ;;
+    esac
+  done
+  if [ "$list" = 1 ]; then
+    if [ "$json" = 1 ]; then rollback_list_json; return 0; fi
+  fi
   echo
   ui_intro @rollback.title
   ui_section @rollback.sec_generations
   while IFS= read -r line; do ui_row info "$line"; done < <(nixos-rebuild list-generations 2> /dev/null | head -n 6 || true)
-  if [ "$yes" = 0 ] && ! ui_confirm @rollback.confirm; then
+  [ "$list" = 1 ] && { ui_outro; return 0; }
+  local confirm="@rollback.confirm" cmsg=()
+  [ -z "$target" ] || { confirm="@rollback.confirm_to"; cmsg=("$target"); }
+  if [ "$yes" = 0 ] && ! ui_confirm "$confirm" "${cmsg[@]}"; then
     ui_outro @err.cancelled
     return 0
   fi
-  if ! sudo nixos-rebuild switch --rollback; then
+  local ok=true
+  if [ -n "$target" ]; then
+    # una generación concreta: se elige en el perfil del sistema y se activa
+    [ -e "/nix/var/nix/profiles/system-$target-link" ] || die_code "$EX_USAGE" @rollback.unknown "$target"
+    sudo nix-env -p /nix/var/nix/profiles/system --switch-generation "$target" \
+      && sudo /nix/var/nix/profiles/system/bin/switch-to-configuration switch || ok=false
+  else
+    sudo nixos-rebuild switch --rollback || ok=false
+  fi
+  if [ "$ok" = false ]; then
     ui_outro
     ui_error @rollback.failed @update.switch_cause @update.switch_hint
     return "$EX_FAIL"

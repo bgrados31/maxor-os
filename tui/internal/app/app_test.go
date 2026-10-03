@@ -188,7 +188,7 @@ func TestLaVistaSiempreMideExactamenteElTerminal(t *testing.T) {
 	for _, size := range [][2]int{{80, 24}, {100, 30}, {120, 40}, {160, 50}, {200, 60}} {
 		m, _ := setup(t, Options{})
 		m.Update(tea.WindowSizeMsg{Width: size[0], Height: size[1]})
-		for _, id := range []string{"home", "store", "themes", "update", "doctor", "profiles"} {
+		for _, id := range []string{"home", "store", "themes", "update", "doctor", "profiles", "exit"} {
 			send(m, core.GoMsg{ID: id})
 			for _, phase := range []string{"cargando", "cargado"} {
 				out := m.View()
@@ -229,7 +229,7 @@ func TestPestanasConTabNumerosYRaton(t *testing.T) {
 		t.Fatalf("tab: %s", m.screens[m.active].ID())
 	}
 	send(m, key("shift+tab"), key("shift+tab"))
-	if m.screens[m.active].ID() != "profiles" {
+	if m.screens[m.active].ID() != "exit" {
 		t.Fatalf("shift+tab da la vuelta: %s", m.screens[m.active].ID())
 	}
 	send(m, key("3"))
@@ -525,7 +525,7 @@ func TestHomeSinCliMuestraErroresSinCaerse(t *testing.T) {
 	if !strings.Contains(out, "could not check") || !strings.Contains(out, "maxor logs --last") {
 		t.Fatalf("errores:\n%s", out)
 	}
-	for _, id := range []string{"store", "themes", "doctor", "profiles"} {
+	for _, id := range []string{"store", "themes", "doctor", "profiles", "exit"} {
 		send(m, core.GoMsg{ID: id})
 		if len(strings.Split(m.View(), "\n")) != 30 {
 			t.Fatalf("%s no mide 30 filas con la CLI rota", id)
@@ -624,7 +624,7 @@ func TestFlechasHYLCambianDePestana(t *testing.T) {
 		t.Fatal("] y [")
 	}
 	send(m, key("left"))
-	if id() != "profiles" {
+	if id() != "exit" {
 		t.Fatal("← desde la primera da la vuelta")
 	}
 	// dentro de un campo de texto son letras, no navegación
@@ -727,7 +727,7 @@ func TestTiendaClicsEnLaBusquedaYEnUnaFila(t *testing.T) {
 }
 
 // storeItemRow es la fila (dentro de Main) de la app n de la Tienda.
-func storeItemRow(n int) int { return 6 + 3*n }
+func storeItemRow(n int) int { return 7 + 3*n }
 
 func TestTiendaAlternaEntreResultadosEInstaladas(t *testing.T) {
 	m, _ := setup(t, Options{Screen: "store"})
@@ -808,33 +808,9 @@ func TestTiendaSeNavegaConFlechasEntreBusquedaPestanasYLista(t *testing.T) {
 	if out := view(m); !strings.Contains(out, "Brave Browser") {
 		t.Fatalf("← vuelve a Results:\n%s", out)
 	}
-	// y siguen los filtros por origen
-	send(m, key("right"), key("right"), key("right"))
-	send(m, key("right"))
-	if out := view(m); !strings.Contains(out, "Fast Internet") || strings.Contains(out, "Privacy-oriented") {
-		t.Fatalf("el filtro flathub deja solo lo de flathub:\n%s", out)
-	}
 	send(m, key("down"))
 	if st().Zone() != "list" {
 		t.Fatalf("↓ vuelve a la lista: %s", st().Zone())
-	}
-}
-
-func TestTiendaFiltraPorOrigen(t *testing.T) {
-	m, _ := setup(t, Options{Screen: "store"})
-	send(m, key("/"))
-	typeText(m, "brave")
-	send(m, key("enter"), key("up"))
-	// Results, Installed, All, nixpkgs, flathub
-	send(m, key("right"), key("right"), key("right"))
-	out := view(m)
-	if !strings.Contains(out, "Privacy-oriented") || strings.Contains(out, "Fast Internet") {
-		t.Fatalf("nixpkgs deja solo lo de nixpkgs:\n%s", out)
-	}
-	send(m, key("right"))
-	out = view(m)
-	if !strings.Contains(out, "Fast Internet") || strings.Contains(out, "Privacy-oriented") {
-		t.Fatalf("flathub no debe enseñar lo de nixpkgs:\n%s", out)
 	}
 }
 
@@ -1115,7 +1091,7 @@ func TestInstaladasMuestranEstadoYCasillas(t *testing.T) {
 	if strings.Count(out, "◼") < 3 || !has(out, "2 selected") { // dos casillas + el contador (y el del panel)
 		t.Fatalf("las casillas se marcan y se cuentan:\n%s", out)
 	}
-	if !strings.Contains(out, "Update 1  u") || !strings.Contains(out, "Remove 2  r") {
+	if !strings.Contains(out, "Update 1") || !strings.Contains(out, "Remove 2") {
 		t.Fatalf("el panel ofrece las acciones en bloque:\n%s", out)
 	}
 	send(m, key("esc"))
@@ -1200,23 +1176,51 @@ func TestClicEnLaCasillaMarcaLaApp(t *testing.T) {
 	}
 }
 
-func TestBotonExitAlLadoDeLasPestanas(t *testing.T) {
+func TestExitEsUnaPestanaMasQueSoloSaleConIntro(t *testing.T) {
 	m, _ := setup(t, Options{})
-	out := view(m)
-	if !strings.Contains(strings.Split(out, "\n")[0], "Exit") {
-		t.Fatal("Exit está en la barra de arriba")
+	if first := strings.Split(view(m), "\n")[0]; !strings.Contains(first, "Profiles") || !strings.Contains(first, "Exit") {
+		t.Fatalf("Exit es una pestaña más, tras Profiles: %q", first)
 	}
-	_, cmd := m.Update(tea.MouseMsg{X: m.exit.x0 + 1, Y: 0, Button: tea.MouseButtonLeft, Action: tea.MouseActionPress})
+	send(m, core.GoMsg{ID: "profiles"}, key("right"))
+	if m.screens[m.active].ID() != "exit" {
+		t.Fatal("→ desde Profiles llega a Exit")
+	}
+	out := view(m)
+	if !has(out, "Leave Maxor") || !strings.Contains(out, "Nothing pending") && !has(out, "Before you go") {
+		t.Fatalf("la pantalla de Exit:\n%s", out)
+	}
+	if m.quitting {
+		t.Fatal("llegar a Exit no sale")
+	}
+	send(m, key("right"))
+	if m.screens[m.active].ID() != "home" {
+		t.Fatal("→ desde Exit vuelve a Home")
+	}
+	send(m, core.GoMsg{ID: "exit"})
+	_, cmd := m.Update(key("enter"))
 	if cmd == nil {
-		t.Fatal("un clic en Exit debe pedir salir")
+		t.Fatal("Intro en Exit sale")
 	}
 	if _, ok := cmd().(core.QuitMsg); !ok {
-		t.Fatalf("el clic en Exit devuelve QuitMsg, no %T", cmd())
+		t.Fatalf("Intro devuelve QuitMsg, no %T", cmd())
 	}
-	// el asistente de primer arranque no tiene botón de salir
-	m2, _ := setup(t, Options{Screen: "setup"})
-	if strings.Contains(strings.Split(view(m2), "\n")[0], "Exit") {
-		t.Fatal("el asistente no lleva botón Exit")
+	send(m, core.GoMsg{ID: "exit"})
+	row := -1
+	for i, l := range strings.Split(view(m), "\n") {
+		if strings.Contains(l, "Exit  ⏎") {
+			row = i
+		}
+	}
+	click := tea.MouseMsg{X: m.mainX0 + 4, Y: row, Button: tea.MouseButtonLeft, Action: tea.MouseActionPress}
+	if _, cmd := m.Update(click); cmd == nil {
+		t.Fatalf("un clic en el botón sale:\n%s", view(m))
+	}
+}
+
+func TestExitAvisaDeLoQueQuedaPendiente(t *testing.T) {
+	m, _ := setupWith(t, bulkCLI(), Options{Screen: "exit"})
+	if out := view(m); !has(out, "Before you go") || !has(out, "2 apps can be updated") {
+		t.Fatalf("Exit enseña lo pendiente:\n%s", out)
 	}
 }
 
@@ -1262,5 +1266,114 @@ func TestInicioAvisaDeAppsConVersionNueva(t *testing.T) {
 	out := view(m)
 	if !strings.Contains(out, "3 installed") || !strings.Contains(out, "↑2") || !has(out, "2 updates available") {
 		t.Fatalf("la tarjeta de apps avisa de las versiones nuevas:\n%s", out)
+	}
+}
+
+func TestLaBarraDeAccionesRapidasCambiaConLaSeleccion(t *testing.T) {
+	f := bulkCLI()
+	m, _ := setupWith(t, f, Options{Screen: "store"})
+	bar := func() string {
+		lines := strings.Split(view(m), "\n")
+		for _, l := range lines {
+			if strings.Contains(l, "Check for updates") || strings.Contains(l, "Remove ") {
+				return l
+			}
+		}
+		return ""
+	}
+	if b := bar(); !strings.Contains(b, "Update all 2") || !strings.Contains(b, "Check for updates") {
+		t.Fatalf("sin marcar: actualizar todas y buscar versiones: %q", b)
+	}
+	send(m, key("down"), key(" ")) // vscode, que tiene versión nueva
+	if b := bar(); !strings.Contains(b, "Update 1") || !strings.Contains(b, "Remove 1") || strings.Contains(b, "Check for updates") {
+		t.Fatalf("con marcadas: actualizar y quitar: %q", b)
+	}
+	send(m, key("esc"), key("up"), key(" ")) // brave, sin versión nueva
+	if b := bar(); !strings.Contains(b, "Check for updates") || !strings.Contains(b, "Remove 1") {
+		t.Fatalf("sin nada que actualizar entre lo marcado: buscar versiones y quitar: %q", b)
+	}
+}
+
+func TestLosBotonesDeLaBarraSeUsanConElRaton(t *testing.T) {
+	f := bulkCLI()
+	m, _ := setupWith(t, f, Options{Screen: "store"})
+	row := func(sub string) int {
+		for i, l := range strings.Split(view(m), "\n") {
+			if strings.Contains(l, sub) {
+				return i
+			}
+		}
+		return -1
+	}
+	y := row("Update all 2")
+	if y < 0 {
+		t.Fatalf("no está la barra:\n%s", view(m))
+	}
+	// el primer botón empieza en la columna 0 de la zona principal
+	send(m, tea.MouseMsg{X: m.mainX0 + 2 + 2, Y: y, Button: tea.MouseButtonLeft, Action: tea.MouseActionPress})
+	if !f.called("apps update vscode --json") || !f.called("apps update btop --json") {
+		t.Fatalf("el botón «Update all» actualiza lo pendiente: %v", f.calls)
+	}
+}
+
+func TestLaTiendaYaNoTieneFiltrosPorOrigen(t *testing.T) {
+	m, _ := setup(t, Options{Screen: "store"})
+	send(m, key("/"))
+	typeText(m, "brave")
+	send(m, key("enter"))
+	out := view(m)
+	if strings.Contains(out, "│  All") || strings.Contains(out, "All   nixpkgs") {
+		t.Fatalf("sin filtros nixpkgs/All/flathub:\n%s", out)
+	}
+	if !strings.Contains(out, "Brave Browser") || !strings.Contains(out, "flathub") || !strings.Contains(out, "nixpkgs") {
+		t.Fatalf("pero cada fila sigue diciendo de dónde viene:\n%s", out)
+	}
+}
+
+func TestUpdateVuelveAUnaGeneracionAnterior(t *testing.T) {
+	f := newCLI()
+	f.resp["rollback --list --json"] = `[{"generation":34,"date":"2026-10-03 09:24:54","nixos":"26.05.20261002.774debe","kernel":"6.18.54","current":true},{"generation":33,"date":"2026-10-03 09:12:27","nixos":"26.05.20261002.774debe","kernel":"6.18.54","current":false},{"generation":32,"date":"2026-10-03 09:00:42","nixos":"26.05.20261002.774debe","kernel":"6.17.9","current":false}]`
+	m, _ := setupWith(t, f, Options{Screen: "update"})
+	if !has(view(m), "Go back  g") {
+		t.Fatalf("Update ofrece volver atrás:\n%s", view(m))
+	}
+	send(m, key("g"))
+	out := view(m)
+	for _, want := range []string{"Go back to an earlier version", "#34", "#33", "#32", "running", "Generation 33", "Go back to this"} {
+		if !has(out, want) {
+			t.Fatalf("falta %q:\n%s", want, out)
+		}
+	}
+	// se propone la anterior a la que corre
+	if !has(out, "Generation 33") {
+		t.Fatal("la selección empieza en la generación anterior")
+	}
+	send(m, key("down"))
+	if out := view(m); !has(out, "Generation 32") || !strings.Contains(out, "6.17.9") {
+		t.Fatalf("↓ elige la siguiente y enseña su kernel:\n%s", out)
+	}
+	send(m, key("up"), key("up"))
+	if out := view(m); !has(out, "your current one") {
+		t.Fatalf("la que corre no se puede elegir para volver:\n%s", out)
+	}
+	if _, cmd := m.Update(key("enter")); cmd != nil {
+		if msg := cmd(); msg != nil {
+			if _, isToast := msg.(core.ToastMsg); !isToast {
+				t.Fatalf("Intro en la actual solo avisa, no cede la terminal: %T", msg)
+			}
+		}
+	}
+	send(m, key("down"))
+	_, cmd := m.Update(key("enter"))
+	if cmd == nil {
+		t.Fatal("Intro en una anterior cede la terminal a la vuelta atrás")
+	}
+	before := f.n("update --json --no-lock")
+	send(m, core.ExecDoneMsg{Tag: "update"})
+	if has(view(m), "Go back to an earlier") || !strings.Contains(summaryText(m), "Went back") {
+		t.Fatalf("al volver se cierra el historial y queda el resumen: %q", summaryText(m))
+	}
+	if f.n("update --json --no-lock") != before+1 {
+		t.Fatal("tras volver atrás se escanea otra vez")
 	}
 }

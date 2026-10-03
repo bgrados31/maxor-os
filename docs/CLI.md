@@ -25,7 +25,7 @@ maxor apps [list | update]        lo instalado con maxor
 
 SISTEMA
 maxor update [-y] [--no-lock]     actualizar mostrando los cambios
-maxor rollback [-y]               volver a la generación anterior
+maxor rollback [N]                volver a la generación anterior (o a la N)
 maxor doctor                      diagnóstico del sistema
 maxor hardware [show | detect]    equipo detectado y drivers que usará
 maxor profile [list | enable | disable] <perfil>
@@ -181,6 +181,9 @@ Si cancelas después de actualizar `flake.lock`, el archivo queda modificado: re
 Enseña las últimas generaciones y, tras confirmar, ejecuta
 `sudo nixos-rebuild switch --rollback`. Con `-y` no pregunta. Si el sistema ni siquiera
 arranca, elige la generación anterior en el menú de arranque.
+
+- `maxor rollback N` vuelve a una generación concreta (`nix-env --switch-generation` y `switch-to-configuration`).
+- `maxor rollback --list [--json]` solo las enseña; con `--json` da `[{generation, date, nixos, kernel, current}]` (las 12 últimas). La pestaña Update de la pantalla completa lo usa con `g`.
 
 ## `maxor doctor`
 

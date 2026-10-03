@@ -28,6 +28,32 @@ type Update struct {
 	rows     int
 	autoDone bool
 	lock     bool // si el último escaneo refrescó las entradas del flake
+
+	// historial: las generaciones a las que se puede volver (tecla g)
+	history bool
+	gens    []maxor.Generation
+	gensOK  bool
+	gsel    listState
+	rolling bool // lo que cedió la terminal fue una vuelta atrás, no una actualización
+}
+
+// rollbackCmd cede la terminal a `maxor rollback N -y` y espera un Intro antes de volver.
+func rollbackCmd(n int) *exec.Cmd {
+	return exec.Command("sh", "-c",
+		`"$@"; rc=$?; echo; printf 'Press Enter to return to Maxor… '; read _; exit $rc`,
+		"sh", maxor.Bin(), "rollback", fmt.Sprint(n), "-y")
+}
+
+func (u *Update) loadGens(env *core.Env) tea.Cmd {
+	return env.Tasks.Start(task.Task{ID: "update.gens", Label: "Reading the generations", Run: func(ctx context.Context) (any, error) {
+		return env.Client.Generations(ctx)
+	}})
+}
+
+// genTime lee la fecha de una generación en la hora local.
+func genTime(g maxor.Generation) time.Time {
+	t, _ := time.ParseInLocation("2006-01-02 15:04:05", g.Date, time.Local)
+	return t
 }
 
 func NewUpdate() *Update { return &Update{} }
@@ -98,6 +124,19 @@ func (u *Update) Update(env *core.Env, msg tea.Msg) (core.Screen, tea.Cmd) {
 		switch m.ID {
 		case "data.updatestatus", "data.updatecache":
 			return u, u.decide(env)
+		case "update.gens":
+			if m.Err != nil {
+				return u, core.Toast("bad", "Could not read the generations: "+oneLine(m.Err.Error()))
+			}
+			u.gens, _ = m.Value.([]maxor.Generation)
+			u.gensOK = true
+			u.gsel = listState{}
+			for i, g := range u.gens {
+				if g.Current && i+1 < len(u.gens) {
+					u.gsel.sel = i + 1 // se propone la anterior a la que corre
+				}
+			}
+			return u, nil
 		case "update.check":
 			if m.Err != nil {
 				return u, core.Toast("bad", "Could not scan: "+oneLine(m.Err.Error()))
@@ -108,6 +147,14 @@ func (u *Update) Update(env *core.Env, msg tea.Msg) (core.Screen, tea.Cmd) {
 			return u, LoadUpdateStatus(env, true)
 		}
 	case core.ExecDoneMsg:
+		if m.Tag == "update" && u.rolling {
+			u.rolling, u.history = false, false
+			if m.Err != nil {
+				return u, core.Toast("bad", "Could not go back: maxor logs --last")
+			}
+			u.gensOK = false
+			return u, tea.Batch(core.Toast("ok", "Went back. A reboot may be needed if the kernel changed"), core.Note("ok", "Went back to an earlier generation"), LoadUpdateStatus(env, true), u.scan(env, false))
+		}
 		if m.Tag != "update" {
 			return u, nil
 		}
@@ -117,6 +164,33 @@ func (u *Update) Update(env *core.Env, msg tea.Msg) (core.Screen, tea.Cmd) {
 		}
 		return u, tea.Batch(core.Toast("ok", "System updated"), core.Note("ok", "Updated the system"), LoadUpdateStatus(env, true), u.scan(env, false))
 	case tea.KeyMsg:
+		if u.history {
+			if d, mv := listKey(m); mv {
+				u.gsel.move(d, len(u.gens), 1<<20)
+				return u, nil
+			}
+			switch {
+			case isKey(m, "esc", "g"):
+				u.history = false
+			case isKey(m, "enter", "b"):
+				if u.gsel.sel >= 0 && u.gsel.sel < len(u.gens) {
+					g := u.gens[u.gsel.sel]
+					if g.Current {
+						return u, core.Toast("info", "That is the generation you are running")
+					}
+					u.rolling = true
+					return u, tea.ExecProcess(rollbackCmd(g.Generation), func(err error) tea.Msg { return core.ExecDoneMsg{Tag: "update", Err: err} })
+				}
+			}
+			return u, nil
+		}
+		if isKey(m, "g") {
+			u.history = true
+			if !u.gensOK {
+				return u, u.loadGens(env)
+			}
+			return u, nil
+		}
 		if d, mv := listKey(m); mv && env.Data.Update != nil {
 			u.list.move(d, len(env.Data.Update.Changes), max(u.rows, 1))
 			return u, nil
@@ -165,7 +239,67 @@ func (u *Update) configLines(env *core.Env) []ui.Line {
 	return lines
 }
 
+// historyLines: las generaciones del sistema, para volver a una anterior.
+func (u *Update) historyLines(env *core.Env, w, h int) []ui.Line {
+	p := env.P
+	if !u.gensOK {
+		if l, ok := working(env, "update.gens", "Reading the generations"); ok {
+			return []ui.Line{l}
+		}
+		lines := []ui.Line{heading(env, "Generations"), gap()}
+		for i := 0; i < 5; i++ {
+			lines = append(lines, ui.Skeleton(p, env.Frame+i*2, 4, 26))
+		}
+		return lines
+	}
+	lines := []ui.Line{heading(env, "Go back to an earlier version of your system"), muted(env, "Every update or change keeps the previous one, so you can return to it."), gap()}
+	rows := max(h-len(lines)-1, 1)
+	from, to := u.gsel.window(len(u.gens), rows)
+	for i := from; i < to; i++ {
+		g := u.gens[i]
+		when := genTime(g)
+		right := []ui.Seg{ui.S(p.Mu, ago(env.Now(), when.Unix())+" ")}
+		mark := ui.S(p.Mu, "  ")
+		if g.Current {
+			mark = ui.S(p.Ok, ui.G.Tick+" ")
+			right = []ui.Seg{ui.S(p.Ok, "running  "), ui.S(p.Mu, ago(env.Now(), when.Unix())+" ")}
+		}
+		lines = append(lines, ui.Line{
+			L:   []ui.Seg{mark, ui.S(p.Bold, fmt.Sprintf("#%d", g.Generation)), ui.S(p.Mu, "  "+when.Format("Jan 2, 15:04"))},
+			R:   right,
+			Sel: i == u.gsel.sel,
+		})
+	}
+	return lines
+}
+
+func (u *Update) historySide(env *core.Env, w int) []ui.Line {
+	p := env.P
+	lines := []ui.Line{heading(env, "Details"), gap()}
+	if !u.gensOK || u.gsel.sel >= len(u.gens) {
+		return append(lines, muted(env, "Reading…"))
+	}
+	g := u.gens[u.gsel.sel]
+	lines = append(lines, ui.T(p.Bold, fmt.Sprintf("Generation %d", g.Generation)), muted(env, genTime(g).Format("Monday, Jan 2 · 15:04")), gap(),
+		ui.Of(ui.S(p.Mu, "NixOS   "), ui.S(p.Text, g.Nixos)), ui.Of(ui.S(p.Mu, "kernel  "), ui.S(p.Text, g.Kernel)), gap())
+	if g.Current {
+		return append(lines, ui.T(p.Ok, ui.G.Tick+" this is your current one"))
+	}
+	lines = append(lines, ui.Of(button(env, true, "Go back to this  ⏎")), gap())
+	for _, l := range ui.Wrap("Your files and your data are not touched. Apps you installed with maxor stay.", w) {
+		lines = append(lines, muted(env, l))
+	}
+	lines = append(lines, gap())
+	for _, l := range ui.Wrap("It needs your password, and a reboot if the kernel is different.", w) {
+		lines = append(lines, muted(env, l))
+	}
+	return lines
+}
+
 func (u *Update) Main(env *core.Env, w, h int) []ui.Line {
+	if u.history {
+		return u.historyLines(env, w, h)
+	}
 	p := env.P
 	lines := u.configLines(env)
 	lines = append(lines, gap(), heading(env, "Scan"))
@@ -233,6 +367,9 @@ func (u *Update) Main(env *core.Env, w, h int) []ui.Line {
 }
 
 func (u *Update) Side(env *core.Env, w, h int) []ui.Line {
+	if u.history {
+		return u.historySide(env, w)
+	}
 	p := env.P
 	lines := []ui.Line{heading(env, "Actions"), gap()}
 	up := env.Data.Update
@@ -242,7 +379,8 @@ func (u *Update) Side(env *core.Env, w, h int) []ui.Line {
 	}
 	lines = append(lines,
 		ui.Of(button(env, !canApply, "Rescan  r")), muted(env, "compile again and compare"), gap(),
-		ui.Of(button(env, false, "New versions  c")), muted(env, "refresh nixpkgs, then scan"), gap())
+		ui.Of(button(env, false, "New versions  c")), muted(env, "refresh nixpkgs, then scan"), gap(),
+		ui.Of(button(env, false, "Go back  g")), muted(env, "return to an earlier version"), gap())
 	if st := env.Data.UpdateStatus; st != nil && st.Dirty && canApply {
 		for _, l := range ui.Wrap("Uncommitted changes are included in the build.", w) {
 			lines = append(lines, ui.T(p.Warn, l))
@@ -262,7 +400,10 @@ func (u *Update) Side(env *core.Env, w, h int) []ui.Line {
 }
 
 func (u *Update) Hints(env *core.Env) []ui.Hint {
-	h := []ui.Hint{{Key: "r", Action: "rescan"}, {Key: "c", Action: "new versions"}}
+	if u.history {
+		return []ui.Hint{{Key: "↑↓", Action: "choose"}, {Key: "⏎", Action: "go back to it"}, {Key: "esc", Action: "close"}}
+	}
+	h := []ui.Hint{{Key: "r", Action: "rescan"}, {Key: "c", Action: "new versions"}, {Key: "g", Action: "go back"}}
 	if env.Data.Update != nil && !env.Data.Update.UpToDate {
 		h = append(h, ui.Hint{Key: "⏎", Action: "apply"}, ui.Hint{Key: "↑↓", Action: "scroll"})
 	}
@@ -270,6 +411,10 @@ func (u *Update) Hints(env *core.Env) []ui.Hint {
 }
 
 func (u *Update) Wheel(env *core.Env, dy int) tea.Cmd {
+	if u.history {
+		u.gsel.move(dy*2, len(u.gens), 1<<20)
+		return nil
+	}
 	if env.Data.Update != nil {
 		u.list.move(dy*2, len(env.Data.Update.Changes), max(u.rows, 1))
 	}

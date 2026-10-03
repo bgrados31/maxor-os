@@ -40,11 +40,12 @@ La pantalla **no reimplementa nada**: llama a la CLI y lee su JSON (el contrato 
 | `espacio` | Marcar (Tienda: casillas en Installed y en los resultados; Setup) |
 | `a`, `u`, `U`, `r` | Tienda, con apps instaladas: marcar todas, actualizar las marcadas, actualizar todas, quitar las marcadas |
 | `R` | Tienda: volver a mirar las versiones nuevas de las apps |
+| `g` | Update: abrir las generaciones del sistema para volver a una anterior |
 | `r` / `c` | Update: repetir el escaneo / buscar versiones nuevas. Doctor: comprobar otra vez |
 | `/` o `↑` | Buscar (Tienda). Con `↑` y `↓` se recorren la caja, las pestañas Results/Installed/origen y la lista; `←` `→` cambian de pestaña dentro de la Tienda |
 | `:` | **Paleta de comandos**: escribe `go store`, `theme alba`, `search brave`, `update check`… |
 | `?` | Ayuda con todas las teclas |
-| `q`, `Ctrl-C` | Volver a tu terminal (también el botón `⏻ Exit` de la barra de arriba y `exit` en la paleta) |
+| `q`, `Ctrl-C` | Volver a tu terminal (la pestaña **Exit** enseña lo pendiente y sale con `⏎`; también `exit` en la paleta) |
 
 El **ratón** funciona (opcional con `--no-mouse`): clic en una pestaña o una fila y la rueda para
 desplazar. Mientras hay un campo de texto con el foco, las teclas globales (`q`, `:`, `?`…) son

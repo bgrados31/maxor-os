@@ -191,3 +191,11 @@ func TestDoctorTraeIdYArreglo(t *testing.T) {
 		t.Fatalf("items: %+v", it)
 	}
 }
+
+func TestGenerations(t *testing.T) {
+	c, _ := newFake(map[string]resp{"rollback --list --json": {out: `[{"generation":34,"date":"2026-10-03 09:24:54","nixos":"26.05","kernel":"6.18.54","current":true},{"generation":33,"date":"2026-10-03 09:12:27","nixos":"26.05","kernel":"6.18.54","current":false}]`}})
+	g, err := c.Generations(context.Background())
+	if err != nil || len(g) != 2 || !g[0].Current || g[1].Generation != 33 || g[1].Kernel != "6.18.54" {
+		t.Fatalf("generaciones: %+v %v", g, err)
+	}
+}

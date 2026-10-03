@@ -313,3 +313,14 @@ setup() {
   run "$MAXOR_BIN" apps updates --refresh
   [ "$status" = 0 ]
 }
+
+@test "rollback --list --json siempre da una lista JSON" {
+  run "$MAXOR_BIN" rollback --list --json
+  [ "$status" = 0 ]
+  echo "$output" | jq -e 'type == "array"'
+}
+
+@test "rollback rechaza algo que no es un número de generación" {
+  run "$MAXOR_BIN" rollback abc
+  [ "$status" = 2 ]
+}

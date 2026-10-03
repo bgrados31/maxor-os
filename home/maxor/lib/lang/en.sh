@@ -48,7 +48,7 @@ msgs_en() {
   MSG[help.remove]=$'Usage: maxor remove <app...> [--purge] [--list-data] [--json]\n\n  Removes apps installed with maxor. Folders the app left in your home\n  (named exactly like the app) are listed; --purge deletes them too, and\n  also cleans up after an app that is already gone. --list-data only lists them.'
   MSG[help.apps]=$'Usage: maxor apps [list [--json] | updates | update [app...] | open <app> | repair]\n\n  list      installed apps (default)\n  updates   apps that have a newer version (--refresh to look again)\n  update    update every app, or just the ones you name\n  open      open an installed app\n  repair    show Flatpak apps in the app menu and the terminal'
   MSG[help.update]=$'Usage: maxor update [-y] [--no-lock] [--check] [--json]\n\n  Updates the flake inputs, builds the system without applying it, shows\n  what changes and asks before switching.\n\n  -y, --yes   apply without asking\n  --no-lock   do not update flake.lock\n  --check     stop after showing the changes\n  --json      same check, as JSON and nothing else (implies --check)\n  --status    JSON: branch of the configuration, nixpkgs channel and generation (instant)\n  --cached    JSON: the last saved check, or null'
-  MSG[help.rollback]=$'Usage: maxor rollback [-y]\n\n  Goes back to the previous generation.'
+  MSG[help.rollback]=$'Usage: maxor rollback [N] [-y] | --list [--json]\n\n  Goes back to the previous generation, or to generation N.\n  --list shows the latest generations (--json for programs).'
   MSG[help.doctor]=$'Usage: maxor doctor\n\n  Checks system, session, graphics, boot, identity and configuration.\n  Exit code 1 if something is wrong.'
   MSG[help.hardware]=$'Usage: maxor hardware [show | detect [--write [path]]]\n\n  show      detected machine and the drivers Maxor uses (default)\n  detect    print hardware.json; --write saves it for this machine'
   MSG[help.profile]=$'Usage: maxor profile [list [--json] | enable <name> [-y|--no-apply] | disable <name> [-y|--no-apply]]\n\n  Profiles: gaming, dev, creator, office.\n  --no-apply   only save the choice; apply it later with maxor update'
@@ -139,6 +139,8 @@ msgs_en() {
   MSG[rollback.title]='maxor · generations'
   MSG[rollback.sec_generations]='Generations'
   MSG[rollback.confirm]='Go back to the previous generation?'
+  MSG[rollback.confirm_to]='Go back to generation %s?'
+  MSG[rollback.unknown]='There is no generation %s (see: maxor rollback --list)'
   MSG[rollback.failed]='Could not go back to the previous generation'
   MSG[rollback.done]='Went back to the previous generation'
 

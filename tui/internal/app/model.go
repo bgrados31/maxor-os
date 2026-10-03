@@ -64,7 +64,7 @@ type Model struct {
 
 	// geometría para el ratón; la deja View
 	tabs       []tabRect
-	exit       tabRect // el botón de salir, a la derecha de las pestañas
+
 	bodyTop    int
 	mainX0     int
 	mainW      int
@@ -91,7 +91,7 @@ func New(opts Options, client *maxor.Client) *Model {
 	} else {
 		m.screens = []core.Screen{
 			screens.NewHome(), screens.NewStore(), screens.NewThemes(),
-			screens.NewUpdate(), screens.NewDoctor(), screens.NewProfiles(),
+			screens.NewUpdate(), screens.NewDoctor(), screens.NewProfiles(), screens.NewExit(),
 		}
 		if i := m.indexOf(opts.Screen); i >= 0 {
 			m.active = i
@@ -346,9 +346,7 @@ func (m *Model) mouse(msg tea.MouseMsg) tea.Cmd {
 					return core.Go(m.screens[i].ID())
 				}
 			}
-			if !m.setupFocus && msg.X >= m.exit.x0 && msg.X < m.exit.x1 {
-				return core.Quit()
-			}
+
 			return nil
 		}
 		x, y := msg.X-(m.mainX0+2), msg.Y-(m.bodyTop+1)

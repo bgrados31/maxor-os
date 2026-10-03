@@ -25,8 +25,9 @@ type Store struct {
 	in       ui.Input
 	zone     int // dónde está el foco: caja de búsqueda, pestañas o lista
 	chip     int // pestaña con el foco (posición en chips())
-	src      string // filtro por origen: "", "nix" o "flatpak"
 	chipX    [][2]int
+	actX     [][2]int // columnas de cada botón de la barra de acciones
+	actKey   []string // la tecla que hace lo mismo que cada botón
 	query    string
 	results  []maxor.Result
 	searched bool
@@ -87,9 +88,7 @@ const (
 
 type chipDef struct {
 	label string
-	view  int    // 1 resultados · 2 instalado (0 si es un filtro)
-	src   string // valor del filtro cuando view == 0
-	group bool   // es un filtro de origen
+	view  int // 1 resultados · 2 instalado
 }
 
 type item struct {
@@ -100,7 +99,7 @@ type item struct {
 func (i item) key() string { return i.Source + ":" + i.ID }
 
 const (
-	storeHeader = 6 // caja de búsqueda (3) + hueco + pestañas + hueco
+	storeHeader = 7 // caja de búsqueda (3) + hueco + pestañas + barra de acciones + hueco
 	storeItemH  = 3 // nombre, descripción y un respiro
 )
 
@@ -402,25 +401,18 @@ func (s *Store) chips(env *core.Env) []chipDef {
 	if n := len(env.Data.AppUpdates); n > 0 {
 		inst += fmt.Sprintf(" %s%d", ui.G.Up, n)
 	}
-	out = append(out, chipDef{label: inst, view: 2})
-	if s.searched {
-		out = append(out, chipDef{label: "All", group: true}, chipDef{label: "nixpkgs", src: "nix", group: true}, chipDef{label: "flathub", src: "flatpak", group: true})
-	}
-	return out
+	return append(out, chipDef{label: inst, view: 2})
 }
 
-// chipActive dice si una pestaña es la elegida (su vista o su filtro).
+// chipActive dice si una pestaña es la elegida.
 func (s *Store) chipActive(c chipDef) bool {
-	switch {
-	case c.group:
-		return c.src == s.src
-	case c.view == 2:
+	if c.view == 2 {
 		return s.installedView()
 	}
 	return s.searched && !s.showInst
 }
 
-// pickChip elige la pestaña i: cambia la vista o el filtro al instante.
+// pickChip elige la pestaña i: cambia la vista al instante.
 func (s *Store) pickChip(env *core.Env, i int) {
 	cs := s.chips(env)
 	if i < 0 || i >= len(cs) {
@@ -428,14 +420,7 @@ func (s *Store) pickChip(env *core.Env, i int) {
 	}
 	s.chip = i
 	c := cs[i]
-	switch {
-	case c.group:
-		s.src, s.showInst = c.src, false // un filtro siempre se ve sobre los resultados
-	case c.view == 2:
-		s.showInst = true
-	default:
-		s.showInst = false
-	}
+	s.showInst = c.view == 2
 	s.list = listState{}
 }
 
@@ -463,9 +448,6 @@ func (s *Store) items(env *core.Env) []item {
 	inst := s.installed(env)
 	out := make([]item, 0, len(s.results))
 	for _, r := range s.results {
-		if s.src != "" && r.Source != s.src {
-			continue
-		}
 		it := item{Source: r.Source, ID: r.ID, Name: r.Name, Version: r.Version, Desc: r.Description}
 		it.Installed = inst[it.key()]
 		out = append(out, it)
@@ -476,7 +458,7 @@ func (s *Store) items(env *core.Env) []item {
 func (s *Store) search(env *core.Env) tea.Cmd {
 	q := strings.TrimSpace(s.in.Text())
 	if q == "" {
-		s.searched, s.results, s.query, s.showInst, s.src = false, nil, "", false, ""
+		s.searched, s.results, s.query, s.showInst = false, nil, "", false
 		s.list, s.chip = listState{}, 0
 		return nil
 	}
@@ -510,7 +492,7 @@ func (s *Store) Update(env *core.Env, msg tea.Msg) (core.Screen, tea.Cmd) {
 				return s, core.Toast("bad", "Search failed: "+oneLine(m.Err.Error()))
 			}
 			s.results, _ = m.Value.([]maxor.Result)
-			s.searched, s.showInst, s.src = true, false, ""
+			s.searched, s.showInst = true, false
 			s.list, s.chip = listState{}, 0
 			return s, nil
 		case "store.install":
@@ -845,10 +827,7 @@ func (s *Store) tabsRow(env *core.Env, w int) ui.Line {
 				st = p.Ac.Bold(true)
 			}
 		}
-		if c.group && (i == 0 || !chips[i-1].group) {
-			left = append(left, ui.S(p.Mu, " │ "))
-			x += 3
-		}
+
 		seg := ui.S(st, l+c.label+r)
 		cw := len([]rune(l + c.label + r))
 		s.chipX = append(s.chipX, [2]int{x, x + cw})
@@ -879,12 +858,67 @@ func (s *Store) tabsRow(env *core.Env, w int) ui.Line {
 	return ui.Line{L: ui.Spread(left, right, w, p.Fill)}
 }
 
+// actionBar son los botones de acciones rápidas, justo debajo de las pestañas. Cambian con
+// lo que hay marcado: con apps instaladas marcadas, actualizar (o buscar versiones nuevas)
+// y quitar; sin marcar, buscar versiones nuevas y actualizar todas. Cada botón hace lo
+// mismo que su tecla y se puede pulsar con el ratón.
+func (s *Store) actionBar(env *core.Env, w int) ui.Line {
+	p := env.P
+	s.actX, s.actKey = s.actX[:0], s.actKey[:0]
+	its := s.items(env)
+	n := s.markedCount(its)
+	type btn struct {
+		label, key string
+		primary    bool
+	}
+	var bs []btn
+	var note string
+	switch {
+	case s.installedView() && n > 0:
+		upd := 0
+		for _, it := range its {
+			if _, ok := s.updateFor(env, it); ok && s.marks[it.key()] && it.Installed {
+				upd++
+			}
+		}
+		if upd > 0 {
+			bs = append(bs, btn{fmt.Sprintf("Update %d", upd), "u", true})
+		} else {
+			bs = append(bs, btn{"Check for updates", "R", false})
+		}
+		bs = append(bs, btn{fmt.Sprintf("Remove %d", n), "r", upd == 0})
+		note = "esc clears the selection"
+	case s.installedView():
+		bs = append(bs, btn{"Check for updates", "R", len(env.Data.AppUpdates) == 0})
+		if k := len(env.Data.AppUpdates); k > 0 {
+			bs = append([]btn{{fmt.Sprintf("Update all %d", k), "U", true}}, bs...)
+		}
+		note = "space selects apps to remove or update"
+	case n > 0:
+		bs = append(bs, btn{fmt.Sprintf("Install %d", n), "enter", true})
+		note = "esc clears the selection"
+	default:
+		note = "space selects several apps to install together"
+	}
+	var segs []ui.Seg
+	x := 0
+	for _, b := range bs {
+		seg := button(env, b.primary, b.label)
+		wd := len([]rune(seg.T))
+		s.actX, s.actKey = append(s.actX, [2]int{x, x + wd}), append(s.actKey, b.key)
+		segs = append(segs, seg, ui.Seg{T: " "})
+		x += wd + 1
+	}
+	segs = append(segs, ui.S(p.Mu, " "+note))
+	return ui.Line{L: segs}
+}
+
 func (s *Store) Main(env *core.Env, w, h int) []ui.Line {
 	p := env.P
 	s.rows = max((h-storeHeader)/storeItemH, 1)
 	its := s.items(env)
 	lines := s.searchBox(env, w)
-	lines = append(lines, gap(), s.tabsRow(env, w), gap())
+	lines = append(lines, gap(), s.tabsRow(env, w), s.actionBar(env, w), gap())
 
 	// Cargando: la lista aparece ya, con la forma que tendrá
 	loading := env.Tasks.Loading("store.search") && (s.showInst || !s.searched)
@@ -1035,15 +1069,10 @@ func (s *Store) Side(env *core.Env, w, h int) []ui.Line {
 			lines = append(lines, muted(env, fmt.Sprintf("and %d more", n-shown)))
 		}
 		lines = append(lines, gap())
-		if inst {
-			if upd > 0 {
-				lines = append(lines, ui.Of(button(env, true, fmt.Sprintf("Update %d  u", upd))))
-			}
-			lines = append(lines, ui.Of(button(env, upd == 0, fmt.Sprintf("Remove %d  r", n))), ui.Of(button(env, false, "More…  ⏎")))
-		} else {
-			lines = append(lines, ui.Of(button(env, true, fmt.Sprintf("Install %d  ⏎", n))))
+		if inst && upd > 0 {
+			lines = append(lines, ui.T(p.Warn, fmt.Sprintf("%s %d of them can be updated", ui.G.Up, upd)), gap())
 		}
-		return append(lines, ui.Of(button(env, false, "Clear  esc")))
+		return append(lines, muted(env, "Use the buttons above,"), muted(env, "or press ⏎ for more options."))
 	}
 	if len(its) == 0 || s.list.sel >= len(its) {
 		return []ui.Line{heading(env, "Details"), gap(), muted(env, "Search with /"), gap(), muted(env, "Mark several with space"), muted(env, "and act on them together.")}
@@ -1108,6 +1137,22 @@ func (s *Store) Click(env *core.Env, x, y int) tea.Cmd {
 	switch {
 	case y < 3:
 		s.zone = zSearch
+	case y == 5: // la barra de acciones rápidas
+		for i, r := range s.actX {
+			if x >= r[0] && x < r[1] {
+				k := s.actKey[i]
+				var msg tea.KeyMsg
+				switch k {
+				case "enter":
+					msg = tea.KeyMsg{Type: tea.KeyEnter}
+				default:
+					msg = tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune(k)}
+				}
+				s.zone = zList
+				_, cmd := s.key(env, msg)
+				return cmd
+			}
+		}
 	case y == 4: // las pestañas
 		s.zone = zChips
 		for i, r := range s.chipX {
