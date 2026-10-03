@@ -4,18 +4,12 @@
 #
 # Los temas oficiales son las carpetas de ../themes (colors.json + theme.toml);
 # aquí se les genera el wallpaper y se instalan junto a los del usuario en
-# ~/.local/share/maxor/themes/. El CLI vive en ./maxor/*.sh (scripts reales,
-# con shellcheck al compilar) y se ensambla en este orden:
+# ~/.local/share/maxor/themes/. La CLI vive en ./maxor/ (scripts reales, con
+# shellcheck al compilar) y se ensambla en este orden:
 #
-#   lib.sh      rutas y utilidades de color
-#   ui.sh       ventanas de terminal con la paleta del tema activo
-#   style.sh    style.json → Lua de Hyprland
-#   theme.sh    maxor theme …
-#   system.sh   maxor update | rollback | doctor
-#   hardware.sh maxor hardware (detección del equipo)
-#   apps.sh     maxor search | install | remove | apps
-#   profile.sh  maxor profile
-#   main.sh     ayuda y despacho de comandos
+#   lib/   núcleo, terminal, marco de ventana, cargadores y motor de formas
+#   cmd/   un archivo por grupo de comandos (theme, update, doctor, hardware…)
+#   main.sh  ayuda y despacho de comandos
 let
   themesDir = ../themes;
   themeIds = builtins.attrNames (lib.filterAttrs (_: kind: kind == "directory") (builtins.readDir themesDir));
@@ -40,16 +34,19 @@ let
     runtimeInputs = with pkgs; [ jq coreutils gnused gnugrep gawk gnutar findutils procps ncurses ];
     runtimeEnv.MAXOR_PROFILES = ../modules/profiles-catalog.json;
     excludeShellChecks = [ "SC2001" "SC2155" "SC2086" "SC2012" "SC2015" "SC2016" ];
-    text = lib.concatMapStringsSep "\n" builtins.readFile [
-      ./maxor/lib.sh
-      ./maxor/ui.sh
-      ./maxor/style.sh
-      ./maxor/theme.sh
-      ./maxor/system.sh
-      ./maxor/hardware.sh
-      ./maxor/apps.sh
-      ./maxor/profile.sh
-      ./maxor/main.sh
+    text = lib.concatMapStringsSep "\n" (f: builtins.readFile (./maxor + "/${f}")) [
+      "lib/core.sh"
+      "lib/term.sh"
+      "lib/frame.sh"
+      "lib/loaders.sh"
+      "lib/style.sh"
+      "cmd/theme.sh"
+      "cmd/update.sh"
+      "cmd/doctor.sh"
+      "cmd/hardware.sh"
+      "cmd/apps.sh"
+      "cmd/profile.sh"
+      "main.sh"
     ];
   };
 in

@@ -1,4 +1,4 @@
-# ── Base: rutas y utilidades de color ────────────────────────────────
+# ── Núcleo: rutas, color y flake ─────────────────────────────────────
 # C.UTF-8 existe siempre en glibc: así wc y ${#var} cuentan caracteres, no bytes.
 export LC_ALL=C.UTF-8
 
@@ -20,4 +20,12 @@ mix() {
     out+="$(printf '%02x' $(((x * (100 - p) + y * p) / 100)))"
   done
   printf '%s' "$out"
+}
+
+# ── Flake y equipo ───────────────────────────────────────────────────
+flake_dir="${MAXOR_FLAKE:-$HOME/nixos-config}"
+host="${MAXOR_HOST:-$(hostname)}"
+
+need_flake() {
+  [ -f "$flake_dir/flake.nix" ] || die "no encuentro el flake en $flake_dir (usa MAXOR_FLAKE=/ruta)"
 }
