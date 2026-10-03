@@ -1,25 +1,92 @@
--- Maxor OS: atajos de teclado y ratón.
+-- Maxor OS: atajos de teclado y ratón, mismos que Ryoku OS.
 -- Tus propios atajos van en user.lua, no aquí.
+local mod = "SUPER"
+
+-- ── Ventanas ──
+hl.bind(mod .. " + Q", hl.dsp.window.close())
+hl.bind(mod .. " + F", hl.dsp.window.fullscreen())
+hl.bind(mod .. " + D", hl.dsp.window.fullscreen({ mode = "maximized" }))
+hl.bind(mod .. " + C", hl.dsp.window.center())
+hl.bind(mod .. " + SHIFT + P", hl.dsp.window.pin())
+hl.bind(mod .. " + T", hl.dsp.group.toggle())
+hl.bind("ALT + Tab", hl.dsp.focus({ last = true }))
+-- Flotar/tilear: al flotar queda centrada y de tamaño cómodo
+hl.bind(mod .. " + A", function()
+  hl.dispatch(hl.dsp.window.float({ action = "toggle" }))
+  hl.dispatch(hl.dsp.window.resize({ x = 1000, y = 660, exact = true }))
+  hl.dispatch(hl.dsp.window.center())
+end)
+
+-- Modo redimensionar: flechas o hjkl, Esc/Enter sale
+local step = 40
+hl.define_submap("resize", function()
+  hl.bind("Left",  hl.dsp.window.resize({ x = -step, y = 0, relative = true }), { repeating = true })
+  hl.bind("Right", hl.dsp.window.resize({ x = step, y = 0, relative = true }), { repeating = true })
+  hl.bind("Up",    hl.dsp.window.resize({ x = 0, y = -step, relative = true }), { repeating = true })
+  hl.bind("Down",  hl.dsp.window.resize({ x = 0, y = step, relative = true }), { repeating = true })
+  hl.bind("h", hl.dsp.window.resize({ x = -step, y = 0, relative = true }), { repeating = true })
+  hl.bind("l", hl.dsp.window.resize({ x = step, y = 0, relative = true }), { repeating = true })
+  hl.bind("k", hl.dsp.window.resize({ x = 0, y = -step, relative = true }), { repeating = true })
+  hl.bind("j", hl.dsp.window.resize({ x = 0, y = step, relative = true }), { repeating = true })
+  hl.bind("Escape", hl.dsp.submap("reset"))
+  hl.bind("Return", hl.dsp.submap("reset"))
+  hl.bind("SUPER + R", hl.dsp.submap("reset"))
+end)
+hl.bind(mod .. " + R", function()
+  hl.dispatch(hl.dsp.submap("resize"))
+  hl.dispatch(hl.dsp.exec_cmd("hyprctl notify -1 2200 0 'Resize mode: arrows or hjkl resize, Esc exits'"))
+end)
+
+-- ── Foco y mover ──
+hl.bind(mod .. " + Left", hl.dsp.focus({ direction = "left" }))
+hl.bind(mod .. " + Right", hl.dsp.focus({ direction = "right" }))
+hl.bind(mod .. " + Up", hl.dsp.focus({ direction = "up" }))
+hl.bind(mod .. " + Down", hl.dsp.focus({ direction = "down" }))
+hl.bind(mod .. " + SHIFT + Left", hl.dsp.window.move({ direction = "left" }))
+hl.bind(mod .. " + SHIFT + Right", hl.dsp.window.move({ direction = "right" }))
+hl.bind(mod .. " + SHIFT + Up", hl.dsp.window.move({ direction = "up" }))
+hl.bind(mod .. " + SHIFT + Down", hl.dsp.window.move({ direction = "down" }))
+hl.bind(mod .. " + CTRL + Left", hl.dsp.window.resize({ x = -40, y = 0, relative = true }), { repeating = true })
+hl.bind(mod .. " + CTRL + Right", hl.dsp.window.resize({ x = 40, y = 0, relative = true }), { repeating = true })
+hl.bind(mod .. " + CTRL + Up", hl.dsp.window.resize({ x = 0, y = -40, relative = true }), { repeating = true })
+hl.bind(mod .. " + CTRL + Down", hl.dsp.window.resize({ x = 0, y = 40, relative = true }), { repeating = true })
+hl.bind(mod .. " + bracketleft", hl.dsp.window.move({ direction = "left", group_aware = true }))
+hl.bind(mod .. " + bracketright", hl.dsp.window.move({ direction = "right", group_aware = true }))
+
+-- ── Pantallas ──
+for key, dir in pairs({ Left = "l", Right = "r", Up = "u", Down = "d" }) do
+  hl.bind(mod .. " + ALT + " .. key, hl.dsp.focus({ monitor = dir }))
+  hl.bind(mod .. " + ALT + SHIFT + " .. key, hl.dsp.window.move({ monitor = dir }))
+  hl.bind(mod .. " + CTRL + ALT + " .. key, hl.dsp.workspace.move({ monitor = dir }))
+end
 
 -- ── Apps ──
-hl.bind("SUPER + Return", hl.dsp.exec_cmd("kitty"))
-hl.bind("SUPER + T", hl.dsp.exec_cmd("kitty"))
-hl.bind("SUPER + E", hl.dsp.exec_cmd("nautilus"))
-hl.bind("SUPER + B", hl.dsp.exec_cmd("firefox"))
+hl.bind(mod .. " + Return", hl.dsp.exec_cmd("kitty"))
+hl.bind(mod .. " + E", hl.dsp.exec_cmd("thunar"))
+hl.bind(mod .. " + B", hl.dsp.exec_cmd("firefox"))
+hl.bind(mod .. " + N", hl.dsp.exec_cmd("kitty -e nvim"))
+hl.bind(mod .. " + O", hl.dsp.exec_cmd("dms ipc call notepad toggle"))
 
--- ── DankMaterialShell ──
-hl.bind("SUPER + space", hl.dsp.exec_cmd("dms ipc call spotlight toggle"))
-hl.bind("SUPER + D", hl.dsp.exec_cmd("dms ipc call spotlight toggle"))
-hl.bind("SUPER + V", hl.dsp.exec_cmd("dms ipc call clipboard toggle"))
-hl.bind("SUPER + M", hl.dsp.exec_cmd("dms ipc call processlist focusOrToggle"))
-hl.bind("SUPER + comma", hl.dsp.exec_cmd("dms ipc call settings focusOrToggle"))
-hl.bind("SUPER + N", hl.dsp.exec_cmd("dms ipc call notifications toggle"))
-hl.bind("SUPER + Y", hl.dsp.exec_cmd("dms ipc call dash toggle wallpaper"))
-hl.bind("SUPER + TAB", hl.dsp.exec_cmd("dms ipc call hypr toggleOverview"))
-hl.bind("SUPER + X", hl.dsp.exec_cmd("dms ipc call powermenu toggle"))
-hl.bind("SUPER + SHIFT + Slash", hl.dsp.exec_cmd("dms ipc call keybinds toggle hyprland"))
-hl.bind("SUPER + ALT + L", hl.dsp.exec_cmd("loginctl lock-session"))
-hl.bind("SUPER + SHIFT + E", hl.dsp.exit())
+-- ── Shell (DankMaterialShell) ──
+hl.bind(mod .. " + Space", hl.dsp.exec_cmd("dms ipc call spotlight toggle"))
+hl.bind(mod .. " + K", hl.dsp.exec_cmd("dms ipc call keybinds toggle hyprland"))
+hl.bind(mod .. " + L", hl.dsp.exec_cmd("loginctl lock-session"))
+hl.bind(mod .. " + Escape", hl.dsp.exec_cmd("dms ipc call powermenu toggle"))
+hl.bind(mod .. " + W", hl.dsp.exec_cmd("dms ipc call dash toggle wallpaper"))
+hl.bind(mod .. " + SHIFT + W", hl.dsp.exec_cmd("dms ipc call wallpaper next"))
+hl.bind(mod .. " + V", hl.dsp.exec_cmd("dms ipc call clipboard toggle"))
+hl.bind(mod .. " + Tab", hl.dsp.exec_cmd("dms ipc call hypr toggleOverview"))
+hl.bind(mod .. " + M", hl.dsp.exec_cmd("dms ipc call processlist focusOrToggle"))
+hl.bind(mod .. " + comma", hl.dsp.exec_cmd("dms ipc call settings focusOrToggle"))
+hl.bind(mod .. " + SHIFT + N", hl.dsp.exec_cmd("dms ipc call notifications toggle"))
+hl.bind(mod .. " + SHIFT + C", hl.dsp.exec_cmd("dms ipc call color-picker toggle"))
+hl.bind(mod .. " + SHIFT + A", hl.dsp.exec_cmd("systemctl --user restart pipewire pipewire-pulse wireplumber"))
+hl.bind(mod .. " + SHIFT + E", hl.dsp.exit())
+
+-- ── Capturas ──
+hl.bind(mod .. " + SHIFT + S", hl.dsp.exec_cmd("dms screenshot"))
+hl.bind("Print", hl.dsp.exec_cmd("dms screenshot"))
+hl.bind("SHIFT + Print", hl.dsp.exec_cmd("dms screenshot full"))
 
 -- ── Audio / brillo / media ──
 hl.bind("XF86AudioRaiseVolume", hl.dsp.exec_cmd("dms ipc call audio increment 3"), { locked = true, repeating = true })
@@ -33,52 +100,23 @@ hl.bind("XF86AudioNext", hl.dsp.exec_cmd("dms ipc call mpris next"), { locked = 
 hl.bind("XF86MonBrightnessUp", hl.dsp.exec_cmd([[dms ipc call brightness increment 5 ""]]), { locked = true, repeating = true })
 hl.bind("XF86MonBrightnessDown", hl.dsp.exec_cmd([[dms ipc call brightness decrement 5 ""]]), { locked = true, repeating = true })
 
--- ── Capturas ──
-hl.bind("Print", hl.dsp.exec_cmd("dms screenshot"))
-hl.bind("CTRL + Print", hl.dsp.exec_cmd("dms screenshot full"))
-hl.bind("ALT + Print", hl.dsp.exec_cmd("dms screenshot window"))
-hl.bind("SUPER + SHIFT + S", hl.dsp.exec_cmd("dms screenshot"))
-
--- ── Ventanas ──
-hl.bind("SUPER + Q", hl.dsp.window.close())
-hl.bind("SUPER + F", hl.dsp.window.fullscreen({ mode = "maximized", action = "toggle" }))
-hl.bind("SUPER + SHIFT + F", hl.dsp.window.fullscreen({ mode = "fullscreen", action = "toggle" }))
-hl.bind("SUPER + SHIFT + Space", hl.dsp.window.float({ action = "toggle" }))
-hl.bind("SUPER + R", hl.dsp.layout("togglesplit"))
-hl.bind("SUPER + W", hl.dsp.group.toggle())
-
-hl.bind("SUPER + left", hl.dsp.focus({ direction = "l" }))
-hl.bind("SUPER + down", hl.dsp.focus({ direction = "d" }))
-hl.bind("SUPER + up", hl.dsp.focus({ direction = "u" }))
-hl.bind("SUPER + right", hl.dsp.focus({ direction = "r" }))
-hl.bind("SUPER + H", hl.dsp.focus({ direction = "l" }))
-hl.bind("SUPER + J", hl.dsp.focus({ direction = "d" }))
-hl.bind("SUPER + K", hl.dsp.focus({ direction = "u" }))
-hl.bind("SUPER + L", hl.dsp.focus({ direction = "r" }))
-
-hl.bind("SUPER + SHIFT + left", hl.dsp.window.move({ direction = "l" }))
-hl.bind("SUPER + SHIFT + down", hl.dsp.window.move({ direction = "d" }))
-hl.bind("SUPER + SHIFT + up", hl.dsp.window.move({ direction = "u" }))
-hl.bind("SUPER + SHIFT + right", hl.dsp.window.move({ direction = "r" }))
-hl.bind("SUPER + SHIFT + H", hl.dsp.window.move({ direction = "l" }))
-hl.bind("SUPER + SHIFT + J", hl.dsp.window.move({ direction = "d" }))
-hl.bind("SUPER + SHIFT + K", hl.dsp.window.move({ direction = "u" }))
-hl.bind("SUPER + SHIFT + L", hl.dsp.window.move({ direction = "r" }))
-
-hl.bind("SUPER + minus", hl.dsp.window.resize({ x = -100, y = 0, relative = true }), { repeating = true })
-hl.bind("SUPER + equal", hl.dsp.window.resize({ x = 100, y = 0, relative = true }), { repeating = true })
-hl.bind("SUPER + SHIFT + minus", hl.dsp.window.resize({ x = 0, y = -100, relative = true }), { repeating = true })
-hl.bind("SUPER + SHIFT + equal", hl.dsp.window.resize({ x = 0, y = 100, relative = true }), { repeating = true })
-hl.bind("SUPER + mouse:272", hl.dsp.window.drag(), { mouse = true })
-hl.bind("SUPER + mouse:273", hl.dsp.window.resize(), { mouse = true })
-
--- ── Workspaces ──
-for i = 1, 9 do
-  hl.bind("SUPER + " .. i, hl.dsp.focus({ workspace = tostring(i) }))
-  hl.bind("SUPER + SHIFT + " .. i, hl.dsp.window.move({ workspace = tostring(i) }))
+-- ── Workspaces 1-10 (la tecla 0 es el 10) ──
+for i = 1, 10 do
+  local key = tostring(i % 10)
+  hl.bind(mod .. " + " .. key, hl.dsp.focus({ workspace = tostring(i) }))
+  hl.bind(mod .. " + ALT + " .. key, hl.dsp.window.move({ workspace = tostring(i) }))
+  hl.bind(mod .. " + SHIFT + " .. key, hl.dsp.window.move({ workspace = tostring(i), follow = false }))
 end
-hl.bind("SUPER + mouse_down", hl.dsp.focus({ workspace = "e+1" }))
-hl.bind("SUPER + mouse_up", hl.dsp.focus({ workspace = "e-1" }))
-hl.bind("SUPER + S", hl.dsp.workspace.toggle_special())
-hl.bind("SUPER + CTRL + S", hl.dsp.window.move({ workspace = "special", follow = false }))
+hl.bind(mod .. " + Prior", hl.dsp.focus({ workspace = "r-1" }))
+hl.bind(mod .. " + Next", hl.dsp.focus({ workspace = "r+1" }))
+hl.bind(mod .. " + SHIFT + Prior", hl.dsp.window.move({ workspace = "r-1" }))
+hl.bind(mod .. " + SHIFT + Next", hl.dsp.window.move({ workspace = "r+1" }))
+hl.bind(mod .. " + mouse_up", hl.dsp.focus({ workspace = "r-1" }))
+hl.bind(mod .. " + mouse_down", hl.dsp.focus({ workspace = "r+1" }))
+hl.bind(mod .. " + H", hl.dsp.window.move({ workspace = "special", follow = false })) -- esconder ventana
+hl.bind(mod .. " + ALT + H", hl.dsp.workspace.toggle_special())                       -- mostrar/ocultar escondidas
 hl.gesture({ fingers = 3, direction = "horizontal", action = "workspace" })
+
+-- ── Ratón ──
+hl.bind(mod .. " + mouse:272", hl.dsp.window.drag(), { mouse = true })
+hl.bind(mod .. " + mouse:273", hl.dsp.window.resize(), { mouse = true })

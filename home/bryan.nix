@@ -158,6 +158,11 @@
   # evita depender de fish_variables o ~/.bashrc.
   home.sessionPath = [ "$HOME/.local/bin" ];
 
+  xdg.mimeApps = {
+    enable = true;
+    defaultApplications."inode/directory" = "thunar.desktop";
+  };
+
   home.sessionVariables = {
     QT_QPA_PLATFORMTHEME = "qt6ct";
     TERMINAL = "kitty";
@@ -168,7 +173,6 @@
   home.packages = with pkgs; [
     kdePackages.qt6ct
     libsForQt5.qt5ct
-    nautilus
     pavucontrol
     wl-clipboard
     playerctl
