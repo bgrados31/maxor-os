@@ -1,0 +1,11 @@
+-- Maxor OS: tu configuración personal de Hyprland.
+--
+-- Este archivo se carga el ÚLTIMO, así que lo que pongas aquí sobrescribe
+-- cualquier valor de Maxor. El sistema nunca lo modifica ni lo reemplaza.
+--
+-- Ejemplos (quita los guiones para activarlos):
+--
+-- hl.config({ general = { gaps_out = 16 } })
+-- hl.config({ decoration = { rounding = 12 } })
+-- hl.bind("SUPER + C", hl.dsp.exec_cmd("code"))
+-- hl.window_rule({ match = { class = "^(steam)$" }, float = true })

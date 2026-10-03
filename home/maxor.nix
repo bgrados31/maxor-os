@@ -48,7 +48,7 @@ let
   maxor = pkgs.writeShellApplication {
     name = "maxor";
     runtimeInputs = with pkgs; [ jq coreutils gnused gnugrep procps ];
-    excludeShellChecks = [ "SC2155" "SC2086" "SC2012" ];
+    excludeShellChecks = [ "SC2155" "SC2086" "SC2012" "SC2015" ];
     text = ''
       data="''${XDG_DATA_HOME:-$HOME/.local/share}/maxor"
       cfg="''${XDG_CONFIG_HOME:-$HOME/.config}/maxor"
@@ -67,8 +67,14 @@ let
         maxor theme current           tema activo
         maxor theme apply <nombre>    aplicar un tema
         maxor theme undo              volver al tema anterior
+
+        maxor update [-y] [--no-lock] actualizar el sistema (muestra los cambios antes de aplicar)
+        maxor rollback [-y]           volver a la generación anterior
+        maxor doctor                  diagnóstico del sistema
       EOF
       }
+
+      ${builtins.readFile ./maxor/system.sh}
 
       hex() { printf '%s' "''${1#\#}"; }
       rgb() { local h; h="$(hex "$1")"; printf '%d, %d, %d' "0x''${h:0:2}" "0x''${h:2:2}" "0x''${h:4:2}"; }
@@ -169,6 +175,9 @@ let
             undo) theme_undo ;;
             *) usage; exit 1 ;;
           esac ;;
+        update) shift; cmd_update "$@" ;;
+        rollback) shift; cmd_rollback "$@" ;;
+        doctor) cmd_doctor ;;
         ""|-h|--help|help) usage ;;
         *) usage; exit 1 ;;
       esac

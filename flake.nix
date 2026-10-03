@@ -17,10 +17,21 @@
   };
 
   outputs = { self, nixpkgs, home-manager, ... }@inputs: {
+    # Módulos de sistema de Maxor OS, reutilizables desde otro flake.
+    nixosModules.default = {
+      imports = [
+        ./modules/core.nix
+        ./modules/desktop.nix
+        ./modules/branding.nix
+        ./modules/fonts.nix
+      ];
+    };
+
     nixosConfigurations.nitro = nixpkgs.lib.nixosSystem {
       system = "x86_64-linux";
       specialArgs = { inherit inputs; };
       modules = [
+        self.nixosModules.default
         ./hosts/nitro/configuration.nix
         home-manager.nixosModules.home-manager
         {
