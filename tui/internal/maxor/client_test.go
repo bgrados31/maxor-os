@@ -234,3 +234,11 @@ func TestStreamRealEntregaLaContrasenaYLasLineas(t *testing.T) {
 		t.Fatalf("sin contraseña, sin MAXOR_SUDO_STDIN: %v", lines)
 	}
 }
+
+func TestBackup(t *testing.T) {
+	c, _ := newFake(map[string]resp{"backup --json": {out: `{"path":"/home/b/maxor-backup-nitro-20261003-1000.tar.gz","bytes":2628,"apps":2,"themes":1,"host":"nitro"}`}})
+	b, err := c.Backup(context.Background())
+	if err != nil || b.Bytes != 2628 || b.Apps != 2 || b.Themes != 1 || !strings.HasSuffix(b.Path, ".tar.gz") {
+		t.Fatalf("copia: %+v %v", b, err)
+	}
+}

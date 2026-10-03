@@ -1,12 +1,16 @@
 package screens
 
 import (
+	"context"
 	"fmt"
+	"os"
 	"strings"
 
 	tea "github.com/charmbracelet/bubbletea"
 
 	"github.com/bgrados31/maxor-os/tui/internal/core"
+	"github.com/bgrados31/maxor-os/tui/internal/maxor"
+	"github.com/bgrados31/maxor-os/tui/internal/task"
 	"github.com/bgrados31/maxor-os/tui/internal/ui"
 )
 
@@ -32,11 +36,15 @@ var homeActions = []action{
 	{"s", "Search apps", "store", "search"},
 	{"t", "Change theme", "themes", ""},
 	{"d", "Run doctor", "doctor", ""},
+	{"b", "Back up my setup", "", "backup"},
 }
 
 // CheckUpdateMsg y FocusSearchMsg los entiende la pantalla de destino.
 type CheckUpdateMsg struct{}
 type FocusSearchMsg struct{}
+
+// BackupMsg pide guardar una copia de seguridad (la paleta de comandos).
+type BackupMsg struct{}
 
 func (h *Home) Init(env *core.Env) tea.Cmd {
 	var cmds []tea.Cmd
@@ -64,9 +72,18 @@ func (h *Home) Init(env *core.Env) tea.Cmd {
 	return tea.Batch(cmds...)
 }
 
-func (h *Home) run(i int) tea.Cmd {
+// backup guarda tu configuración en un archivo con `maxor backup` y lo cuenta al terminar.
+func (h *Home) backup(env *core.Env) tea.Cmd {
+	return env.Tasks.Start(task.Task{ID: "home.backup", Label: "Saving your setup", Run: func(ctx context.Context) (any, error) {
+		return env.Client.Backup(ctx)
+	}})
+}
+
+func (h *Home) run(env *core.Env, i int) tea.Cmd {
 	a := homeActions[i]
 	switch a.then {
+	case "backup":
+		return h.backup(env)
 	case "check":
 		return core.GoThen(a.screen, CheckUpdateMsg{})
 	case "search":
@@ -76,17 +93,30 @@ func (h *Home) run(i int) tea.Cmd {
 }
 
 func (h *Home) Update(env *core.Env, msg tea.Msg) (core.Screen, tea.Cmd) {
+	switch m := msg.(type) {
+	case BackupMsg:
+		return h, h.backup(env)
+	case task.DoneMsg:
+		if m.ID == "home.backup" {
+			if m.Err != nil {
+				return h, core.Toast("bad", "Could not save the backup: "+oneLine(m.Err.Error()))
+			}
+			b, _ := m.Value.(maxor.BackupInfo)
+			path := strings.Replace(b.Path, os.Getenv("HOME"), "~", 1)
+			return h, tea.Batch(core.Toast("ok", fmt.Sprintf("Saved %s (%s, %s)", path, humanBytes(b.Bytes), plural(b.Apps, "app", "apps"))), core.Note("ok", "Saved a backup: "+path))
+		}
+	}
 	if k, ok := msg.(tea.KeyMsg); ok {
 		if d, mv := listKey(k); mv {
 			h.list.move(d, len(homeActions), len(homeActions))
 			return h, nil
 		}
 		if isKey(k, "enter") {
-			return h, h.run(h.list.sel)
+			return h, h.run(env, h.list.sel)
 		}
 		for i, a := range homeActions {
 			if isKey(k, a.key) {
-				return h, h.run(i)
+				return h, h.run(env, i)
 			}
 		}
 	}

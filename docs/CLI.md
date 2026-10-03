@@ -29,6 +29,8 @@ maxor rollback [N]                volver a la generación anterior (o a la N)
 maxor doctor                      diagnóstico del sistema
 maxor hardware [show | detect]    equipo detectado y drivers que usará
 maxor profile [list | enable | disable] <perfil>
+maxor backup [archivo]            guardar tu configuración en un solo archivo
+maxor restore <archivo> [--apps]  recuperarla, en este equipo o en otro
 
 HERRAMIENTAS
 maxor logs [--last | --path]      registro de la CLI
@@ -179,6 +181,23 @@ Si cancelas después de actualizar `flake.lock`, el archivo queda modificado: re
 ## Variables de entorno de la pantalla completa
 
 - `MAXOR_SUDO_STDIN=1`: los comandos que necesitan root (`update`, `rollback`) usan `sudo -S -p ''` y leen la contraseña de la entrada estándar. Es lo que usa la pantalla completa; en una terminal no hace falta.
+
+## `maxor backup` y `maxor restore`
+
+Guardan lo que es tuyo y no sale de git ni de Nix en un solo `.tar.gz`:
+
+| Dentro | Qué es |
+|---|---|
+| `manifest.json` | versión de maxor, equipo, fecha, tema en uso, perfiles y apps instaladas |
+| `hosts/maxor.json` | los perfiles activos del equipo |
+| `themes/<id>/` | los temas que hiciste tú (los oficiales ya vienen con Maxor) |
+| `dms/` | los ajustes de DankMaterialShell (barra, lanzador…) |
+
+`hardware.json` no va: es de cada equipo y se vuelve a detectar solo.
+
+- `maxor backup [archivo|carpeta] [--json]` guarda la copia (por defecto `~/maxor-backup-<equipo>-<fecha>.tar.gz`); `--json` da `{path, bytes, apps, themes, host}`. `maxor backup --list <archivo> [--json]` cuenta lo que lleva sin tocar nada.
+- `maxor restore <archivo> [--apps] [-y]` enseña lo que hay, pide confirmación y recupera perfiles, temas propios (nunca pisa uno que ya existe), ajustes de la barra (guarda los de antes como `settings.json.before-restore`) y el tema en uso. Con `--apps` instala también las apps de la copia. Solo extrae rutas conocidas y rechaza archivos con rutas absolutas o `..`.
+- Después de recuperar los perfiles, aplícalos con `maxor update --no-lock`.
 
 ## `maxor rollback`
 

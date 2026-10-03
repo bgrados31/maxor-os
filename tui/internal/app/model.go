@@ -245,6 +245,8 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		add(m.toScreen(m.indexOf("update"), msg))
 	case screens.RunDoctorMsg:
 		add(m.toScreen(m.indexOf("doctor"), msg))
+	case screens.BackupMsg:
+		add(m.toScreen(m.indexOf("home"), msg))
 	case screens.OpenAppMsg:
 		add(m.toScreen(m.indexOf("store"), msg))
 	case screens.FocusSearchMsg:

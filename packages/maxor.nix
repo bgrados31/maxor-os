@@ -1,4 +1,4 @@
-{ lib, writeShellApplication, jq, coreutils, gnused, gnugrep, gawk, gnutar, findutils, procps, ncurses }:
+{ lib, writeShellApplication, jq, coreutils, gnused, gnugrep, gawk, gnutar, gzip, findutils, procps, ncurses }:
 
 # La CLI `maxor`. Los scripts reales viven en home/maxor/ (lib/ y cmd/) y se
 # ensamblan en este orden; shellcheck revisa el resultado al compilar.
@@ -30,13 +30,14 @@ let
     "cmd/hardware.sh"
     "cmd/apps.sh"
     "cmd/profile.sh"
+    "cmd/backup.sh"
     "cmd/tools.sh"
     "main.sh"
   ];
 in
 writeShellApplication {
   name = "maxor";
-  runtimeInputs = [ jq coreutils gnused gnugrep gawk gnutar findutils procps ncurses ];
+  runtimeInputs = [ jq coreutils gnused gnugrep gawk gnutar gzip findutils procps ncurses ];
   runtimeEnv = {
     MAXOR_PROFILES = ../modules/profiles-catalog.json;
     MAXOR_VERSION = lib.removeSuffix "\n" (builtins.readFile ../VERSION);

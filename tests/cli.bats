@@ -331,3 +331,65 @@ setup() {
   [ "$status" = 0 ]
   echo "$output" | jq -e 'length > 0 and all(.[]; (.includes | type == "array") and (.includes | length > 0))'
 }
+
+# ── backup y restore ─────────────────────────────────────────────────
+
+backup_fixture() {
+  mkdir -p "$MAXOR_FLAKE/hosts/testhost" "$XDG_DATA_HOME/maxor/themes/mio" "$XDG_DATA_HOME/maxor/themes-oficial" "$XDG_CONFIG_HOME/DankMaterialShell"
+  echo '{}' > "$MAXOR_FLAKE/flake.nix"
+  echo '{ "profiles": ["gaming"] }' > "$MAXOR_FLAKE/hosts/testhost/maxor.json"
+  echo '{"bg":"#000000"}' > "$XDG_DATA_HOME/maxor/themes/mio/colors.json"
+  ln -s "$XDG_DATA_HOME/maxor/themes-oficial" "$XDG_DATA_HOME/maxor/themes/oficial"
+  echo '{"barSpacing": 3}' > "$XDG_CONFIG_HOME/DankMaterialShell/settings.json"
+}
+
+@test "backup guarda perfiles, temas propios y ajustes, y --list lo cuenta" {
+  backup_fixture
+  run "$MAXOR_BIN" backup "$BATS_TEST_TMPDIR/b.tar.gz" --json
+  [ "$status" = 0 ]
+  echo "$output" | jq -e '.themes == 1 and .host == "testhost" and .bytes > 0'
+  run "$MAXOR_BIN" backup --list "$BATS_TEST_TMPDIR/b.tar.gz" --json
+  [ "$status" = 0 ]
+  echo "$output" | jq -e '.profiles == ["gaming"] and .themes == ["mio"] and .schema == 1'
+  # los temas oficiales (enlaces) no van, y hardware.json tampoco
+  run tar -tzf "$BATS_TEST_TMPDIR/b.tar.gz"
+  [[ "$output" == *"themes/mio/colors.json"* ]]
+  [[ "$output" != *"themes/oficial"* ]]
+  [[ "$output" != *"hardware.json"* ]]
+}
+
+@test "restore trae de vuelta perfiles, temas y ajustes sin pisar lo que existe" {
+  backup_fixture
+  "$MAXOR_BIN" backup "$BATS_TEST_TMPDIR/b.tar.gz" --json > /dev/null
+  # un equipo «nuevo»: sin nada de lo anterior, y con un tema que no debe pisarse
+  rm -rf "$XDG_DATA_HOME/maxor/themes/mio" "$XDG_CONFIG_HOME/DankMaterialShell"
+  echo '{ "profiles": [] }' > "$MAXOR_FLAKE/hosts/testhost/maxor.json"
+  mkdir -p "$XDG_CONFIG_HOME/DankMaterialShell"
+  echo '{"barSpacing": 9}' > "$XDG_CONFIG_HOME/DankMaterialShell/settings.json"
+  run "$MAXOR_BIN" restore "$BATS_TEST_TMPDIR/b.tar.gz" -y
+  [ "$status" = 0 ]
+  jq -e '.profiles == ["gaming"]' "$MAXOR_FLAKE/hosts/testhost/maxor.json"
+  [ -f "$XDG_DATA_HOME/maxor/themes/mio/colors.json" ]
+  jq -e '.barSpacing == 3' "$XDG_CONFIG_HOME/DankMaterialShell/settings.json"
+  # los ajustes de antes se guardan al lado
+  jq -e '.barSpacing == 9' "$XDG_CONFIG_HOME/DankMaterialShell/settings.json.before-restore"
+}
+
+@test "restore rechaza lo que no es una copia de Maxor y las rutas peligrosas" {
+  echo "no soy un tar" > "$BATS_TEST_TMPDIR/malo.tar.gz"
+  run "$MAXOR_BIN" restore "$BATS_TEST_TMPDIR/malo.tar.gz" -y
+  [ "$status" = 1 ]
+  # un tar que intenta salirse de la carpeta
+  mkdir -p "$BATS_TEST_TMPDIR/evil"
+  echo '{"schema":1,"host":"x"}' > "$BATS_TEST_TMPDIR/evil/manifest.json"
+  tar -czf "$BATS_TEST_TMPDIR/evil.tar.gz" -C "$BATS_TEST_TMPDIR/evil" --transform 's|^|../|' manifest.json
+  run "$MAXOR_BIN" restore "$BATS_TEST_TMPDIR/evil.tar.gz" -y
+  [ "$status" = 1 ]
+  run "$MAXOR_BIN" restore "$BATS_TEST_TMPDIR/no-existe.tar.gz" -y
+  [ "$status" = 2 ]
+}
+
+@test "restore sin archivo muestra el uso" {
+  run "$MAXOR_BIN" restore
+  [ "$status" = 2 ]
+}

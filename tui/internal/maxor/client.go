@@ -507,3 +507,18 @@ func scanLines(data []byte, atEOF bool) (int, []byte, error) {
 	}
 	return 0, nil, nil
 }
+
+// BackupInfo es el resultado de guardar una copia de seguridad.
+type BackupInfo struct {
+	Path   string `json:"path"`
+	Bytes  int64  `json:"bytes"`
+	Apps   int    `json:"apps"`
+	Themes int    `json:"themes"`
+	Host   string `json:"host"`
+}
+
+// Backup guarda tu configuración (perfiles, temas propios, ajustes y apps) en un archivo.
+func (c *Client) Backup(ctx context.Context) (b BackupInfo, err error) {
+	err = c.getJSON(ctx, &b, false, "backup", "--json")
+	return
+}

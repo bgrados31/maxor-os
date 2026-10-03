@@ -4,6 +4,7 @@ import (
 	"time"
 	"context"
 	"fmt"
+	"os"
 	"strings"
 	"sync"
 	"testing"
@@ -1641,5 +1642,33 @@ func TestAplicarPerfilesUsaElMismoPanel(t *testing.T) {
 	send(m, key("enter"))
 	if !strings.Contains(summaryText(m), "Applied the profiles") {
 		t.Fatalf("queda el resumen: %q", summaryText(m))
+	}
+}
+
+func TestInicioGuardaUnaCopiaDeSeguridad(t *testing.T) {
+	f := newCLI()
+	f.resp["backup --json"] = `{"path":"` + os.Getenv("HOME") + `/maxor-backup-nitro-20261003-1000.tar.gz","bytes":2097152,"apps":3,"themes":1,"host":"nitro"}`
+	m, _ := setupWith(t, f, Options{})
+	if !has(view(m), "Back up my setup") {
+		t.Fatalf("Inicio ofrece guardar una copia:\n%s", view(m))
+	}
+	send(m, key("b"))
+	if !f.called("backup --json") {
+		t.Fatalf("b guarda la copia con la CLI: %v", f.calls)
+	}
+	out := view(m)
+	if !has(out, "Saved ~/maxor-backup-nitro-20261003-1000.tar.gz") || !has(out, "2.0 MiB") || !has(out, "3 apps") {
+		t.Fatalf("el aviso dice dónde quedó y qué lleva:\n%s", out)
+	}
+	if !strings.Contains(summaryText(m), "Saved a backup") {
+		t.Fatalf("y queda en el resumen: %q", summaryText(m))
+	}
+	// también desde la paleta
+	f.calls = nil
+	send(m, key(":"))
+	typeText(m, "backup")
+	send(m, key("enter"))
+	if !f.called("backup --json") {
+		t.Fatalf("la paleta también lo hace: %v", f.calls)
 	}
 }
