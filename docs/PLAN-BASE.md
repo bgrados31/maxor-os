@@ -28,12 +28,12 @@ y apagado silenciosos, sesión limpia, Thunar.
 - [x] `nix-ld` + AppImage (`programs.appimage`) para que los binarios ajenos funcionen sin pelear con Nix.
 - [x] Flatpak y Flathub activos desde el primer arranque (los usará la tienda).
 - [x] `earlyoom`. Pendiente: evaluar un kernel más reciente o `zen` y un planificador `scx`.
-- [ ] Perfiles `maxor profile gaming|dev|minimal|creator` (Steam/gamemode, toolchains, etc.).
+- [x] Perfiles `maxor profile enable|disable` (gaming, dev, creator, office) con catálogo propio ([APPS.md](APPS.md)).
 - [x] Drivers por equipo: detección de CPU/GPU/portátil/VM con `maxor hardware` y `modules/hardware.nix` ([HARDWARE.md](HARDWARE.md)).
 - [ ] Gráficos: conmutación PRIME guiada con `maxor gpu` y modo «sin GPU dedicada».
 - [ ] `maxor doctor --fix` para lo corregible, y `maxor doctor --json`.
 - [ ] `maxor backup` (config de usuario) y `maxor restore`.
-- [ ] Paquetes de usuario sin editar `.nix`: `~/.config/maxor/packages.nix` y `maxor install`.
+- [x] Apps de usuario sin editar `.nix`: `maxor search|install|remove|apps`, nixpkgs y Flathub, con `--json` ([APPS.md](APPS.md)).
 - [ ] Sesión por UWSM (servicios de usuario ordenados, cierre limpio).
 - [ ] Firmware (`fwupd`), impresión (CUPS) y códecs: lo que «simplemente debe funcionar».
 - [ ] Pruebas: `nix flake check` con una prueba de arranque en VM de la configuración.

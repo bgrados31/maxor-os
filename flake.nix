@@ -22,6 +22,7 @@
       imports = [
         ./modules/core.nix
         ./modules/hardware.nix
+        ./modules/profiles.nix
         ./modules/desktop.nix
         ./modules/greeter.nix
         ./modules/branding.nix

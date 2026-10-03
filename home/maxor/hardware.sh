@@ -106,6 +106,7 @@ cmd_hardware() {
           out="${2:-$flake_dir/hosts/$host/hardware.json}"
           mkdir -p "$(dirname "$out")"
           printf '%s\n' "$j" > "$out"
+          track_file "$out"
           ui_say ok "Hardware guardado en $out"
           ;;
         *) die "uso: maxor hardware detect [--write [ruta]]" ;;

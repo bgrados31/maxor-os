@@ -1,0 +1,18 @@
+{
+  "gaming": {
+    "title": "Gaming",
+    "description": "Steam, Proton, GameMode, MangoHud, Gamescope y Lutris."
+  },
+  "dev": {
+    "title": "Desarrollo",
+    "description": "Compiladores y lenguajes (C, Node, Python, Go, Rust), Git y GitHub CLI, Podman con compatibilidad Docker y direnv."
+  },
+  "creator": {
+    "title": "Creador",
+    "description": "OBS, GIMP, Inkscape, Krita, Kdenlive, Blender, Audacity y HandBrake."
+  },
+  "office": {
+    "title": "Oficina",
+    "description": "LibreOffice con diccionarios en español e inglés, Thunderbird y Okular."
+  }
+}

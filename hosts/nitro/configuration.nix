@@ -28,6 +28,7 @@
   # ── Hardware: drivers según lo detectado (Intel + NVIDIA RTX 4050) ──
   # Se regenera con `maxor hardware detect --write`; ver modules/hardware.nix.
   maxor.hardware.report = ./hardware.json;
+  maxor.settings = ./maxor.json; # perfiles activos (maxor profile)
 
   # ── Login: el greeter hereda el tema y el wallpaper de este usuario ──
   services.displayManager.dms-greeter.configHome = "/home/bryan";

@@ -13,6 +13,8 @@
 #   theme.sh    maxor theme …
 #   system.sh   maxor update | rollback | doctor
 #   hardware.sh maxor hardware (detección del equipo)
+#   apps.sh     maxor search | install | remove | apps
+#   profile.sh  maxor profile
 #   main.sh     ayuda y despacho de comandos
 let
   themesDir = ../themes;
@@ -36,6 +38,7 @@ let
   maxor = pkgs.writeShellApplication {
     name = "maxor";
     runtimeInputs = with pkgs; [ jq coreutils gnused gnugrep gawk gnutar findutils procps ncurses ];
+    runtimeEnv.MAXOR_PROFILES = ../modules/profiles-catalog.json;
     excludeShellChecks = [ "SC2001" "SC2155" "SC2086" "SC2012" "SC2015" "SC2016" ];
     text = lib.concatMapStringsSep "\n" builtins.readFile [
       ./maxor/lib.sh
@@ -44,6 +47,8 @@ let
       ./maxor/theme.sh
       ./maxor/system.sh
       ./maxor/hardware.sh
+      ./maxor/apps.sh
+      ./maxor/profile.sh
       ./maxor/main.sh
     ];
   };

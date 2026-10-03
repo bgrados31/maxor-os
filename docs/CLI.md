@@ -15,6 +15,8 @@ maxor update [-y] [--no-lock]     actualizar mostrando los cambios
 maxor rollback [-y]               volver a la generación anterior
 maxor doctor                      diagnóstico del sistema
 maxor hardware [detect [--write]]  equipo detectado y drivers que usará
+maxor search/install/remove/apps   apps de nixpkgs y Flathub (ver APPS.md)
+maxor profile [enable|disable] n  perfiles: gaming, dev, creator, office
 ```
 
 ## La interfaz
@@ -114,6 +116,8 @@ en scripts.
 | `home/maxor/theme.sh` | `maxor theme …` |
 | `home/maxor/system.sh` | `update`, `rollback` y `doctor` |
 | `home/maxor/hardware.sh` | `hardware`: detección del equipo |
+| `home/maxor/apps.sh` | `search`, `install`, `remove` y `apps` |
+| `home/maxor/profile.sh` | `profile` |
 | `home/maxor/main.sh` | Ayuda y despacho de comandos |
 
 Los scripts se concatenan en ese orden y pasan `shellcheck` en cada compilación (lo ejecuta
