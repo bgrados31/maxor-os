@@ -40,7 +40,7 @@ instalador propios. Hoy el proyecto está entre las **fases 2 y 3 de 7** (ver [h
 | **Sesión** | Hyprland 0.55 con configuración en Lua, portales `xdg-desktop-portal-hyprland` y `-gtk`, SDDM en Wayland |
 | **Shell** | [DankMaterialShell](https://github.com/AvengeMedia/DankMaterialShell): barra, launcher, notificaciones, centro de control |
 | **Bloqueo** | hyprlock con diseño propio e inactividad con hypridle; la paleta sale del tema activo |
-| **Motor de temas** | CLI `maxor theme`: aplica una paleta completa sin `rebuild` ni `sudo` |
+| **Motor de temas** | CLI `maxor theme`: diez temas (cinco claros y cinco oscuros), instalar y exportar, sin `rebuild` ni `sudo` |
 | **Terminal** | kitty, fish, starship, zoxide, eza, bat, btop, fastfetch |
 | **Arranque** | systemd-boot con partición XBOOTLDR, Plymouth propio y arranque silencioso |
 | **Gráficos** | Intel + NVIDIA con PRIME offload (`nvidia-offload <app>`) |
@@ -72,12 +72,13 @@ sudo nixos-rebuild switch --rollback
 ## Temas
 
 ```sh
-maxor theme list              # temas instalados
+maxor theme list              # 5 oscuros y 5 claros
 maxor theme apply glaciar     # barra, kitty, Hyprland, GTK y bloqueo cambian a la vez
 maxor theme undo              # volver al tema anterior
 ```
 
-Temas oficiales actuales: **Sakura nocturna** (por defecto) y **Glaciar**. Un tema es una
+Diez temas oficiales (cinco oscuros y cinco claros): Sakura nocturna (por defecto), Glaciar,
+Obsidiana, Brasa, Ultravioleta, Alba, Escarcha, Papel frío, Brisa y Ámbar. Un tema es una
 carpeta de datos (`colors.json`, `theme.toml`, `wallpaper.png`) y nunca ejecuta código.
 Detalles y cómo crear el tuyo en [docs/THEMING.md](docs/THEMING.md).
 
@@ -89,6 +90,7 @@ maxor rollback     # vuelve a la generación anterior
 maxor doctor       # diagnóstico: servicios, sesión, GPU, arranque, fuentes
 ```
 
+Cada comando se dibuja como una ventana dentro de la terminal, con los colores del tema activo.
 Referencia completa en [docs/CLI.md](docs/CLI.md).
 
 ## Atajos principales
@@ -122,7 +124,8 @@ home/hyprland.nix              carga los módulos Lua de Hyprland
 home/hyprland/                 settings.lua, rules.lua, binds.lua y user.lua.example
 home/lockscreen.nix            hyprlock y hypridle
 home/maxor.nix                 CLI `maxor`, temas oficiales
-home/maxor/system.sh           maxor update, rollback y doctor
+home/maxor/                    CLI en scripts: ui, theme, system
+themes/                        temas oficiales (colors.json + theme.toml)
 branding/                      logotipo en texto
 docs/                          documentación
 ```

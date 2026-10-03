@@ -11,7 +11,7 @@ propio e instalador propio. Referencias de experiencia: Ryoku OS, Omarchy y los 
 | 0 | Base NixOS + Hyprland + DMS funcionando | Hecha |
 | 1 | Solo Hyprland, branding mínimo (`os-release`, Plymouth, fastfetch) | Hecha |
 | 2 | Repo ordenado y modular, CLI `maxor` v0 (update, rollback, doctor) | Casi hecha |
-| 3 | Motor de temas y temas oficiales | Núcleo hecho, faltan temas |
+| 3 | Motor de temas y temas oficiales | Casi hecha |
 | 4 | Shell Maxor y greeter propio | Pendiente |
 | 5 | Maxor Store (apps Flatpak y temas) | Pendiente |
 | 6 | Menú de arranque (Limine), ISO live e instalador | Pendiente |
@@ -26,18 +26,19 @@ propio e instalador propio. Referencias de experiencia: Ryoku OS, Omarchy y los 
 - [ ] Exportar `homeModules.default` para reutilizar la configuración de usuario.
 - [x] Configuración de Hyprland en módulos Lua (`settings`, `rules`, `binds`) y un `user.lua` que nunca se sobrescribe.
       Los monitores los gestiona DMS.
-- [x] `maxor update`, `maxor rollback` y `maxor doctor`.
+- [x] `maxor update`, `maxor rollback` y `maxor doctor`, con interfaz de ventanas de terminal.
 
 ## Fase 3: motor de temas
 
 - [x] Formato de tema (`colors.json`, `theme.toml`, `wallpaper.png`).
 - [x] `maxor theme list | current | apply | undo`.
-- [x] Dos temas oficiales: Sakura nocturna y Glaciar.
-- [ ] Tres temas oficiales más: Obsidiana, Brasa y Ultravioleta, y una variante clara.
+- [x] Modo claro: DMS, lockscreen y la CLI se adaptan al `mode` del tema.
+- [x] Diez temas oficiales: cinco oscuros y cinco claros, todos con contraste AA.
 - [ ] Incluir en el tema la configuración de Hyprland (esquinas, bordes, animaciones).
 - [ ] Incluir en el tema la disposición de la barra.
-- [ ] `maxor theme install <url|archivo>` con validación de esquema y firma opcional.
-- [ ] `maxor theme export`.
+- [x] `maxor theme install <carpeta|archivo>` con validación estricta de esquema y archivos.
+- [ ] `maxor theme install <url>` y firma opcional de temas.
+- [x] `maxor theme export`.
 
 ## Fase 4: identidad completa
 

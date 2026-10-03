@@ -53,12 +53,13 @@ Tipos habituales: `feat`, `fix`, `docs`, `refactor`, `chore`, `ci`.
 ## Contribuir un tema
 
 Un tema es una carpeta con `colors.json` y `theme.toml`; el formato está en
-[docs/THEMING.md](docs/THEMING.md). Los temas oficiales se definen en `home/maxor.nix`.
+[docs/THEMING.md](docs/THEMING.md). Los oficiales son las carpetas de `themes/`: añade una carpeta
+y el build se encarga del resto.
 
 Requisitos:
 
 - Los ocho colores de la paleta, en `#rrggbb`.
-- Contraste legible entre `fg` y `bg`, y entre `on` y `ac`.
+- Contraste WCAG AA (4.5:1 o más) entre `fg` y `bg`, `mu` y `bg`, `ac` y `s`, y `on` y `ac`.
 - Una licencia que permita redistribuirlo (se recomienda CC0-1.0).
 - Un tema nunca incluye scripts ni ejecutables.
 

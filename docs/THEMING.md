@@ -6,23 +6,48 @@ no requiere `rebuild` ni `sudo`.
 ## Uso
 
 ```sh
-maxor theme list            # temas instalados (el activo lleva *)
-maxor theme current         # nombre del tema activo
-maxor theme apply <nombre>  # aplicar
-maxor theme undo            # volver al tema anterior
+maxor theme list                  # temas instalados, agrupados en oscuros y claros
+maxor theme current               # nombre del tema activo
+maxor theme apply <nombre>        # aplicar
+maxor theme undo                  # volver al tema anterior
+maxor theme install <ruta>        # instalar desde una carpeta o un .tar.gz
+maxor theme export <nombre>       # empaquetar un tema como <nombre>.maxortheme
 ```
+
+## Temas oficiales
+
+Cinco oscuros y cinco claros. Todos superan el contraste AA de WCAG (4.5:1) entre el texto y el
+fondo, y entre el acento y su texto.
+
+| Tema | Modo | Carácter | Acento |
+|---|---|---|---|
+| `sakura` · Sakura nocturna (por defecto) | oscuro | Ciruela oscura con rosa y durazno | `#ff86b8` |
+| `glaciar` · Glaciar | oscuro | Azul marino profundo con cian hielo | `#5fd4f4` |
+| `obsidiana` · Obsidiana | oscuro | Casi negro con índigo y lila | `#8c99ff` |
+| `brasa` · Brasa | oscuro | Carbón cálido con naranja fuego | `#ff6a3d` |
+| `ultravioleta` · Ultravioleta | oscuro | Negro violáceo con magenta y cian eléctricos | `#b84dff` |
+| `alba` · Alba | claro | Rosa pálido con frambuesa; el día de Sakura | `#c2255c` |
+| `escarcha` · Escarcha | claro | Blanco azulado con azul océano | `#0a6f94` |
+| `papel` · Papel frío | claro | Gris azulado con azul tinta | `#3b4cff` |
+| `brisa` · Brisa | claro | Verde humo claro con esmeralda | `#1a7f50` |
+| `ambar` · Ámbar | claro | Arena clara con naranja quemado | `#c2410c` |
 
 ## Qué cambia al aplicar un tema
 
-1. **DMS**: se genera `~/.config/maxor/current/dms-theme.json` y se activa como tema propio.
-   DMS recolorea la barra, el launcher y las notificaciones, y regenera los colores de kitty,
+1. **DMS**: se genera `~/.config/maxor/current/dms-theme.json` y se activa como tema propio. DMS
+   recolorea la barra, el launcher y las notificaciones, y regenera los colores de kitty,
    Hyprland (bordes) y GTK.
-2. **Lockscreen**: se rellena la plantilla de hyprlock y se escribe
-   `~/.config/maxor/current/hyprlock.conf`.
-3. **Wallpaper**: si el tema trae `wallpaper.png`, se aplica con DMS.
-4. **kitty**: recibe `SIGUSR1` para releer su configuración.
+2. **Modo claro u oscuro**: se avisa a DMS (`dms ipc call theme light|dark`) según el `mode` del
+   tema.
+3. **Lockscreen**: se rellena la plantilla de hyprlock y se escribe
+   `~/.config/maxor/current/hyprlock.conf`. En temas claros el fondo desenfocado se aclara para
+   que el texto oscuro se lea.
+4. **Wallpaper**: si el tema trae `wallpaper.png`, se aplica con DMS.
+5. **kitty**: recibe `SIGUSR1` para releer su configuración.
 
-El tema anterior se guarda en `~/.local/state/maxor/history`; `undo` lo recupera.
+Además, la propia terminal de `maxor` se dibuja con los colores del tema activo
+([CLI.md](CLI.md#la-interfaz)). El tema anterior se guarda en `~/.local/state/maxor/history`;
+`undo` lo recupera.
 
 ## Anatomía de un tema
 
@@ -30,23 +55,24 @@ El tema anterior se guarda en `~/.local/state/maxor/history`; `undo` lo recupera
 mi-tema/
 ├── theme.toml       metadatos
 ├── colors.json      paleta (obligatorio)
-└── wallpaper.png    fondo (opcional)
+└── wallpaper.png    fondo (opcional, PNG de hasta 20 MB)
 ```
 
 ### `colors.json`
 
-Ocho colores en formato `#rrggbb`. Cualquier otro formato se rechaza.
+Ocho colores en formato `#rrggbb` y, opcionalmente, el modo. Cualquier otro formato se rechaza.
 
 | Clave | Uso |
 |---|---|
 | `bg` | Fondo del escritorio y del bloqueo |
-| `s` | Superficies (paneles, barra) |
-| `s2` | Superficies elevadas (tarjetas, hover) |
+| `s` | Superficies (paneles, barra, ventanas de `maxor`) |
+| `s2` | Superficies elevadas (tarjetas, hover, barra de título) |
 | `fg` | Texto principal |
 | `mu` | Texto secundario |
 | `ac` | Color de acento principal |
 | `ac2` | Acento secundario |
 | `on` | Texto sobre el acento (botones) |
+| `mode` | `"dark"` (por defecto) o `"light"` |
 
 ```json
 {
@@ -57,7 +83,8 @@ Ocho colores en formato `#rrggbb`. Cualquier otro formato se rechaza.
 }
 ```
 
-`mode` es opcional (`dark` por defecto).
+Para un tema claro, `bg` es el fondo más tintado, `s` una superficie más clara y `s2` el blanco
+de las tarjetas; el texto (`fg`) es oscuro.
 
 ### `theme.toml`
 
@@ -71,35 +98,44 @@ description = "Ciruela oscura con rosa y durazno."
 mode = "dark"
 ```
 
-## Crear y usar un tema propio
+`id` identifica el tema: minúsculas, números y guiones, de 2 a 32 caracteres.
+
+## Crear, instalar y compartir un tema
 
 ```sh
-mkdir -p ~/.local/share/maxor/themes/mi-tema
-cp /ruta/a/colors.json ~/.local/share/maxor/themes/mi-tema/
+mkdir mi-tema && cd mi-tema
+# crea colors.json y theme.toml con el formato de arriba
+cd ..
+maxor theme install mi-tema        # lo copia a ~/.local/share/maxor/themes/
 maxor theme apply mi-tema
+maxor theme export mi-tema         # genera mi-tema.maxortheme para compartirlo
 ```
+
+`install` acepta una carpeta o un `.tar.gz` (el formato de `export`). Si el tema ya existe pide
+`--force` para reemplazarlo; los temas oficiales no se pueden reemplazar.
 
 Los temas oficiales viven en el store de Nix (solo lectura); los tuyos, en
 `~/.local/share/maxor/themes/`, junto a ellos.
 
-## Temas oficiales
-
-| Tema | Carácter | Acento |
-|---|---|---|
-| **Sakura nocturna** (por defecto) | Ciruela oscura, suave y con carácter | `#ff86b8` |
-| **Glaciar** | Azul marino profundo, limpio y técnico | `#5fd4f4` |
-
-Los temas oficiales se definen en [`home/maxor.nix`](../home/maxor.nix) con la función
-`mkTheme`, que además genera el wallpaper (degradado radial con grano) a partir de la paleta.
-
 ## Seguridad
 
-Un tema solo aporta datos. El CLI:
+Un tema solo aporta datos. `maxor theme install` y `apply`:
 
-- valida que `colors.json` tenga las ocho claves y que cada valor sea `#rrggbb`;
-- no ejecuta ningún archivo del tema;
-- solo escribe en `~/.config/maxor/current/`, en `~/.local/state/maxor/` y en dos claves de
-  `settings.json` de DMS.
+- validan que `colors.json` sea JSON, tenga las ocho claves y que cada valor sea `#rrggbb`;
+- copian **solo** `colors.json` (reescrito con las claves conocidas), `theme.toml` (hasta 4 KB) y
+  `wallpaper.png` (solo si empieza con la firma PNG y pesa menos de 20 MB). Cualquier otro archivo
+  del tema se ignora;
+- rechazan archivos `.tar.gz` de más de 30 MB, con enlaces simbólicos o archivos especiales, con
+  rutas absolutas o con `..`;
+- no ejecutan ningún archivo del tema;
+- solo escriben en `~/.local/share/maxor/themes/`, `~/.config/maxor/current/`,
+  `~/.local/state/maxor/` y dos claves de `settings.json` de DMS.
+
+## Añadir un tema oficial
+
+Crea `themes/<id>/colors.json` y `themes/<id>/theme.toml` en el repositorio. El build genera el
+wallpaper (degradado radial entre `s2` y `bg`) y lo instala junto al resto; no hay que tocar
+código. Comprueba el contraste antes de proponerlo (ver [CONTRIBUTING.md](../CONTRIBUTING.md)).
 
 ## Limitaciones conocidas
 
@@ -109,3 +145,4 @@ Un tema solo aporta datos. El CLI:
   DMS (`SUPER + ,`) y todavía no forma parte del tema.
 - Los temas aún no incluyen configuración de Hyprland ni del shell (esquinas, animaciones,
   disposición). Está en la [hoja de ruta](ROADMAP.md).
+- Instalar desde una URL todavía no existe.

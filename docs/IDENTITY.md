@@ -68,3 +68,17 @@ Las tres fuentes principales son libres (SIL OFL).
 2. El color de énfasis nunca es el de fondo ni el de texto.
 3. El tema decide los colores; el sistema decide la forma. Cambiar de tema no mueve nada de sitio.
 4. Todo debe verse bien en oscuro. El tema claro es una variante, no el valor por defecto.
+
+## Temas oscuros y claros
+
+Maxor OS se diseña primero en oscuro, pero ofrece cinco temas claros con las mismas reglas:
+un solo acento, superficies tintadas hacia ese acento y contraste AA como mínimo. Los claros no
+son una inversión de los oscuros: cada uno parte de su propio matiz (rosa, azul océano, azul
+tinta, verde humo, arena). Lista completa en [THEMING.md](THEMING.md).
+
+## La terminal de `maxor`
+
+La CLI se dibuja como una ventana dentro de la terminal: marco redondeado en el color de acento,
+barra de título con tres puntos (acento, acento secundario y gris), superficie propia y verde,
+ámbar y rojo ajustados al modo del tema. Es el sello visual de las herramientas de Maxor y la
+base del futuro instalador. Detalles en [CLI.md](CLI.md#la-interfaz).

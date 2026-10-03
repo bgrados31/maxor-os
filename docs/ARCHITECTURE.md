@@ -24,8 +24,9 @@ home-manager como módulo de NixOS. La regla de diseño es separar cuatro cosas:
 | `home/hyprland.nix` | Carga los módulos Lua de Hyprland y crea `user.lua` la primera vez |
 | `home/hyprland/*.lua` | `settings.lua` (apariencia), `rules.lua` (reglas), `binds.lua` (atajos), `user.lua.example` |
 | `home/lockscreen.nix` | hyprlock (diseño) e hypridle (inactividad) |
-| `home/maxor.nix` | CLI `maxor`, comandos de tema y temas oficiales |
-| `home/maxor/system.sh` | `maxor update`, `rollback` y `doctor` |
+| `home/maxor.nix` | Empaquetado del CLI y de los temas oficiales (genera sus wallpapers) |
+| `home/maxor/*.sh` | El CLI: `lib`, `ui` (ventanas), `theme`, `system` (update, rollback, doctor) y `main` |
+| `themes/<id>/` | Temas oficiales: `colors.json` y `theme.toml` |
 
 ## Cómo se reparten las responsabilidades de color
 
