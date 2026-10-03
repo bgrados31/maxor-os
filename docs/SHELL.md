@@ -24,6 +24,7 @@ revisar el parche al actualizar.
 | Dónde | Cambio |
 |---|---|
 | Logo del botón del launcher, «Acerca de», bienvenida y novedades | La «M» de Krona One, tintada con el color primario del tema |
+| Botón del launcher en la barra | Pasa al modo de marca (`launcherLogoMode = "dank"`) la primera vez, si el widget no estaba personalizado; DMS lo trae en modo «apps» y sin ese ajuste el logo no se vería |
 | Icono de la aplicación | La «M» en un cuadrado redondeado con los colores de Sakura |
 | «Acerca de» | `DANK LINUX` pasa a `MAXOR OS` |
 | Bienvenida | `Welcome to Maxor OS` |
