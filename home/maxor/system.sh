@@ -38,7 +38,8 @@ cmd_update() {
   nix store diff-closures /run/current-system "$out" || true
   echo
   if [ "$yes" = 0 ] && ! confirm "¿Aplicar ahora?"; then
-    echo "Cancelado. No se aplicó nada (flake.lock sí cambió; revísalo con git)."
+    echo "Cancelado. No se aplicó nada."
+    [ "$lock" = 1 ] && echo "flake.lock sí se actualizó: revísalo con git diff flake.lock."
     return 0
   fi
   sudo nixos-rebuild switch --flake "$flake_dir#$host"
