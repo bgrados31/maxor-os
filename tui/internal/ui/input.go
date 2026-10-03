@@ -12,6 +12,7 @@ type Input struct {
 	Value       []rune
 	Pos         int
 	Placeholder string
+	Mask        bool // dibuja puntos en vez del texto (contraseñas)
 }
 
 // Text devuelve el contenido.
@@ -103,10 +104,18 @@ func (in *Input) Segs(p Painter, focused bool, width int) []Seg {
 	if width > 2 && end-start > width-1 {
 		end = start + width - 1
 	}
-	before := string(in.Value[start:min(in.Pos, end)])
+	show := in.Value
+	if in.Mask {
+		dot := '•'
+		if G.BarOn == "#" {
+			dot = '*'
+		}
+		show = []rune(strings.Repeat(string(dot), len(in.Value)))
+	}
+	before := string(show[start:min(in.Pos, end)])
 	after := ""
 	if in.Pos < end {
-		after = string(in.Value[in.Pos:end])
+		after = string(show[in.Pos:end])
 	}
 	segs := []Seg{{T: before, S: p.Text}}
 	if focused {

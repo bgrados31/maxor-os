@@ -67,12 +67,16 @@ Toda espera pasa por el mismo sistema (`internal/task`), con las reglas de la CL
   (buscar «bra» y luego «brave» no muestra lo de «bra»);
 - los fallos se enseñan con el mismo glifo `✗`, la causa y `maxor logs --last`.
 
-## Aplicar el sistema: la terminal se cede un momento
+## Aplicar el sistema sin salir de la pantalla
 
-Reconstruir el sistema necesita `sudo` y puede tardar. En vez de esconderlo, **Update** y
-**Setup** cuelgan la pantalla, ceden la terminal a `maxor update --no-lock -y` (se ve el progreso
-real y funciona la contraseña), esperan un Intro y vuelven. Es lo mismo que haces a mano, sin
-salir de Maxor.
+Reconstruir el sistema necesita `sudo` y puede tardar. **Update** (aplicar y volver a una generación anterior) y **Profiles** lo hacen dentro de la pantalla:
+
+1. si sudo ya está listo no pide nada; si no, un campo propio pide la contraseña (se dibuja con puntos);
+2. la contraseña se entrega **solo a sudo, por la entrada estándar** (`MAXOR_SUDO_STDIN=1`): no se guarda, no se escribe en ningún archivo ni aparece en el registro;
+3. mientras trabaja se ve el progreso real (construir, activar, reiniciar lo que cambió) y la salida del comando; no se puede salir hasta que termina, para no dejar el sistema a medias;
+4. si la contraseña no vale, la vuelve a pedir; si falla, enseña el código y `maxor logs --last`.
+
+Si prefieres teclear la contraseña en la terminal, en Update pulsa `t`: cede la terminal a `maxor update` como antes. El asistente de primer arranque (`maxor setup`) sigue usando la terminal.
 
 ## Al salir
 

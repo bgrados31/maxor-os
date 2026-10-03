@@ -176,6 +176,10 @@ compilado, lo dice y termina. Aplicar usa `sudo nixos-rebuild switch`, así que 
 Si cancelas después de actualizar `flake.lock`, el archivo queda modificado: revísalo con
 `git diff flake.lock` o restáuralo con `git checkout flake.lock`.
 
+## Variables de entorno de la pantalla completa
+
+- `MAXOR_SUDO_STDIN=1`: los comandos que necesitan root (`update`, `rollback`) usan `sudo -S -p ''` y leen la contraseña de la entrada estándar. Es lo que usa la pantalla completa; en una terminal no hace falta.
+
 ## `maxor rollback`
 
 Enseña las últimas generaciones y, tras confirmar, ejecuta

@@ -199,3 +199,38 @@ func TestGenerations(t *testing.T) {
 		t.Fatalf("generaciones: %+v %v", g, err)
 	}
 }
+
+// El ejecutor real: con un «maxor» de mentira (un script) comprobamos que la contraseña llega
+// solo por la entrada estándar, que MAXOR_SUDO_STDIN se activa, que las barras de progreso
+// (\r) y los colores no ensucian las líneas y que se conserva el código de salida.
+func TestStreamRealEntregaLaContrasenaYLasLineas(t *testing.T) {
+	dir := t.TempDir()
+	bin := dir + "/maxor"
+	script := "#!/bin/sh\nread pw\necho \"flag=$MAXOR_SUDO_STDIN pw=$pw args=$*\"\nprintf 'progreso 10%%\\rprogreso 90%%\\r\\033[32mlisto\\033[0m\\n'\necho 'fallo' >&2\nexit 3\n"
+	if err := os.WriteFile(bin, []byte(script), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	c := &Client{r: execRunner{bin: bin}, bin: bin}
+	var lines []string
+	code, err := c.Stream(context.Background(), "secreto", func(l string) { lines = append(lines, l) }, "update", "-y")
+	if err != nil || code != 3 {
+		t.Fatalf("código %d, error %v", code, err)
+	}
+	got := strings.Join(lines, "|")
+	for _, want := range []string{"flag=1 pw=secreto args=update -y", "progreso 10%", "progreso 90%", "listo", "fallo"} {
+		if !strings.Contains(got, want) {
+			t.Fatalf("falta %q en %q", want, got)
+		}
+	}
+	if strings.Contains(got, "\x1b") {
+		t.Fatalf("los colores no deben llegar: %q", got)
+	}
+	// sin contraseña no se activa el modo de sudo por entrada estándar
+	lines = nil
+	if _, err := c.Stream(context.Background(), "", func(l string) { lines = append(lines, l) }, "x"); err != nil {
+		t.Fatal(err)
+	}
+	if strings.Contains(strings.Join(lines, "|"), "flag=1") {
+		t.Fatalf("sin contraseña, sin MAXOR_SUDO_STDIN: %v", lines)
+	}
+}

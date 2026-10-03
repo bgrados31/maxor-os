@@ -20,10 +20,25 @@ import (
 // ── CLI de mentira ───────────────────────────────────────────────────
 
 type fakeCLI struct {
-	mu    sync.Mutex
-	resp  map[string]string
-	fail  map[string]string
-	calls []string
+	mu     sync.Mutex
+	resp   map[string]string
+	fail   map[string]string
+	calls  []string
+	stdins []string // «argumentos|contraseña» de cada Stream
+}
+
+// Stream hace de la CLI que va contando su salida: guarda la entrada estándar que recibió.
+func (f *fakeCLI) Stream(ctx context.Context, stdin string, onLine func(string), args ...string) (int, error) {
+	out, errb, code, err := f.Run(ctx, args...)
+	f.mu.Lock()
+	f.stdins = append(f.stdins, strings.Join(args, " ")+"|"+stdin)
+	f.mu.Unlock()
+	for _, l := range strings.Split(string(out)+string(errb), "\n") {
+		if strings.TrimSpace(l) != "" {
+			onLine(l)
+		}
+	}
+	return code, err
 }
 
 func (f *fakeCLI) Run(_ context.Context, args ...string) ([]byte, []byte, int, error) {
@@ -1364,14 +1379,19 @@ func TestUpdateVuelveAUnaGeneracionAnterior(t *testing.T) {
 		}
 	}
 	send(m, key("down"))
-	_, cmd := m.Update(key("enter"))
-	if cmd == nil {
-		t.Fatal("Intro en una anterior cede la terminal a la vuelta atrás")
-	}
+	f.resp["rollback 33 -y"] = "switching to generation 33"
+	m.env.Client.SudoCheck = func(context.Context) bool { return true }
 	before := f.n("update --json --no-lock")
-	send(m, core.ExecDoneMsg{Tag: "update"})
+	send(m, key("enter"))
+	if !f.called("rollback 33 -y") {
+		t.Fatalf("Intro en una anterior vuelve a ella sin salir de la pantalla: %v", f.calls)
+	}
+	if out := view(m); !has(out, "Done in") || !strings.Contains(out, "switching to generation 33") {
+		t.Fatalf("el panel enseña el resultado:\n%s", out)
+	}
+	send(m, key("enter"))
 	if has(view(m), "Go back to an earlier") || !strings.Contains(summaryText(m), "Went back") {
-		t.Fatalf("al volver se cierra el historial y queda el resumen: %q", summaryText(m))
+		t.Fatalf("al cerrar se cierra el historial y queda el resumen: %q", summaryText(m))
 	}
 	if f.n("update --json --no-lock") != before+1 {
 		t.Fatal("tras volver atrás se escanea otra vez")
@@ -1473,5 +1493,153 @@ func TestPerfilesEnseñanLoQueInstalan(t *testing.T) {
 	m.Update(tea.WindowSizeMsg{Width: 89, Height: 25})
 	if out := view(m); !strings.Contains(out, "Gaming") || !strings.Contains(out, "Steam · Proton · GameMode · MangoHud") {
 		t.Fatalf("el cajón también dice lo que trae:\n%s", out)
+	}
+}
+
+func applyCLI() *fakeCLI {
+	f := newCLI()
+	f.resp["update --no-lock -y"] = "building the system configuration...\nactivating the configuration...\nsetting up /etc...\nreloading user units for bryan..."
+	return f
+}
+
+func TestAplicarSinSalirPideLaContrasenaYEnseñaElProgreso(t *testing.T) {
+	f := applyCLI()
+	m, _ := setupWith(t, f, Options{Screen: "update"})
+	send(m, key("a"))
+	out := view(m)
+	if !has(out, "Administrator password") || !has(out, "never saved or shown") {
+		t.Fatalf("pide la contraseña en la propia pantalla:\n%s", out)
+	}
+	if f.called("update --no-lock -y") {
+		t.Fatal("no se ejecuta nada hasta tener la contraseña")
+	}
+	typeText(m, "hunter2")
+	out = view(m)
+	if strings.Contains(out, "hunter2") || !strings.Contains(out, "•••••••") {
+		t.Fatalf("la contraseña se ve como puntos, nunca en claro:\n%s", out)
+	}
+	send(m, key("enter"))
+	if !f.called("update --no-lock -y") {
+		t.Fatalf("con la contraseña se aplica: %v", f.calls)
+	}
+	if len(f.stdins) != 1 || f.stdins[0] != "update --no-lock -y|hunter2" {
+		t.Fatalf("la contraseña se entrega por la entrada estándar y solo a esa orden: %v", f.stdins)
+	}
+	out = view(m)
+	for _, want := range []string{"Done in", "Build the new system", "Switch to it", "Restart what changed", "activating the configuration", "Close"} {
+		if !has(out, want) {
+			t.Fatalf("falta %q:\n%s", want, out)
+		}
+	}
+	if strings.Contains(out, "hunter2") {
+		t.Fatal("la contraseña no aparece en ninguna parte")
+	}
+	before := f.n("update --json --no-lock")
+	send(m, key("enter"))
+	if has(view(m), "Administrator password") || !strings.Contains(summaryText(m), "Updated the system") {
+		t.Fatalf("al cerrar vuelve a Update con el resumen: %q", summaryText(m))
+	}
+	if f.n("update --json --no-lock") <= before-1 {
+		t.Fatal("tras aplicar se escanea otra vez")
+	}
+}
+
+func TestAplicarSinPedirContrasenaSiSudoYaEstaListo(t *testing.T) {
+	f := applyCLI()
+	m, _ := setupWith(t, f, Options{Screen: "update"})
+	m.env.Client.SudoCheck = func(context.Context) bool { return true }
+	send(m, key("a"))
+	if has(view(m), "Administrator password") {
+		t.Fatal("sudo ya está listo: no hay que pedir nada")
+	}
+	if len(f.stdins) != 1 || f.stdins[0] != "update --no-lock -y|" {
+		t.Fatalf("se ejecuta sin contraseña: %v", f.stdins)
+	}
+}
+
+func TestUnaContrasenaIncorrectaVuelveAPedirla(t *testing.T) {
+	f := applyCLI()
+	f.fail = map[string]string{"update --no-lock -y": "sudo: 1 incorrect password attempt"}
+	m, _ := setupWith(t, f, Options{Screen: "update"})
+	send(m, key("a"))
+	typeText(m, "mala")
+	send(m, key("enter"))
+	out := view(m)
+	if !has(out, "That password did not work") || !has(out, "Administrator password") {
+		t.Fatalf("avisa y vuelve a pedirla:\n%s", out)
+	}
+	delete(f.fail, "update --no-lock -y")
+	typeText(m, "buena")
+	send(m, key("enter"))
+	if !has(view(m), "Done in") {
+		t.Fatalf("con la buena termina:\n%s", view(m))
+	}
+	if len(f.stdins) != 2 || f.stdins[1] != "update --no-lock -y|buena" {
+		t.Fatalf("la segunda vez entrega la contraseña nueva: %v", f.stdins)
+	}
+}
+
+func TestEscCancelaAntesDeEjecutarNada(t *testing.T) {
+	f := applyCLI()
+	m, _ := setupWith(t, f, Options{Screen: "update"})
+	send(m, key("a"), key("esc"))
+	if f.called("update --no-lock -y") || has(view(m), "Administrator password") {
+		t.Fatal("esc cancela sin ejecutar nada")
+	}
+}
+
+func TestUnFalloSeEnseñaConSuCodigoYComoVerElRegistro(t *testing.T) {
+	f := applyCLI()
+	delete(f.resp, "update --no-lock -y")
+	f.fail = map[string]string{}
+	f.fail["update --no-lock -y"] = "error: build of /nix/store/x failed"
+	m, _ := setupWith(t, f, Options{Screen: "update"})
+	m.env.Client.SudoCheck = func(context.Context) bool { return true }
+	send(m, key("a"))
+	out := view(m)
+	if !has(out, "It did not finish") || !has(out, "Exit code 1") || !has(out, "maxor logs --last") || !strings.Contains(out, "build of /nix/store/x failed") {
+		t.Fatalf("el fallo se explica:\n%s", out)
+	}
+}
+
+func TestMientrasSeAplicaNoSePuedeSalir(t *testing.T) {
+	f := applyCLI()
+	m, _ := setupWith(t, f, Options{Screen: "update"})
+	m.env.Client.SudoCheck = func(context.Context) bool { return true }
+	_, cmd := m.Update(key("a")) // empieza a comprobar; sin dejar que termine
+	run(m, cmd)                  // la comprobación termina y arranca el trabajo, que dejamos a medias
+	m.screens[m.active].(interface{ Blocking() bool }).Blocking()
+	// forzamos la etapa «trabajando» sin ejecutar el trabajo
+	u := m.screens[m.active].(*screens.Update)
+	u.ForceRunning()
+	_, cmd = m.Update(key("q"))
+	if m.quitting {
+		t.Fatal("q no sale mientras se cambia el sistema")
+	}
+	_, cmd = m.Update(key("ctrl+c"))
+	if m.quitting {
+		t.Fatal("ctrl+c tampoco")
+	}
+	_ = cmd
+	u.EndRunning()
+	if _, cmd := m.Update(key("q")); cmd == nil {
+		t.Fatal("al terminar, q vuelve a salir")
+	}
+}
+
+func TestAplicarPerfilesUsaElMismoPanel(t *testing.T) {
+	f := applyCLI()
+	m, _ := setupWith(t, f, Options{Screen: "profiles"})
+	m.env.Client.SudoCheck = func(context.Context) bool { return true }
+	send(m, key(" "), key("a"))
+	if !f.called("profile enable gaming --no-apply") || !f.called("update --no-lock -y") {
+		t.Fatalf("guarda y aplica sin salir de la pantalla: %v", f.calls)
+	}
+	if !has(view(m), "Done in") {
+		t.Fatalf("enseña el panel:\n%s", view(m))
+	}
+	send(m, key("enter"))
+	if !strings.Contains(summaryText(m), "Applied the profiles") {
+		t.Fatalf("queda el resumen: %q", summaryText(m))
 	}
 }

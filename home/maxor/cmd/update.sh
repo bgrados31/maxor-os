@@ -123,7 +123,7 @@ cmd_update() {
     ui_outro @update.cancelled
     return 0
   fi
-  if ! sudo nixos-rebuild switch --flake "$flake_dir#$host"; then
+  if ! maxor_sudo nixos-rebuild switch --flake "$flake_dir#$host"; then
     ui_outro
     ui_error @update.switch_failed @update.switch_cause @update.switch_hint
     return "$EX_FAIL"
@@ -170,10 +170,10 @@ cmd_rollback() {
   if [ -n "$target" ]; then
     # una generación concreta: se elige en el perfil del sistema y se activa
     [ -e "/nix/var/nix/profiles/system-$target-link" ] || die_code "$EX_USAGE" @rollback.unknown "$target"
-    sudo nix-env -p /nix/var/nix/profiles/system --switch-generation "$target" \
-      && sudo /nix/var/nix/profiles/system/bin/switch-to-configuration switch || ok=false
+    # un solo sudo para las dos órdenes: con la contraseña por la entrada estándar solo se lee una vez
+    maxor_sudo sh -c 'nix-env -p /nix/var/nix/profiles/system --switch-generation "$1" && /nix/var/nix/profiles/system/bin/switch-to-configuration switch' sh "$target" || ok=false
   else
-    sudo nixos-rebuild switch --rollback || ok=false
+    maxor_sudo nixos-rebuild switch --rollback || ok=false
   fi
   if [ "$ok" = false ]; then
     ui_outro

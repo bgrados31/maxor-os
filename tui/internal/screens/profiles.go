@@ -24,9 +24,13 @@ type Profiles struct {
 	want   map[string]bool // lo que se quiere (marcado), distinto de lo activo
 	inited bool
 	rows   int
+	run    *Runner // aplicar sin salir de la pantalla
 }
 
-func NewProfiles() *Profiles { return &Profiles{want: map[string]bool{}} }
+func NewProfiles() *Profiles { return &Profiles{want: map[string]bool{}, run: NewRunner("profiles")} }
+
+func (p *Profiles) Blocking() bool { return p.run.Blocking() }
+func (p *Profiles) Captures() bool { return p.run.Captures() }
 
 func (p *Profiles) ID() string    { return "profiles" }
 func (p *Profiles) Title() string { return "Profiles" }
@@ -91,6 +95,16 @@ func (p *Profiles) save(env *core.Env) tea.Cmd {
 
 func (p *Profiles) Update(env *core.Env, msg tea.Msg) (core.Screen, tea.Cmd) {
 	p.settle(env)
+	if cmd, ok, ev := p.run.Handle(env, msg); ok {
+		if ev == "finished" {
+			p.inited = false
+			if !p.run.OK {
+				return p, tea.Batch(cmd, core.Toast("bad", "The build did not finish: maxor logs --last"), LoadProfiles(env, true))
+			}
+			return p, tea.Batch(cmd, core.Toast("ok", "Profiles applied"), core.Note("ok", "Applied the profiles"), LoadProfiles(env, true))
+		}
+		return p, cmd
+	}
 	switch m := msg.(type) {
 	case task.DoneMsg:
 		if m.ID != "profiles.save" {
@@ -99,7 +113,7 @@ func (p *Profiles) Update(env *core.Env, msg tea.Msg) (core.Screen, tea.Cmd) {
 		if m.Err != nil {
 			return p, tea.Batch(core.Toast("bad", "Could not save: "+oneLine(m.Err.Error())), LoadProfiles(env, true))
 		}
-		return p, tea.ExecProcess(applyCmd(), func(err error) tea.Msg { return core.ExecDoneMsg{Tag: "profiles", Err: err} })
+		return p, p.run.Begin(env, "Applying your profiles", "update", "--no-lock", "-y")
 	case core.ExecDoneMsg:
 		if m.Tag != "profiles" {
 			return p, nil
@@ -135,6 +149,9 @@ func (p *Profiles) Update(env *core.Env, msg tea.Msg) (core.Screen, tea.Cmd) {
 }
 
 func (p *Profiles) Main(env *core.Env, w, h int) []ui.Line {
+	if p.run.Active() {
+		return p.run.Lines(env, w, h)
+	}
 	pt := env.P
 	p.rows = max((h-2)/profItemH, 1)
 	ps := env.Data.Profiles
@@ -192,6 +209,9 @@ func (p *Profiles) Main(env *core.Env, w, h int) []ui.Line {
 }
 
 func (p *Profiles) Side(env *core.Env, w, h int) []ui.Line {
+	if p.run.Active() {
+		return nil
+	}
 	pt := env.P
 	ps := env.Data.Profiles
 	if len(ps) == 0 || p.list.sel >= len(ps) {
@@ -231,7 +251,7 @@ func (p *Profiles) Side(env *core.Env, w, h int) []ui.Line {
 			lines = append(lines, ui.Of(ui.S(pt.Bad, ui.G.Del+" "), ui.S(pt.Text, x.Title)))
 		}
 		lines = append(lines, gap(), ui.Of(button(env, true, "Apply  a"), space(1), button(env, false, "Discard  x")))
-		for _, l := range ui.Wrap("Applying rebuilds the system and asks for your password.", w) {
+		for _, l := range ui.Wrap("Applying rebuilds the system. You will see the progress here and type your password in this screen.", w) {
 			lines = append(lines, gap(), ui.T(pt.Mu, l))
 			break
 		}
@@ -240,6 +260,9 @@ func (p *Profiles) Side(env *core.Env, w, h int) []ui.Line {
 }
 
 func (p *Profiles) Hints(env *core.Env) []ui.Hint {
+	if p.run.Active() {
+		return p.run.Hints()
+	}
 	h := []ui.Hint{{Key: "↑↓", Action: "move"}, {Key: "space", Action: "toggle"}}
 	if on, off := p.pending(env); len(on)+len(off) > 0 {
 		h = append(h, ui.Hint{Key: "a", Action: "apply"}, ui.Hint{Key: "x", Action: "discard"})
@@ -258,6 +281,9 @@ func (p *Profiles) Click(env *core.Env, x, y int) tea.Cmd {
 }
 
 func (p *Profiles) Wheel(env *core.Env, dy int) tea.Cmd {
+	if p.run.Active() {
+		return nil
+	}
 	p.list.move(dy*2, len(env.Data.Profiles), max(p.rows, 1))
 	return nil
 }
@@ -266,6 +292,9 @@ var _ = strings.TrimSpace
 
 // Brief: el perfil elegido y lo pendiente de aplicar.
 func (p *Profiles) Brief(env *core.Env, w int) []ui.Line {
+	if p.run.Active() {
+		return nil
+	}
 	pt := env.P
 	ps := env.Data.Profiles
 	if len(ps) == 0 || p.list.sel >= len(ps) {

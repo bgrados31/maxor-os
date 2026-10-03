@@ -137,3 +137,12 @@ fake_flatpak_app() { # fake_flatpak_app id Nombre
   app_refresh_launcher
   [ ! -e "$XDG_DATA_HOME/applications/viejo.desktop" ] && [ ! -L "$XDG_DATA_HOME/applications/viejo.desktop" ]
 }
+
+@test "maxor_sudo usa el sudo de siempre, o lee la contraseña de la entrada estándar" {
+  load_lib
+  sudo() { echo "sudo $*"; }
+  run maxor_sudo true
+  [ "$output" = "sudo true" ]
+  MAXOR_SUDO_STDIN=1 run maxor_sudo nixos-rebuild switch
+  [ "$output" = "sudo -S -p  nixos-rebuild switch" ]
+}

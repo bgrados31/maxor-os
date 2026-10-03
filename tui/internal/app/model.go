@@ -234,6 +234,10 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 
 	case core.QuitMsg:
+		if m.blocked() {
+			m.setToast("info", "Working on your system: wait until it finishes")
+			break
+		}
 		m.quitting = true
 		return m, tea.Quit
 
@@ -271,6 +275,9 @@ func (m *Model) key(k tea.KeyMsg, cmds []tea.Cmd) (tea.Model, tea.Cmd) {
 	}
 	s := m.screens[m.active]
 	if k.String() == "ctrl+c" {
+		if m.blocked() {
+			return m, core.Toast("info", "Working on your system: wait until it finishes")
+		}
 		m.quitting = true
 		return m, tea.Quit
 	}
@@ -286,6 +293,9 @@ func (m *Model) key(k tea.KeyMsg, cmds []tea.Cmd) (tea.Model, tea.Cmd) {
 	if !s.Captures() {
 		switch k.String() {
 		case "q":
+			if m.blocked() {
+				return m, core.Toast("info", "Working on your system: wait until it finishes")
+			}
 			m.quitting = true
 			return m, tea.Quit
 		case "?":
@@ -368,4 +378,14 @@ func (m *Model) toggleDetails() tea.Cmd {
 		return core.Toast("info", "Details hidden. Press D to show them again")
 	}
 	return core.Toast("info", "Details shown")
+}
+
+// blocked: alguna pantalla está cambiando el sistema y salir lo dejaría a medias.
+func (m *Model) blocked() bool {
+	for _, s := range m.screens {
+		if b, ok := s.(interface{ Blocking() bool }); ok && b.Blocking() {
+			return true
+		}
+	}
+	return false
 }

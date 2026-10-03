@@ -4,14 +4,18 @@
 package maxor
 
 import (
+	"bufio"
 	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"os"
 	"os/exec"
 	"strings"
+
+	"github.com/charmbracelet/x/ansi"
 )
 
 // Runner ejecuta `maxor` con unos argumentos. Es una interfaz para poder probar
@@ -45,10 +49,19 @@ func lastLine(s string) string {
 	return ""
 }
 
+// Streamer es opcional: ejecuta con una entrada estándar y va entregando cada línea de la
+// salida mientras corre (para mostrar el progreso de una actualización).
+type Streamer interface {
+	Stream(ctx context.Context, stdin string, onLine func(string), args ...string) (code int, err error)
+}
+
 // Client llama a la CLI.
 type Client struct {
 	r   Runner
 	bin string
+	// SudoCheck dice si sudo funciona sin contraseña. Por defecto lo pregunta de verdad;
+	// las pruebas lo sustituyen.
+	SudoCheck func(context.Context) bool
 }
 
 type execRunner struct{ bin string }
@@ -80,7 +93,9 @@ func Bin() string {
 func New() *Client { return &Client{r: execRunner{bin: Bin()}, bin: Bin()} }
 
 // NewWith crea un cliente con un Runner propio (pruebas).
-func NewWith(r Runner) *Client { return &Client{r: r, bin: "maxor"} }
+func NewWith(r Runner) *Client {
+	return &Client{r: r, bin: "maxor", SudoCheck: func(context.Context) bool { return false }}
+}
 
 // Command devuelve un comando listo para ceder la terminal (p. ej. con sudo).
 func (c *Client) Command(args ...string) *exec.Cmd { return exec.Command(c.bin, args...) }
@@ -417,4 +432,78 @@ type Generation struct {
 func (c *Client) Generations(ctx context.Context) (g []Generation, err error) {
 	err = c.getJSON(ctx, &g, false, "rollback", "--list", "--json")
 	return
+}
+
+// SudoReady dice si se puede usar sudo sin pedir contraseña (la tiene en caché o no hace falta).
+func (c *Client) SudoReady(ctx context.Context) bool {
+	if c.SudoCheck != nil {
+		return c.SudoCheck(ctx)
+	}
+	return exec.CommandContext(ctx, "sudo", "-n", "true").Run() == nil
+}
+
+// Stream ejecuta `maxor` entregando cada línea de salida (stdout y stderr juntos) a onLine.
+// Con stdin no vacío se lo da a sudo como contraseña (MAXOR_SUDO_STDIN=1). Devuelve el
+// código de salida; un error solo si no se pudo ni empezar.
+func (c *Client) Stream(ctx context.Context, stdin string, onLine func(string), args ...string) (int, error) {
+	if s, ok := c.r.(Streamer); ok {
+		return s.Stream(ctx, stdin, onLine, args...)
+	}
+	out, errb, code, err := c.r.Run(ctx, args...)
+	for _, l := range strings.Split(string(out)+string(errb), "\n") {
+		if strings.TrimSpace(l) != "" {
+			onLine(l)
+		}
+	}
+	return code, err
+}
+
+// Stream de la CLI real.
+func (e execRunner) Stream(ctx context.Context, stdin string, onLine func(string), args ...string) (int, error) {
+	cmd := exec.CommandContext(ctx, e.bin, args...)
+	cmd.Env = append(os.Environ(), "NO_COLOR=1", "MAXOR_NO_TUI=1")
+	if stdin != "" {
+		cmd.Stdin = strings.NewReader(stdin + "\n")
+		cmd.Env = append(cmd.Env, "MAXOR_SUDO_STDIN=1")
+	}
+	pr, pw := io.Pipe()
+	cmd.Stdout, cmd.Stderr = pw, pw
+	if err := cmd.Start(); err != nil {
+		return 0, fmt.Errorf("no se pudo ejecutar maxor: %w", err)
+	}
+	done := make(chan struct{})
+	go func() {
+		defer close(done)
+		sc := bufio.NewScanner(pr)
+		sc.Buffer(make([]byte, 64*1024), 1024*1024)
+		sc.Split(scanLines)
+		for sc.Scan() {
+			if l := strings.TrimSpace(ansi.Strip(sc.Text())); l != "" {
+				onLine(l)
+			}
+		}
+	}()
+	err := cmd.Wait()
+	_ = pw.Close()
+	<-done
+	code := 0
+	var ee *exec.ExitError
+	if errors.As(err, &ee) {
+		code, err = ee.ExitCode(), nil
+	}
+	return code, err
+}
+
+// scanLines corta por \n y también por \r: las barras de progreso reescriben la misma línea.
+func scanLines(data []byte, atEOF bool) (int, []byte, error) {
+	if atEOF && len(data) == 0 {
+		return 0, nil, nil
+	}
+	if i := bytes.IndexAny(data, "\r\n"); i >= 0 {
+		return i + 1, data[:i], nil
+	}
+	if atEOF {
+		return len(data), data, nil
+	}
+	return 0, nil, nil
 }

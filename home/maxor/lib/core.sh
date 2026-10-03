@@ -75,6 +75,17 @@ die() { die_code "$EX_FAIL" "$@"; } # die mensaje|@clave [args…]
 flake_dir="${MAXOR_FLAKE:-$HOME/nixos-config}"
 host="${MAXOR_HOST:-$(hostname)}"
 
+# sudo para lo que necesita root. La pantalla completa pide la contraseña en su propio
+# campo y la entrega por la entrada estándar (MAXOR_SUDO_STDIN=1), así no hay que ceder
+# la terminal; en una terminal normal es el sudo de siempre.
+maxor_sudo() {
+  if [ "${MAXOR_SUDO_STDIN:-0}" = 1 ]; then
+    sudo -S -p '' "$@"
+  else
+    sudo "$@"
+  fi
+}
+
 need_flake() {
   [ -f "$flake_dir/flake.nix" ] || die_code "$EX_NEEDS" @core.no_flake "$flake_dir"
 }

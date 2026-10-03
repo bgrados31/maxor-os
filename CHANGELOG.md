@@ -18,6 +18,7 @@ no usa versiones numeradas.
 
 ### Añadido
 
+- **Aplicar el sistema sin salir de la pantalla**: Update (aplicar y volver a una generación anterior) y Profiles ya no ceden la terminal. Si sudo necesita contraseña, un campo propio la pide (con puntos) y la entrega solo a sudo por la entrada estándar; se ve el progreso real y la salida mientras trabaja, no se puede salir hasta que termina, una contraseña mala se vuelve a pedir y un fallo enseña su código. `t` en Update conserva el modo de siempre, por la terminal. En la CLI, `MAXOR_SUDO_STDIN=1` hace que sudo lea la contraseña de la entrada estándar.
 - **Los detalles se adaptan a tu ventana**: con ≥96 columnas van en un panel al lado; en una ventana estrecha (una de cuatro en la pantalla, ~90×25) pasan a un cajón compacto debajo, con lo esencial de cada pestaña (la app elegida y sus botones, el comando del arreglo del Doctor, los botones de Update, el tema elegido con un fastfetch en una fila); y `D` los oculta o los muestra, y lo recuerda (`tui-prefs.json`). El tamaño mínimo baja a 64×20 y la Tienda usa una cabecera compacta en ventanas bajas para que quepan más apps.
 - **Los perfiles dicen lo que instalan**: cada uno lista sus programas (`includes` en el catálogo y en `maxor profile list --json`), en una línea en la lista y uno a uno en el panel.
 - **Aviso diario de apps con versión nueva**: un temporizador de usuario (`maxor-app-updates`) ejecuta `maxor apps updates --refresh --notify` una vez al día y avisa con una notificación; mirar no compila ni descarga nada.

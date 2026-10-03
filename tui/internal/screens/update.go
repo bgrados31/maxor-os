@@ -34,14 +34,8 @@ type Update struct {
 	gens    []maxor.Generation
 	gensOK  bool
 	gsel    listState
-	rolling bool // lo que cedió la terminal fue una vuelta atrás, no una actualización
-}
-
-// rollbackCmd cede la terminal a `maxor rollback N -y` y espera un Intro antes de volver.
-func rollbackCmd(n int) *exec.Cmd {
-	return exec.Command("sh", "-c",
-		`"$@"; rc=$?; echo; printf 'Press Enter to return to Maxor… '; read _; exit $rc`,
-		"sh", maxor.Bin(), "rollback", fmt.Sprint(n), "-y")
+	run     *Runner // aplicar o volver atrás sin salir de la pantalla
+	runKind string  // «apply» o «rollback»: qué está haciendo run
 }
 
 func (u *Update) loadGens(env *core.Env) tea.Cmd {
@@ -56,7 +50,10 @@ func genTime(g maxor.Generation) time.Time {
 	return t
 }
 
-func NewUpdate() *Update { return &Update{} }
+func NewUpdate() *Update { return &Update{run: NewRunner("update")} }
+
+func (u *Update) Blocking() bool { return u.run.Blocking() }
+func (u *Update) Captures() bool { return u.run.Captures() }
 
 func (u *Update) ID() string    { return "update" }
 func (u *Update) Title() string { return "Update" }
@@ -116,7 +113,39 @@ func applyCmd() *exec.Cmd {
 		"sh", maxor.Bin(), "update", "--no-lock", "-y")
 }
 
+// afterApply: lo que sigue a una actualización (por la terminal o por el panel).
+func (u *Update) afterApply(env *core.Env, err error) tea.Cmd {
+	env.Data.Update = nil
+	if err != nil {
+		return core.Toast("bad", "The update did not finish: maxor logs --last")
+	}
+	return tea.Batch(core.Toast("ok", "System updated"), core.Note("ok", "Updated the system"), LoadUpdateStatus(env, true), u.scan(env, false))
+}
+
+// afterRollback: lo que sigue a volver a una generación anterior.
+func (u *Update) afterRollback(env *core.Env, err error) tea.Cmd {
+	u.history = false
+	if err != nil {
+		return core.Toast("bad", "Could not go back: maxor logs --last")
+	}
+	u.gensOK = false
+	return tea.Batch(core.Toast("ok", "Went back. A reboot may be needed if the kernel changed"), core.Note("ok", "Went back to an earlier generation"), LoadUpdateStatus(env, true), u.scan(env, false))
+}
+
 func (u *Update) Update(env *core.Env, msg tea.Msg) (core.Screen, tea.Cmd) {
+	// el panel de aplicar atiende primero lo suyo (contraseña, progreso, cerrar)
+	if cmd, ok, ev := u.run.Handle(env, msg); ok {
+		if ev == "finished" {
+			var after tea.Cmd
+			if u.runKind == "rollback" {
+				after = u.afterRollback(env, runErr(u.run))
+			} else {
+				after = u.afterApply(env, runErr(u.run))
+			}
+			cmd = tea.Batch(cmd, after)
+		}
+		return u, cmd
+	}
 	switch m := msg.(type) {
 	case CheckUpdateMsg:
 		return u, u.scan(env, true)
@@ -147,22 +176,10 @@ func (u *Update) Update(env *core.Env, msg tea.Msg) (core.Screen, tea.Cmd) {
 			return u, LoadUpdateStatus(env, true)
 		}
 	case core.ExecDoneMsg:
-		if m.Tag == "update" && u.rolling {
-			u.rolling, u.history = false, false
-			if m.Err != nil {
-				return u, core.Toast("bad", "Could not go back: maxor logs --last")
-			}
-			u.gensOK = false
-			return u, tea.Batch(core.Toast("ok", "Went back. A reboot may be needed if the kernel changed"), core.Note("ok", "Went back to an earlier generation"), LoadUpdateStatus(env, true), u.scan(env, false))
-		}
 		if m.Tag != "update" {
 			return u, nil
 		}
-		env.Data.Update = nil
-		if m.Err != nil {
-			return u, core.Toast("bad", "The update did not finish: maxor logs --last")
-		}
-		return u, tea.Batch(core.Toast("ok", "System updated"), core.Note("ok", "Updated the system"), LoadUpdateStatus(env, true), u.scan(env, false))
+		return u, u.afterApply(env, m.Err)
 	case tea.KeyMsg:
 		if u.history {
 			if d, mv := listKey(m); mv {
@@ -178,8 +195,8 @@ func (u *Update) Update(env *core.Env, msg tea.Msg) (core.Screen, tea.Cmd) {
 					if g.Current {
 						return u, core.Toast("info", "That is the generation you are running")
 					}
-					u.rolling = true
-					return u, tea.ExecProcess(rollbackCmd(g.Generation), func(err error) tea.Msg { return core.ExecDoneMsg{Tag: "update", Err: err} })
+					u.runKind = "rollback"
+					return u, u.run.Begin(env, fmt.Sprintf("Going back to generation %d", g.Generation), "rollback", fmt.Sprint(g.Generation), "-y")
 				}
 			}
 			return u, nil
@@ -200,7 +217,7 @@ func (u *Update) Update(env *core.Env, msg tea.Msg) (core.Screen, tea.Cmd) {
 			return u, u.scan(env, u.lock)
 		case isKey(m, "c"):
 			return u, u.scan(env, true)
-		case isKey(m, "a", "enter"):
+		case isKey(m, "a", "enter", "t"):
 			up := env.Data.Update
 			if up == nil {
 				return u, core.Toast("info", "Nothing scanned yet: press r")
@@ -208,7 +225,11 @@ func (u *Update) Update(env *core.Env, msg tea.Msg) (core.Screen, tea.Cmd) {
 			if up.UpToDate {
 				return u, core.Toast("ok", "The system is already up to date")
 			}
-			return u, tea.ExecProcess(applyCmd(), func(err error) tea.Msg { return core.ExecDoneMsg{Tag: "update", Err: err} })
+			if isKey(m, "t") {
+				return u, tea.ExecProcess(applyCmd(), func(err error) tea.Msg { return core.ExecDoneMsg{Tag: "update", Err: err} })
+			}
+			u.runKind = "apply"
+			return u, u.run.Begin(env, "Applying the update", "update", "--no-lock", "-y")
 		}
 	}
 	return u, nil
@@ -297,6 +318,9 @@ func (u *Update) historySide(env *core.Env, w int) []ui.Line {
 }
 
 func (u *Update) Main(env *core.Env, w, h int) []ui.Line {
+	if u.run.Active() {
+		return u.run.Lines(env, w, h)
+	}
 	if u.history {
 		return u.historyLines(env, w, h)
 	}
@@ -367,6 +391,9 @@ func (u *Update) Main(env *core.Env, w, h int) []ui.Line {
 }
 
 func (u *Update) Side(env *core.Env, w, h int) []ui.Line {
+	if u.run.Active() {
+		return nil
+	}
 	if u.history {
 		return u.historySide(env, w)
 	}
@@ -388,7 +415,7 @@ func (u *Update) Side(env *core.Env, w, h int) []ui.Line {
 		lines = append(lines, gap())
 	}
 	if canApply {
-		for _, l := range ui.Wrap("Applying hands you the terminal: sudo asks for your password and you come back after.", w) {
+		for _, l := range ui.Wrap("Applying shows the progress here and asks for your password in this screen. Prefer the terminal? Press t.", w) {
 			lines = append(lines, ui.T(p.Mu, l))
 		}
 		lines = append(lines, gap())
@@ -400,6 +427,9 @@ func (u *Update) Side(env *core.Env, w, h int) []ui.Line {
 }
 
 func (u *Update) Hints(env *core.Env) []ui.Hint {
+	if u.run.Active() {
+		return u.run.Hints()
+	}
 	if u.history {
 		return []ui.Hint{{Key: "↑↓", Action: "choose"}, {Key: "⏎", Action: "go back to it"}, {Key: "esc", Action: "close"}}
 	}
@@ -411,6 +441,9 @@ func (u *Update) Hints(env *core.Env) []ui.Hint {
 }
 
 func (u *Update) Wheel(env *core.Env, dy int) tea.Cmd {
+	if u.run.Active() {
+		return nil
+	}
 	if u.history {
 		u.gsel.move(dy*2, len(u.gens), 1<<20)
 		return nil
@@ -423,6 +456,9 @@ func (u *Update) Wheel(env *core.Env, dy int) tea.Cmd {
 
 // Brief: los botones de Update en una fila (o la generación elegida, en el historial).
 func (u *Update) Brief(env *core.Env, w int) []ui.Line {
+	if u.run.Active() {
+		return nil
+	}
 	p := env.P
 	if u.history {
 		if !u.gensOK || u.gsel.sel >= len(u.gens) {
@@ -448,3 +484,7 @@ func (u *Update) Brief(env *core.Env, w int) []ui.Line {
 	}
 	return lines
 }
+
+// ForceRunning y EndRunning dejan al panel «trabajando» sin ejecutar nada (solo para las pruebas).
+func (u *Update) ForceRunning() { u.run.stage = 3 }
+func (u *Update) EndRunning()   { u.run.stage = 0 }
