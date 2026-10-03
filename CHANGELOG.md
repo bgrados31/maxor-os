@@ -7,6 +7,8 @@ no usa versiones numeradas.
 
 ### Añadido
 
+- **Base de apps y memoria**: Flatpak con Flathub añadido solo, AppImage ejecutable directamente y `earlyoom` contra congelamientos por falta de RAM. `maxor update` resume los cambios y avisa si hay que reiniciar por un kernel nuevo.
+
 - **Drivers según el equipo**: `maxor hardware` detecta CPU, GPU y tipo de equipo (Intel, AMD, NVIDIA, híbridos, máquinas virtuales) y `modules/hardware.nix` configura microcódigo, drivers de vídeo y ajustes de portátil; `maxor doctor` avisa si el hardware cambió. Añade `fwupd` y la aceleración de vídeo de Intel. Ver [HARDWARE.md](docs/HARDWARE.md).
 
 - **Maxor Shell**: DankMaterialShell con la identidad de Maxor OS, como capa de parches (logo «M» generado desde Krona One, nombre y textos propios) que sigue recibiendo las mejoras de upstream.

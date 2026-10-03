@@ -25,8 +25,35 @@
   services.fstrim.enable = true; # TRIM semanal del NVMe
   services.journald.extraConfig = "SystemMaxUse=200M";
   documentation.nixos.enable = false; # no generar el manual de opciones en cada rebuild
+  # Con poca RAM libre mata el proceso más pesado antes de que el sistema se congele.
+  services.earlyoom = {
+    enable = true;
+    freeMemThreshold = 5;
+    enableNotifications = true;
+  };
   networking.networkmanager.enable = true;
   programs.fish.enable = true;
+
+  # ── Apps ajenas a Nix: Flatpak (las usará Maxor Store) y AppImage ───
+  services.flatpak.enable = true;
+  systemd.services.flatpak-flathub = {
+    description = "Añadir el repositorio Flathub a Flatpak";
+    wantedBy = [ "multi-user.target" ];
+    wants = [ "network-online.target" ];
+    after = [ "network-online.target" ];
+    path = [ pkgs.flatpak ];
+    script = "flatpak remote-add --system --if-not-exists flathub https://dl.flathub.org/repo/flathub.flatpakrepo";
+    serviceConfig = {
+      Type = "oneshot";
+      RemainAfterExit = true;
+      Restart = "on-failure"; # sin red al arrancar: reintenta
+      RestartSec = 60;
+    };
+  };
+  programs.appimage = {
+    enable = true;
+    binfmt = true; # los .AppImage se ejecutan directamente
+  };
 
   hardware.graphics = {
     enable = true;

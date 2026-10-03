@@ -23,11 +23,11 @@ comunidad. Complementa la [hoja de ruta](ROADMAP.md): ella dice *qué fases hay*
 Hecho: zram, TRIM, thermald, power-profiles, journald acotado, GC y optimise de Nix, arranque
 y apagado silenciosos, sesión limpia, Thunar.
 
-- [ ] `maxor update` con diff de paquetes (`nvd`/`nh`) y reporte de qué cambió.
+- [x] `maxor update` con resumen del diff (actualizados, nuevos, eliminados) y aviso de reinicio si cambia el kernel.
 - [ ] Caché binaria propia (Cachix) y sustituyentes configurados desde el flake.
-- [ ] `nix-ld` + `appimage-run` para que los binarios ajenos funcionen sin pelear con Nix.
-- [ ] Flatpak y Flathub activos desde el primer arranque (los usará la tienda).
-- [ ] `earlyoom`, y evaluar un kernel más reciente o `zen` y un planificador `scx`.
+- [x] `nix-ld` + AppImage (`programs.appimage`) para que los binarios ajenos funcionen sin pelear con Nix.
+- [x] Flatpak y Flathub activos desde el primer arranque (los usará la tienda).
+- [x] `earlyoom`. Pendiente: evaluar un kernel más reciente o `zen` y un planificador `scx`.
 - [ ] Perfiles `maxor profile gaming|dev|minimal|creator` (Steam/gamemode, toolchains, etc.).
 - [x] Drivers por equipo: detección de CPU/GPU/portátil/VM con `maxor hardware` y `modules/hardware.nix` ([HARDWARE.md](HARDWARE.md)).
 - [ ] Gráficos: conmutación PRIME guiada con `maxor gpu` y modo «sin GPU dedicada».
