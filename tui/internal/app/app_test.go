@@ -716,7 +716,7 @@ func TestTiendaClicsEnLaBusquedaYEnUnaFila(t *testing.T) {
 	click := func(dx, dy int) tea.Msg {
 		return tea.MouseMsg{X: m.mainX0 + 2 + dx, Y: m.bodyTop + 1 + dy, Button: tea.MouseButtonLeft, Action: tea.MouseActionPress}
 	}
-	send(m, click(3, storeItemRow(1)))
+	send(m, click(14, storeItemRow(1)))
 	if !has(view(m), "com.brave.Browser") {
 		t.Fatalf("el clic en la segunda app la selecciona:\n%s", view(m))
 	}
@@ -955,7 +955,7 @@ func TestQuitarPreguntaPorLosDatosYSePuedeBorrarOConservar(t *testing.T) {
 	m, _ := setupWith(t, f, Options{Screen: "store"})
 	send(m, key("r"), key("r"))
 	out := view(m)
-	if !has(out, "Its data is still here") || !strings.Contains(out, "/home/b/.config/vscode") || !strings.Contains(out, "5.0 MiB") || !strings.Contains(out, "Delete data  y") {
+	if !has(out, "Their data is still here") || !strings.Contains(out, "/home/b/.config/vscode") || !strings.Contains(out, "5.0 MiB") || !strings.Contains(out, "Delete data  y") {
 		t.Fatalf("tras quitar ofrece borrar los datos:\n%s", out)
 	}
 	if f.called("remove vscode --purge") {
@@ -965,7 +965,7 @@ func TestQuitarPreguntaPorLosDatosYSePuedeBorrarOConservar(t *testing.T) {
 	if !f.called("remove vscode --purge --json") {
 		t.Fatalf("y borra los datos con --purge: %v", f.calls)
 	}
-	if has(view(m), "Its data is still here") {
+	if has(view(m), "Their data is still here") {
 		t.Fatal("la pregunta desaparece al contestar")
 	}
 	// n los conserva y dice cómo borrarlos más tarde
@@ -973,7 +973,7 @@ func TestQuitarPreguntaPorLosDatosYSePuedeBorrarOConservar(t *testing.T) {
 	f2.resp["remove vscode --json"] = f.resp["remove vscode --json"]
 	m2, _ := setupWith(t, f2, Options{Screen: "store"})
 	send(m2, key("r"), key("r"), key("n"))
-	if f2.called("remove vscode --purge") || has(view(m2), "Its data is still here") {
+	if f2.called("remove vscode --purge") || has(view(m2), "Their data is still here") {
 		t.Fatal("n conserva los datos")
 	}
 }
@@ -983,7 +983,7 @@ func TestQuitarSinDatosNoPregunta(t *testing.T) {
 	f.resp["remove vscode --json"] = `[{"id":"vscode","source":"nix","ok":true,"purged":false,"leftovers":[]}]`
 	m, _ := setupWith(t, f, Options{Screen: "store"})
 	send(m, key("r"), key("r"))
-	if has(view(m), "Its data is still here") {
+	if has(view(m), "Their data is still here") {
 		t.Fatal("sin carpetas sobrantes no hay pregunta")
 	}
 }
@@ -1046,7 +1046,7 @@ func TestMenuQuitarSinBorrarPreguntaPorLosDatos(t *testing.T) {
 	f.resp["remove vscode --json"] = `[{"id":"vscode","source":"nix","ok":true,"purged":false,"leftovers":[{"path":"/home/b/.config/Code","bytes":1048576}]}]`
 	m, _ := setupWith(t, f, Options{Screen: "store"})
 	send(m, key("enter"), key("down"), key("enter"))
-	if !f.called("remove vscode --json") || !has(view(m), "Its data is still here") {
+	if !f.called("remove vscode --json") || !has(view(m), "Their data is still here") {
 		t.Fatalf("Remove quita y pregunta por los datos:\n%s", view(m))
 	}
 }
@@ -1085,5 +1085,117 @@ func TestTemasSeparaOscurosDeClarosYEnseñaUnFastfetch(t *testing.T) {
 		if !strings.Contains(out, want) {
 			t.Fatalf("falta %q en la muestra de fastfetch:\n%s", want, out)
 		}
+	}
+}
+
+// bulkCLI es una CLI con tres apps instaladas, una de ellas con versión nueva.
+func bulkCLI() *fakeCLI {
+	f := newCLI()
+	f.resp["apps --json"] = `[{"source":"nix","id":"brave","name":"brave","version":"brave-1.96.59"},{"source":"nix","id":"vscode","name":"vscode","version":"vscode-1.119.0"},{"source":"nix","id":"btop","name":"btop","version":"btop-1.4.7"}]`
+	f.resp["apps updates"] = `[{"source":"nix","id":"vscode","current":"1.119.0","latest":"1.120.0"},{"source":"nix","id":"btop","current":"1.4.7","latest":"1.4.8"}]`
+	for _, id := range []string{"brave", "vscode", "btop"} {
+		f.resp["remove "+id+" --list-data"] = `[]`
+		f.resp["remove "+id+" --json"] = `[{"id":"` + id + `","source":"nix","ok":true,"purged":false,"leftovers":[{"path":"/home/b/.config/` + id + `","bytes":1048576}]}]`
+		f.resp["remove "+id+" --purge --json"] = `[{"id":"` + id + `","source":"nix","ok":true,"purged":true,"leftovers":[]}]`
+		f.resp["apps update "+id+" --json"] = `[{"id":"` + id + `","source":"nix","ok":true}]`
+	}
+	return f
+}
+
+func TestInstaladasMuestranEstadoYCasillas(t *testing.T) {
+	m, _ := setupWith(t, bulkCLI(), Options{Screen: "store"})
+	out := view(m)
+	for _, want := range []string{"✓ up to date", "↑ 1.120.0 available", "↑ 1.4.8 available", "nixpkgs · 1.119.0 → 1.120.0", "nixpkgs · 1.96.59", "◻"} {
+		if !strings.Contains(out, want) {
+			t.Fatalf("falta %q:\n%s", want, out)
+		}
+	}
+	send(m, key(" "), key("down"), key(" "))
+	out = view(m)
+	if strings.Count(out, "◼") < 3 || !has(out, "2 selected") { // dos casillas + el contador (y el del panel)
+		t.Fatalf("las casillas se marcan y se cuentan:\n%s", out)
+	}
+	if !strings.Contains(out, "Update 1  u") || !strings.Contains(out, "Remove 2  r") {
+		t.Fatalf("el panel ofrece las acciones en bloque:\n%s", out)
+	}
+	send(m, key("esc"))
+	if has(view(m), "2 selected") {
+		t.Fatal("esc limpia la selección")
+	}
+}
+
+func TestSeleccionarTodasYActualizarLasQueTienenVersionNueva(t *testing.T) {
+	f := bulkCLI()
+	m, _ := setupWith(t, f, Options{Screen: "store"})
+	send(m, key("a"))
+	if !has(view(m), "3 selected") {
+		t.Fatalf("a selecciona todas:\n%s", view(m))
+	}
+	send(m, key("u"))
+	if !f.called("apps update vscode --json") || !f.called("apps update btop --json") || f.called("apps update brave --json") {
+		t.Fatalf("u actualiza solo las marcadas que tienen versión nueva: %v", f.calls)
+	}
+	send(m, key("esc"), key("a"), key("a"))
+	if has(view(m), "selected") {
+		t.Fatal("a otra vez las desmarca")
+	}
+	// U actualiza todas las pendientes sin marcar nada
+	f2 := bulkCLI()
+	m2, _ := setupWith(t, f2, Options{Screen: "store"})
+	send(m2, key("U"))
+	if !f2.called("apps update vscode --json") || !f2.called("apps update btop --json") {
+		t.Fatalf("U actualiza todas las pendientes: %v", f2.calls)
+	}
+}
+
+func TestQuitarVariasALaVezPreguntaUnaSolaVezPorLosDatos(t *testing.T) {
+	f := bulkCLI()
+	m, _ := setupWith(t, f, Options{Screen: "store"})
+	send(m, key(" "), key("down"), key(" "), key("r"))
+	if out := view(m); !has(out, "2 apps") || !strings.Contains(out, "Remove and delete their data") {
+		t.Fatalf("r abre el menú sobre las dos marcadas:\n%s", out)
+	}
+	send(m, key("enter")) // Remove (sin borrar datos)
+	if !f.called("remove brave --json") || !f.called("remove vscode --json") || f.called("remove btop --json") {
+		t.Fatalf("quita las dos marcadas, una tras otra: %v", f.calls)
+	}
+	out := view(m)
+	if !has(out, "Their data is still here") || !strings.Contains(out, "/home/b/.config/brave") || !strings.Contains(out, "/home/b/.config/vscode") || !strings.Contains(out, "2.0 MiB") {
+		t.Fatalf("una sola pregunta con todas las carpetas:\n%s", out)
+	}
+	send(m, key("y"))
+	if !f.called("remove brave --purge --json") || !f.called("remove vscode --purge --json") {
+		t.Fatalf("y borra los datos de las dos: %v", f.calls)
+	}
+}
+
+func TestQuitarVariasYBorrarSusDatosPideUnSiFinal(t *testing.T) {
+	f := bulkCLI()
+	f.resp["remove brave --list-data"] = `[{"path":"/home/b/.config/brave","bytes":2097152}]`
+	f.resp["remove vscode --list-data"] = `[{"path":"/home/b/.config/vscode","bytes":1048576}]`
+	m, _ := setupWith(t, f, Options{Screen: "store"})
+	send(m, key(" "), key("down"), key(" "), key("r"), key("d"))
+	out := view(m)
+	if !has(out, "This cannot be undone") || !strings.Contains(out, "3.0 MiB") {
+		t.Fatalf("pide confirmar y suma los tamaños:\n%s", out)
+	}
+	if f.called("remove brave --json") {
+		t.Fatal("nada se quita antes del sí final")
+	}
+	send(m, key("enter"))
+	if !f.called("remove brave --json") || !f.called("remove vscode --json") {
+		t.Fatalf("tras el sí se quitan: %v", f.calls)
+	}
+}
+
+func TestClicEnLaCasillaMarcaLaApp(t *testing.T) {
+	m, _ := setupWith(t, bulkCLI(), Options{Screen: "store"})
+	view(m)
+	click := func(dx, dy int) tea.Msg {
+		return tea.MouseMsg{X: m.mainX0 + 2 + dx, Y: m.bodyTop + 1 + dy, Button: tea.MouseButtonLeft, Action: tea.MouseActionPress}
+	}
+	send(m, click(1, storeItemRow(1)))
+	if !has(view(m), "1 selected") {
+		t.Fatalf("un clic en la casilla marca la app:\n%s", view(m))
 	}
 }

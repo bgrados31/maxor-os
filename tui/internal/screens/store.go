@@ -14,8 +14,12 @@ import (
 	"github.com/bgrados31/maxor-os/tui/internal/ui"
 )
 
-// Store busca, instala y quita apps (nixpkgs y Flathub). No instala nada por su
-// cuenta: llama a `maxor search|install|remove … --json`.
+// Store busca, instala, actualiza y quita apps (nixpkgs y Flathub). No toca nada por
+// su cuenta: llama a `maxor search|install|remove|apps … --json`.
+//
+// Las apps instaladas se ven con casillas: se marcan varias y se actualizan o se
+// quitan juntas. Todo lo que cambia paquetes pasa por una cola de trabajos que se
+// ejecuta de uno en uno (nix y flatpak no admiten dos operaciones a la vez).
 type Store struct {
 	core.Base
 	in       ui.Input
@@ -29,30 +33,41 @@ type Store struct {
 	showInst bool // ver «Installed» aunque haya resultados
 	list     listState
 	marks    map[string]bool
-	queue    []item
-	armed    string
-	rows     int // apps que caben en pantalla
-	busy     map[string]string // app → «queued», «installing» o «removing»: no se puede repetir
+	queue    []job
+	rows     int               // apps que caben en pantalla
+	busy     map[string]string // app → «queued», «installing», «updating» o «removing»
 	ask      *purgeAsk         // pregunta pendiente: ¿borrar también sus datos?
-	menu     *actionMenu       // menú de acciones de una app instalada
+	askAcc   []purgeEntry      // datos que dejaron las apps quitadas en esta tanda
+	menu     *actionMenu       // menú de acciones sobre las apps elegidas
 }
 
-// actionMenu es el menú de una app instalada: se maneja con ↑ ↓ y Intro, sin letras que aprender.
+// job es una operación de paquetes en la cola.
+type job struct {
+	it    item
+	op    string // install | update | remove
+	purge bool   // al quitar, borrar también sus carpetas
+}
+
+// actionMenu es el menú sobre una o varias apps instaladas: se maneja con ↑ ↓ e Intro.
 type actionMenu struct {
-	it      item
+	items   []item
 	sel     int
-	confirm bool // pidió borrar sus datos: falta el sí final
+	confirm bool // pidió borrar los datos: falta el sí final
 	data    []maxor.Leftover
 	loaded  bool
+	dataKey string
 }
 
-type menuEntry struct{ label, hint, kind string }
+type menuEntry struct{ label, hint, kind, key string }
 
-// purgeAsk es la pregunta tras quitar una app que dejó carpetas en tu casa.
-type purgeAsk struct {
+// purgeEntry son las carpetas que dejó una app quitada.
+type purgeEntry struct {
 	ID, Name string
 	Left     []maxor.Leftover
 }
+
+// purgeAsk es la pregunta tras quitar apps que dejaron carpetas en tu casa.
+type purgeAsk struct{ Entries []purgeEntry }
 
 // removed es el resultado de quitar una app.
 type removed struct {
@@ -126,52 +141,193 @@ func pkgBusy(env *core.Env) bool {
 	return false
 }
 
-func (s *Store) menuEntries(env *core.Env) []menuEntry {
-	it := s.menu.it
-	out := []menuEntry{{"Open", "start it now", "open"}}
-	if u, ok := s.updateFor(env, it); ok {
-		hint := "to " + u.Latest
-		if u.Current != "" {
-			hint = u.Current + " → " + u.Latest
+// installedView dice si la lista enseña lo instalado (y no los resultados de una búsqueda).
+func (s *Store) installedView() bool { return !s.searched || s.showInst }
+
+// targets son las apps sobre las que actúa una orden: las marcadas, o la de la fila.
+func (s *Store) targets(its []item) []item {
+	var out []item
+	for _, it := range its {
+		if s.marks[it.key()] && (it.Installed == s.installedView()) {
+			out = append(out, it)
 		}
-		out = append(out, menuEntry{"Update", hint, "update"})
 	}
-	out = append(out, menuEntry{"Remove", "keeps your saves and settings", "remove"})
-	hint := "removes it and its folders"
+	if len(out) == 0 && s.list.sel >= 0 && s.list.sel < len(its) {
+		out = []item{its[s.list.sel]}
+	}
+	return out
+}
+
+func (s *Store) markedCount(its []item) (n int) {
+	for _, it := range its {
+		if s.marks[it.key()] && (it.Installed == s.installedView()) {
+			n++
+		}
+	}
+	return
+}
+
+// enqueue añade trabajos a la cola, sin repetir lo que ya está en marcha, y empieza.
+func (s *Store) enqueue(env *core.Env, jobs []job) tea.Cmd {
+	var skipped string
+	added := 0
+	for _, j := range jobs {
+		if st := s.busy[j.it.key()]; st != "" {
+			skipped = j.it.Name + " is already " + map[string]string{"queued": "queued", "installing": "being installed", "removing": "being removed", "updating": "being updated"}[st]
+			continue
+		}
+		s.busy[j.it.key()] = "queued"
+		s.queue = append(s.queue, j)
+		added++
+	}
+	cmd := s.startNext(env)
+	if skipped != "" && added == 0 {
+		return core.Toast("info", skipped)
+	}
+	return cmd
+}
+
+func (s *Store) startNext(env *core.Env) tea.Cmd {
+	if len(s.queue) == 0 || pkgBusy(env) {
+		return nil
+	}
+	j := s.queue[0]
+	s.queue = s.queue[1:]
+	it := j.it
+	switch j.op {
+	case "update":
+		s.busy[it.key()] = "updating"
+		return env.Tasks.Start(task.Task{ID: "store.update", Label: "Updating " + it.Name, Run: func(ctx context.Context) (any, error) {
+			return it, env.Client.UpdateApp(ctx, it.ID)
+		}})
+	case "remove":
+		s.busy[it.key()] = "removing"
+		purge := j.purge
+		return env.Tasks.Start(task.Task{ID: "store.remove", Label: "Removing " + it.Name, Run: func(ctx context.Context) (any, error) {
+			left, err := env.Client.Remove(ctx, it.ID)
+			if err == nil && purge && len(left) > 0 {
+				err = env.Client.Purge(ctx, it.ID)
+				left = nil
+			}
+			return removed{it: it, left: left}, err
+		}})
+	}
+	s.busy[it.key()] = "installing"
+	return env.Tasks.Start(task.Task{ID: "store.install", Label: "Installing " + it.Name, Run: func(ctx context.Context) (any, error) {
+		return it, env.Client.Install(ctx, it.Source, it.ID)
+	}})
+}
+
+// finishRemovals deja la pregunta de los datos cuando ya no queda nada por quitar.
+func (s *Store) finishRemovals(env *core.Env) tea.Cmd {
+	// aún hay una quitándose o en cola: la pregunta espera a la última
+	if env.Tasks.Running("store.remove") {
+		return nil
+	}
+	for _, j := range s.queue {
+		if j.op == "remove" {
+			return nil
+		}
+	}
+	if len(s.askAcc) == 0 {
+		return nil
+	}
+	s.ask = &purgeAsk{Entries: s.askAcc}
+	var total int64
+	for _, e := range s.askAcc {
+		total += sumBytes(e.Left)
+	}
+	s.askAcc = nil
+	return core.Toast("warn", fmt.Sprintf("Their data stays on disk (%s): y deletes it, n keeps it", humanBytes(total)))
+}
+
+func (s *Store) menuEntries(env *core.Env) []menuEntry {
+	items := s.menu.items
+	single := len(items) == 1
+	var out []menuEntry
+	if single {
+		out = append(out, menuEntry{"Open", "start it now", "open", "o"})
+	}
+	var upd []maxor.AppUpdate
+	for _, it := range items {
+		if u, ok := s.updateFor(env, it); ok {
+			upd = append(upd, u)
+		}
+	}
+	if len(upd) > 0 {
+		hint := fmt.Sprintf("%d of %d have a new version", len(upd), len(items))
+		if single {
+			hint = "to " + upd[0].Latest
+			if upd[0].Current != "" {
+				hint = upd[0].Current + " → " + upd[0].Latest
+			}
+		}
+		out = append(out, menuEntry{"Update", hint, "update", "u"})
+	}
+	out = append(out, menuEntry{"Remove", "keeps your saves and settings", "remove", "r"})
+	hint := "removes the app and its folders"
 	if s.menu.loaded && len(s.menu.data) > 0 {
 		hint = "frees " + humanBytes(sumBytes(s.menu.data))
 	} else if s.menu.loaded {
-		hint = "it has no folders in your home"
+		hint = "no extra folders to delete"
 	}
-	return append(out, menuEntry{"Remove and delete its data", hint, "purge"})
+	label := "Remove and delete its data"
+	if !single {
+		label = "Remove and delete their data"
+	}
+	return append(out, menuEntry{label, hint, "purge", "d"})
 }
 
-// startRemove quita la app; con purge borra también sus carpetas, y si no, pregunta después.
-func (s *Store) startRemove(env *core.Env, it item, purge bool) tea.Cmd {
-	s.busy[it.key()] = "removing"
-	return env.Tasks.Start(task.Task{ID: "store.remove", Label: "Removing " + it.Name, Run: func(ctx context.Context) (any, error) {
-		left, err := env.Client.Remove(ctx, it.ID)
-		if err == nil && purge && len(left) > 0 {
-			err = env.Client.Purge(ctx, it.ID)
-			left = nil
+func (s *Store) menuJobs(env *core.Env, op string, purge bool) []job {
+	var jobs []job
+	for _, it := range s.menu.items {
+		if op == "update" {
+			if _, ok := s.updateFor(env, it); !ok {
+				continue
+			}
 		}
-		return removed{it: it, left: left}, err
-	}})
+		jobs = append(jobs, job{it: it, op: op, purge: purge})
+	}
+	return jobs
 }
 
 func (s *Store) menuKey(env *core.Env, m tea.KeyMsg) (core.Screen, tea.Cmd) {
 	mn := s.menu
-	ents := s.menuEntries(env)
 	if mn.confirm {
 		switch {
 		case isKey(m, "enter", "y"):
+			jobs := s.menuJobs(env, "remove", true)
 			s.menu = nil
-			if pkgBusy(env) {
-				return s, core.Toast("info", "Another change is running: wait until it finishes")
-			}
-			return s, s.startRemove(env, mn.it, true)
+			return s, s.enqueue(env, jobs)
 		case isKey(m, "esc", "n"):
 			mn.confirm = false
+		}
+		return s, nil
+	}
+	ents := s.menuEntries(env)
+	run := func(kind string) (core.Screen, tea.Cmd) {
+		switch kind {
+		case "open":
+			it := mn.items[0]
+			s.menu = nil
+			return s, env.Tasks.Start(task.Task{ID: "store.open", Label: "Opening " + it.Name, Run: func(ctx context.Context) (any, error) {
+				return it, env.Client.OpenApp(ctx, it.ID)
+			}})
+		case "update":
+			jobs := s.menuJobs(env, "update", false)
+			s.menu = nil
+			return s, s.enqueue(env, jobs)
+		case "remove":
+			jobs := s.menuJobs(env, "remove", false)
+			s.menu = nil
+			return s, s.enqueue(env, jobs)
+		case "purge":
+			if mn.loaded && len(mn.data) == 0 {
+				jobs := s.menuJobs(env, "remove", true)
+				s.menu = nil
+				return s, s.enqueue(env, jobs)
+			}
+			mn.confirm = true
 		}
 		return s, nil
 	}
@@ -183,48 +339,42 @@ func (s *Store) menuKey(env *core.Env, m tea.KeyMsg) (core.Screen, tea.Cmd) {
 	case isKey(m, "down", "j"):
 		mn.sel = (mn.sel + 1) % len(ents)
 	case isKey(m, "enter"):
-		it := mn.it
-		switch ents[mn.sel].kind {
-		case "open":
-			s.menu = nil
-			return s, env.Tasks.Start(task.Task{ID: "store.open", Label: "Opening " + it.Name, Run: func(ctx context.Context) (any, error) {
-				return it, env.Client.OpenApp(ctx, it.ID)
-			}})
-		case "update":
-			if pkgBusy(env) {
-				return s, core.Toast("info", "Another change is running: wait until it finishes")
+		return run(ents[mn.sel].kind)
+	default:
+		// atajos para quien ya los conoce: o, u, r, d
+		for _, e := range ents {
+			if isKey(m, e.key) {
+				return run(e.kind)
 			}
-			s.menu = nil
-			s.busy[it.key()] = "updating"
-			return s, env.Tasks.Start(task.Task{ID: "store.update", Label: "Updating " + it.Name, Run: func(ctx context.Context) (any, error) {
-				return it, env.Client.UpdateApp(ctx, it.ID)
-			}})
-		case "remove":
-			if pkgBusy(env) {
-				return s, core.Toast("info", "Another change is running: wait until it finishes")
-			}
-			s.menu = nil
-			return s, s.startRemove(env, it, false)
-		case "purge":
-			if mn.loaded && len(mn.data) == 0 {
-				if pkgBusy(env) {
-					return s, core.Toast("info", "Another change is running: wait until it finishes")
-				}
-				s.menu = nil
-				return s, s.startRemove(env, it, true)
-			}
-			mn.confirm = true
 		}
 	}
 	return s, nil
 }
 
-// openMenu abre el menú de acciones de una app instalada y mira qué carpetas tiene.
-func (s *Store) openMenu(env *core.Env, it item) tea.Cmd {
-	s.menu = &actionMenu{it: it}
-	return env.Tasks.Start(task.Task{ID: "store.data", Label: "Looking at its folders", Quiet: true, Run: func(ctx context.Context) (any, error) {
-		l, err := env.Client.AppData(ctx, it.ID)
-		return appData{key: it.key(), left: l}, err
+// openMenu abre el menú sobre estas apps y mira qué carpetas tienen en tu casa.
+func (s *Store) openMenu(env *core.Env, items []item, sel string) tea.Cmd {
+	s.menu = &actionMenu{items: items}
+	for i, e := range s.menuEntries(env) {
+		if e.kind == sel {
+			s.menu.sel = i
+		}
+	}
+	var keys []string
+	for _, it := range items {
+		keys = append(keys, it.key())
+	}
+	key := strings.Join(keys, ",")
+	s.menu.dataKey = key
+	return env.Tasks.Start(task.Task{ID: "store.data", Label: "Looking at their folders", Quiet: true, Run: func(ctx context.Context) (any, error) {
+		var all []maxor.Leftover
+		for _, it := range items {
+			l, err := env.Client.AppData(ctx, it.ID)
+			if err != nil {
+				return appData{key: key}, err
+			}
+			all = append(all, l...)
+		}
+		return appData{key: key, left: all}, nil
 	}})
 }
 
@@ -245,7 +395,7 @@ func (s *Store) chips(env *core.Env) []chipDef {
 	if s.searched {
 		out = append(out, chipDef{label: fmt.Sprintf("Results %d", len(s.results)), view: 1})
 	}
-		inst := fmt.Sprintf("Installed %d", len(env.Data.Apps))
+	inst := fmt.Sprintf("Installed %d", len(env.Data.Apps))
 	if n := len(env.Data.AppUpdates); n > 0 {
 		inst += fmt.Sprintf(" %s%d", ui.G.Up, n)
 	}
@@ -262,7 +412,7 @@ func (s *Store) chipActive(c chipDef) bool {
 	case c.group:
 		return c.src == s.src
 	case c.view == 2:
-		return !s.searched || s.showInst
+		return s.installedView()
 	}
 	return s.searched && !s.showInst
 }
@@ -304,7 +454,7 @@ func (s *Store) installedItems(env *core.Env) []item {
 
 // items son las filas de la lista: los resultados de la búsqueda, o lo instalado.
 func (s *Store) items(env *core.Env) []item {
-	if !s.searched || s.showInst {
+	if s.installedView() {
 		return s.installedItems(env)
 	}
 	inst := s.installed(env)
@@ -330,19 +480,6 @@ func (s *Store) search(env *core.Env) tea.Cmd {
 	s.query = q
 	return env.Tasks.Start(task.Task{ID: "store.search", Label: "Searching " + q, Run: func(ctx context.Context) (any, error) {
 		return env.Client.Search(ctx, q)
-	}})
-}
-
-func (s *Store) startNext(env *core.Env) tea.Cmd {
-	// una sola operación de paquetes a la vez: nix y flatpak no admiten dos juntas
-	if len(s.queue) == 0 || pkgBusy(env) {
-		return nil
-	}
-	it := s.queue[0]
-	s.queue = s.queue[1:]
-	s.busy[it.key()] = "installing"
-	return env.Tasks.Start(task.Task{ID: "store.install", Label: "Installing " + it.Name, Run: func(ctx context.Context) (any, error) {
-		return it, env.Client.Install(ctx, it.Source, it.ID)
 	}})
 }
 
@@ -375,23 +512,24 @@ func (s *Store) Update(env *core.Env, msg tea.Msg) (core.Screen, tea.Cmd) {
 				return s, tea.Batch(core.Toast("bad", "Could not install "+it.Name+": "+oneLine(m.Err.Error())), s.startNext(env))
 			}
 			delete(s.marks, it.key())
-			return s, tea.Batch(core.Toast("ok", "Installed "+it.Name), core.Note("ok", "Installed "+it.Name), LoadApps(env, true), s.startNext(env))
+			return s, tea.Batch(core.Toast("ok", "Installed "+it.Name), core.Note("ok", "Installed "+it.Name), LoadApps(env, true), LoadAppUpdates(env, true), s.startNext(env))
 		case "store.remove":
 			r, _ := m.Value.(removed)
 			delete(s.busy, r.it.key())
+			delete(s.marks, r.it.key())
 			if m.Err != nil {
-				return s, tea.Batch(core.Toast("bad", "Could not remove "+r.it.Name+": "+oneLine(m.Err.Error())), s.startNext(env))
+				return s, tea.Batch(core.Toast("bad", "Could not remove "+r.it.Name+": "+oneLine(m.Err.Error())), s.startNext(env), s.finishRemovals(env))
 			}
-			cmds := []tea.Cmd{core.Note("ok", "Removed "+r.it.Name), LoadApps(env, true), s.startNext(env)}
+			cmds := []tea.Cmd{core.Note("ok", "Removed "+r.it.Name), LoadApps(env, true), LoadAppUpdates(env, true), s.startNext(env)}
 			if len(r.left) > 0 {
-				s.ask = &purgeAsk{ID: r.it.ID, Name: r.it.Name, Left: r.left}
-				cmds = append(cmds, core.Toast("warn", fmt.Sprintf("Removed %s. Its data stays (%s): y deletes it, n keeps it", r.it.Name, humanBytes(sumBytes(r.left)))))
+				s.askAcc = append(s.askAcc, purgeEntry{ID: r.it.ID, Name: r.it.Name, Left: r.left})
 			} else {
 				cmds = append(cmds, core.Toast("ok", "Removed "+r.it.Name))
 			}
+			cmds = append(cmds, s.finishRemovals(env))
 			return s, tea.Batch(cmds...)
 		case "store.data":
-			if d, ok := m.Value.(appData); ok && s.menu != nil && s.menu.it.key() == d.key {
+			if d, ok := m.Value.(appData); ok && s.menu != nil && s.menu.dataKey == d.key {
 				s.menu.data, s.menu.loaded = d.left, true
 			}
 			return s, nil
@@ -404,6 +542,7 @@ func (s *Store) Update(env *core.Env, msg tea.Msg) (core.Screen, tea.Cmd) {
 		case "store.update":
 			it, _ := m.Value.(item)
 			delete(s.busy, it.key())
+			delete(s.marks, it.key())
 			if m.Err != nil {
 				return s, tea.Batch(core.Toast("bad", "Could not update "+it.Name+": "+oneLine(m.Err.Error())), s.startNext(env))
 			}
@@ -433,12 +572,22 @@ func (s *Store) key(env *core.Env, m tea.KeyMsg) (core.Screen, tea.Cmd) {
 		switch {
 		case isKey(m, "y"):
 			s.ask = nil
-			return s, env.Tasks.Start(task.Task{ID: "store.purge", Label: "Deleting the data of " + ask.Name, Run: func(ctx context.Context) (any, error) {
-				return ask.Name, env.Client.Purge(ctx, ask.ID)
+			var names []string
+			for _, e := range ask.Entries {
+				names = append(names, e.Name)
+			}
+			label := strings.Join(names, ", ")
+			return s, env.Tasks.Start(task.Task{ID: "store.purge", Label: "Deleting the data of " + label, Run: func(ctx context.Context) (any, error) {
+				for _, e := range ask.Entries {
+					if err := env.Client.Purge(ctx, e.ID); err != nil {
+						return label, err
+					}
+				}
+				return label, nil
 			}})
 		case isKey(m, "n", "esc"):
 			s.ask = nil
-			return s, core.Toast("info", "Kept the data of "+ask.Name+". Delete it later: maxor remove "+ask.ID+" --purge")
+			return s, core.Toast("info", "Kept their data. Delete it later: maxor remove <app> --purge")
 		}
 	}
 	switch s.zone {
@@ -492,8 +641,6 @@ func (s *Store) key(env *core.Env, m tea.KeyMsg) (core.Screen, tea.Cmd) {
 		}
 		return s, nil
 	}
-	armed := s.armed
-	s.armed = ""
 	if d, mv := listKey(m); mv {
 		s.list.move(d, len(its), max(s.rows, 1))
 		return s, nil
@@ -504,13 +651,13 @@ func (s *Store) key(env *core.Env, m tea.KeyMsg) (core.Screen, tea.Cmd) {
 		}
 		return item{}, false
 	}
+	inst := s.installedView()
 	switch {
 	case isKey(m, "/"):
 		s.zone = zSearch
 	case isKey(m, "i"):
 		if s.searched {
-			cs := s.chips(env)
-			for i, c := range cs {
+			for i, c := range s.chips(env) {
 				if c.view != 0 && !s.chipActive(c) {
 					s.pickChip(env, i)
 					break
@@ -520,61 +667,82 @@ func (s *Store) key(env *core.Env, m tea.KeyMsg) (core.Screen, tea.Cmd) {
 	case isKey(m, "c"):
 		s.in.Set("")
 		s.search(env)
+	case isKey(m, "esc"):
+		s.marks = map[string]bool{}
 	case isKey(m, " "):
-		if it, ok := cur(); ok && !it.Installed {
+		// en «Installed» se marcan las instaladas; en los resultados, las que faltan
+		if it, ok := cur(); ok && it.Installed == inst {
 			if s.marks[it.key()] {
 				delete(s.marks, it.key())
 			} else {
 				s.marks[it.key()] = true
 			}
 		}
-	case isKey(m, "enter"):
-		var todo []item
+	case isKey(m, "a"):
+		all := len(its) > 0
 		for _, it := range its {
-			if s.marks[it.key()] && !it.Installed {
-				todo = append(todo, it)
+			if it.Installed == inst && !s.marks[it.key()] {
+				all = false
+			}
+		}
+		for _, it := range its {
+			if it.Installed != inst {
+				continue
+			}
+			if all {
+				delete(s.marks, it.key())
+			} else {
+				s.marks[it.key()] = true
+			}
+		}
+	case isKey(m, "enter"):
+		if inst {
+			if t := s.targets(its); len(t) > 0 {
+				return s, s.openMenu(env, t, "open")
+			}
+			return s, nil
+		}
+		var todo []job
+		for _, it := range s.targets(its) {
+			if it.Installed {
+				return s, s.openMenu(env, []item{it}, "open")
+			}
+			todo = append(todo, job{it: it, op: "install"})
+		}
+		return s, s.enqueue(env, todo)
+	case isKey(m, "u"):
+		var todo []job
+		for _, it := range s.targets(its) {
+			if _, ok := s.updateFor(env, it); ok && it.Installed {
+				todo = append(todo, job{it: it, op: "update"})
 			}
 		}
 		if len(todo) == 0 {
-			if it, ok := cur(); ok && !it.Installed {
-				todo = []item{it}
-			} else if ok && it.Installed {
-				return s, s.openMenu(env, it)
+			return s, core.Toast("ok", "Nothing to update there: it is already up to date")
+		}
+		return s, s.enqueue(env, todo)
+	case isKey(m, "U"):
+		var todo []job
+		for _, it := range s.installedItems(env) {
+			if _, ok := s.updateFor(env, it); ok {
+				todo = append(todo, job{it: it, op: "update"})
 			}
 		}
-		// lo que ya se está instalando, está en cola o se está quitando no se repite
-		var fresh []item
-		var skipped string
-		for _, it := range todo {
-			if st := s.busy[it.key()]; st != "" {
-				skipped = it.Name + " is already " + map[string]string{"queued": "queued", "installing": "being installed", "removing": "being removed", "updating": "being updated"}[st]
-				continue
-			}
-			s.busy[it.key()] = "queued"
-			fresh = append(fresh, it)
+		if len(todo) == 0 {
+			return s, core.Toast("ok", "Everything is up to date")
 		}
-		s.queue = append(s.queue, fresh...)
-		cmd := s.startNext(env)
-		if skipped != "" && len(fresh) == 0 {
-			return s, core.Toast("info", skipped)
-		}
-		return s, cmd
+		return s, s.enqueue(env, todo)
 	case isKey(m, "r"):
-		it, ok := cur()
-		if !ok || !it.Installed {
+		var t []item
+		for _, it := range s.targets(its) {
+			if it.Installed {
+				t = append(t, it)
+			}
+		}
+		if len(t) == 0 {
 			return s, nil
 		}
-		if st := s.busy[it.key()]; st != "" {
-			return s, core.Toast("info", it.Name+" is busy: wait until it finishes")
-		}
-		if pkgBusy(env) {
-			return s, core.Toast("info", "Another change is running: wait until it finishes")
-		}
-		if armed != it.key() {
-			s.armed = it.key()
-			return s, core.Toast("warn", "Press r again to remove "+it.Name+" (its data is kept until you say)")
-		}
-		return s, s.startRemove(env, it, false)
+		return s, s.openMenu(env, t, "remove")
 	}
 	return s, nil
 }
@@ -583,14 +751,28 @@ func (s *Store) key(env *core.Env, m tea.KeyMsg) (core.Screen, tea.Cmd) {
 func (s *Store) menuLines(env *core.Env, w int) []ui.Line {
 	p := env.P
 	mn := s.menu
-	lines := []ui.Line{heading(env, "What do you want to do?"), gap(), ui.T(p.Bold, mn.it.Name), gap()}
+	title := mn.items[0].Name
+	if len(mn.items) > 1 {
+		title = fmt.Sprintf("%d apps", len(mn.items))
+	}
+	lines := []ui.Line{heading(env, "What do you want to do?"), gap(), ui.T(p.Bold, title)}
+	if len(mn.items) > 1 {
+		for i, it := range mn.items {
+			if i == 5 {
+				lines = append(lines, muted(env, fmt.Sprintf("and %d more", len(mn.items)-5)))
+				break
+			}
+			lines = append(lines, muted(env, it.Name))
+		}
+	}
+	lines = append(lines, gap())
 	if mn.confirm {
-		size := "its folders"
+		size := "their folders"
 		if len(mn.data) > 0 {
 			size = humanBytes(sumBytes(mn.data))
 		}
 		lines = append(lines, ui.T(p.Warn.Bold(true), ui.G.Warn+" This cannot be undone"))
-		for _, l := range ui.Wrap("It deletes "+mn.it.Name+" and "+size+" of saves and settings:", w) {
+		for _, l := range ui.Wrap("It deletes the app and "+size+" of saves and settings:", w) {
 			lines = append(lines, plain(env, l))
 		}
 		for _, lo := range mn.data {
@@ -601,7 +783,7 @@ func (s *Store) menuLines(env *core.Env, w int) []ui.Line {
 		return append(lines, gap(), ui.Of(button(env, true, "Yes, delete  ⏎"), space(1), button(env, false, "No  esc")))
 	}
 	for i, e := range s.menuEntries(env) {
-		lines = append(lines, ui.Line{L: []ui.Seg{ui.S(p.Text, " "+e.label)}, Sel: i == mn.sel}, ui.Line{L: []ui.Seg{ui.S(p.Mu, " "+e.hint)}, Sel: i == mn.sel}, gap())
+		lines = append(lines, ui.Line{L: []ui.Seg{ui.S(p.Text, " "+e.label)}, R: []ui.Seg{ui.S(p.Mu, e.key+" ")}, Sel: i == mn.sel}, ui.Line{L: []ui.Seg{ui.S(p.Mu, " "+e.hint)}, Sel: i == mn.sel}, gap())
 	}
 	return lines
 }
@@ -632,13 +814,14 @@ func (s *Store) searchBox(env *core.Env, w int) []ui.Line {
 	return []ui.Line{pad, mid, pad}
 }
 
-// tabsRow son las dos vistas (resultados e instalado) y, a la derecha, el cargador.
-func (s *Store) tabsRow(env *core.Env, w int, nRes, nInst int) ui.Line {
+// tabsRow son las vistas y los filtros y, a la derecha, lo que hay marcado o el cargador.
+func (s *Store) tabsRow(env *core.Env, w int) ui.Line {
 	p := env.P
 	var left []ui.Seg
 	s.chipX = s.chipX[:0]
 	x := 0
-	for i, c := range s.chips(env) {
+	chips := s.chips(env)
+	for i, c := range chips {
 		active, focused := s.chipActive(c), s.zone == zChips && i == s.chip
 		l, r := " ", " "
 		st := p.Mu
@@ -652,20 +835,21 @@ func (s *Store) tabsRow(env *core.Env, w int, nRes, nInst int) ui.Line {
 				st = p.Ac.Bold(true)
 			}
 		}
-		if c.group && (i == 0 || !s.chips(env)[i-1].group) {
+		if c.group && (i == 0 || !chips[i-1].group) {
 			left = append(left, ui.S(p.Mu, " │ "))
 			x += 3
 		}
 		seg := ui.S(st, l+c.label+r)
-		w := len([]rune(l + c.label + r))
-		s.chipX = append(s.chipX, [2]int{x, x + w})
-		x += w + 1
+		cw := len([]rune(l + c.label + r))
+		s.chipX = append(s.chipX, [2]int{x, x + cw})
+		x += cw + 1
 		left = append(left, seg, ui.Seg{T: " "})
 	}
 	var right []ui.Seg
 	for _, st := range []struct{ id, label string }{
 		{"store.search", "Searching " + s.query},
 		{"store.install", "Installing"},
+		{"store.update", "Updating"},
 		{"store.remove", "Removing"},
 		{"data.apps", "Loading your apps"},
 	} {
@@ -677,6 +861,11 @@ func (s *Store) tabsRow(env *core.Env, w int, nRes, nInst int) ui.Line {
 	if n := len(s.queue); n > 0 {
 		right = append(right, ui.S(p.Mu, fmt.Sprintf("  +%d queued", n)))
 	}
+	if right == nil {
+		if n := s.markedCount(s.items(env)); n > 0 {
+			right = []ui.Seg{ui.S(p.Ac, fmt.Sprintf("%s %d selected ", ui.G.On, n))}
+		}
+	}
 	return ui.Line{L: ui.Spread(left, right, w, p.Fill)}
 }
 
@@ -684,9 +873,8 @@ func (s *Store) Main(env *core.Env, w, h int) []ui.Line {
 	p := env.P
 	s.rows = max((h-storeHeader)/storeItemH, 1)
 	its := s.items(env)
-	nRes := len(s.results)
 	lines := s.searchBox(env, w)
-	lines = append(lines, gap(), s.tabsRow(env, w, nRes, len(env.Data.Apps)), gap())
+	lines = append(lines, gap(), s.tabsRow(env, w), gap())
 
 	// Cargando: la lista aparece ya, con la forma que tendrá
 	loading := env.Tasks.Loading("store.search") && (s.showInst || !s.searched)
@@ -707,43 +895,76 @@ func (s *Store) Main(env *core.Env, w, h int) []ui.Line {
 			return append(lines, plain(env, "Nothing installed with maxor yet."), gap(), muted(env, "Press / and search: brave, btop, org.mozilla.firefox…"))
 		}
 	}
+	inst := s.installedView()
 	from, to := s.list.window(len(its), s.rows)
 	for i := from; i < to; i++ {
 		it := its[i]
 		sel := i == s.list.sel && s.zone == zList
-		var mark ui.Seg
+		marked := s.marks[it.key()] && it.Installed == inst
+		// la casilla: la marca de la app (◼ marcada, ◻ sin marcar); lo ya instalado en los resultados lleva ✓
+		var box ui.Seg
 		switch {
-		case it.Installed:
-			mark = ui.S(p.Ok, ui.G.Tick+"  ")
-		case s.marks[it.key()]:
-			mark = ui.S(p.Ac, ui.G.On+"  ")
+		case marked:
+			box = ui.S(p.Ac, ui.G.On+"  ")
+		case it.Installed && !inst:
+			box = ui.S(p.Ok, ui.G.Tick+"  ")
 		default:
-			mark = ui.S(p.Mu, ui.G.Off+"  ")
+			box = ui.S(p.Mu, ui.G.Off+"  ")
 		}
 		src := p.Ac
 		if it.Source == "nix" {
 			src = p.Ac2
 		}
 		ver := shortVersion(it.Version)
-		right := []ui.Seg{ui.S(src, srcName(it.Source))}
-		if u, ok := s.updateFor(env, it); ok && s.busy[it.key()] == "" {
-			right = append([]ui.Seg{ui.S(p.Warn, ui.G.Up+" "+u.Latest+"  ")}, right...)
+		// a la derecha, en una sola columna, el estado: lo que está pasando o si está al día
+		var status ui.Seg
+		u, hasUpd := s.updateFor(env, it)
+		switch st := s.busy[it.key()]; {
+		case st != "":
+			box = ui.S(p.Warn, ui.G.Off+"  ")
+			status = ui.S(p.Warn, map[string]string{"queued": "queued", "installing": "installing…", "removing": "removing…", "updating": "updating…"}[st])
+		case inst && hasUpd:
+			status = ui.S(p.Warn.Bold(true), ui.G.Up+" "+u.Latest+" available")
+		case inst && env.Data.UpdatesKnown:
+			status = ui.S(p.Ok, ui.G.Tick+" up to date")
+		case inst && env.Data.Err["appupdates"] != nil:
+			status = ui.S(p.Mu, "could not check")
+		case inst:
+			status = ui.S(p.Mu, "checking…")
+		case it.Installed:
+			status = ui.S(p.Ok, "installed")
+		default:
+			status = ui.S(p.Mu, ver)
 		}
-		if st := s.busy[it.key()]; st != "" {
-			mark = ui.S(p.Warn, ui.G.Off+"  ")
-			right = append([]ui.Seg{ui.S(p.Warn, map[string]string{"queued": "queued  ", "installing": "installing…  ", "removing": "removing…  ", "updating": "updating…  "}[st])}, right...)
+		var second []ui.Seg
+		if inst {
+			// lo instalado se explica solo: de dónde viene y qué versión tiene
+			txt := srcName(it.Source)
+			if ver != "" {
+				txt += " · " + ver
+			}
+			if hasUpd && u.Current != "" {
+				txt = srcName(it.Source) + " · " + u.Current + " " + ui.G.Arrow + " " + u.Latest
+			}
+			second = []ui.Seg{ui.S(p.Mu, "     "), ui.S(src, txt)}
+		} else {
+			desc := it.Desc
+			if desc == "" {
+				desc = it.ID
+			}
+			second = []ui.Seg{ui.S(p.Mu, "     "+desc)}
 		}
-		if ver != "" {
-			right = append(right, ui.S(p.Mu, "  "+ver))
+		right := []ui.Seg{status, ui.Seg{T: " "}}
+		if !inst {
+			right = []ui.Seg{ui.S(src, srcName(it.Source)), ui.S(p.Mu, "  "), status, ui.Seg{T: " "}}
 		}
-		right = append(right, ui.Seg{T: " "})
-		desc := it.Desc
-		if desc == "" {
-			desc = it.ID
+		nameSt := p.Bold
+		if marked {
+			nameSt = p.Ac.Bold(true)
 		}
 		lines = append(lines,
-			ui.Line{L: []ui.Seg{mark, ui.S(p.Bold, it.Name)}, R: right, Sel: sel},
-			ui.Line{L: []ui.Seg{ui.S(p.Mu, "     "+desc)}, Sel: sel},
+			ui.Line{L: []ui.Seg{box, ui.S(nameSt, it.Name)}, R: right, Sel: sel},
+			ui.Line{L: second, Sel: sel},
 			gap())
 	}
 	return lines
@@ -760,14 +981,20 @@ func shortVersion(v string) string {
 func (s *Store) Side(env *core.Env, w, h int) []ui.Line {
 	p := env.P
 	if s.ask != nil {
-		lines := []ui.Line{heading(env, "Its data is still here"), gap(), ui.T(p.Bold, s.ask.Name+" was removed"), gap()}
-		for _, l := range ui.Wrap("These folders were left in your home. They may hold saves and settings.", w) {
+		var total int64
+		for _, e := range s.ask.Entries {
+			total += sumBytes(e.Left)
+		}
+		lines := []ui.Line{heading(env, "Their data is still here"), gap()}
+		for _, l := range ui.Wrap("These folders were left in your home. They may hold saves and settings ("+humanBytes(total)+").", w) {
 			lines = append(lines, plain(env, l))
 		}
-		lines = append(lines, gap())
-		for _, lo := range s.ask.Left {
-			for _, l := range ui.Wrap(strings.Replace(lo.Path, os.Getenv("HOME"), "~", 1)+"  "+humanBytes(lo.Bytes), w) {
-				lines = append(lines, ui.T(p.Warn, l))
+		for _, e := range s.ask.Entries {
+			lines = append(lines, gap(), ui.T(p.Bold, e.Name))
+			for _, lo := range e.Left {
+				for _, l := range ui.Wrap(strings.Replace(lo.Path, os.Getenv("HOME"), "~", 1)+"  "+humanBytes(lo.Bytes), w) {
+					lines = append(lines, ui.T(p.Warn, l))
+				}
 			}
 		}
 		return append(lines, gap(), ui.Of(button(env, true, "Delete data  y"), space(1), button(env, false, "Keep  n")))
@@ -776,8 +1003,40 @@ func (s *Store) Side(env *core.Env, w, h int) []ui.Line {
 		return s.menuLines(env, w)
 	}
 	its := s.items(env)
+	inst := s.installedView()
+	// con apps marcadas, el panel es el de las acciones en bloque
+	if n := s.markedCount(its); n > 0 {
+		lines := []ui.Line{heading(env, fmt.Sprintf("%d selected", n)), gap()}
+		shown := 0
+		upd := 0
+		for _, it := range its {
+			if !(s.marks[it.key()] && it.Installed == inst) {
+				continue
+			}
+			if _, ok := s.updateFor(env, it); ok {
+				upd++
+			}
+			if shown < 6 {
+				lines = append(lines, plain(env, it.Name))
+				shown++
+			}
+		}
+		if n > shown {
+			lines = append(lines, muted(env, fmt.Sprintf("and %d more", n-shown)))
+		}
+		lines = append(lines, gap())
+		if inst {
+			if upd > 0 {
+				lines = append(lines, ui.Of(button(env, true, fmt.Sprintf("Update %d  u", upd))))
+			}
+			lines = append(lines, ui.Of(button(env, upd == 0, fmt.Sprintf("Remove %d  r", n))), ui.Of(button(env, false, "More…  ⏎")))
+		} else {
+			lines = append(lines, ui.Of(button(env, true, fmt.Sprintf("Install %d  ⏎", n))))
+		}
+		return append(lines, ui.Of(button(env, false, "Clear  esc")))
+	}
 	if len(its) == 0 || s.list.sel >= len(its) {
-		return []ui.Line{heading(env, "Details"), gap(), muted(env, "Search with /"), gap(), muted(env, "Mark several with space"), muted(env, "and install them together.")}
+		return []ui.Line{heading(env, "Details"), gap(), muted(env, "Search with /"), gap(), muted(env, "Mark several with space"), muted(env, "and act on them together.")}
 	}
 	it := its[s.list.sel]
 	lines := []ui.Line{heading(env, "Details"), gap(), ui.T(p.Bold, it.Name), muted(env, it.ID), gap()}
@@ -797,23 +1056,25 @@ func (s *Store) Side(env *core.Env, w, h int) []ui.Line {
 		lines = append(lines, ui.Of(ui.S(p.Warn, ui.G.Warn+" "+s.busy[it.key()]+"… please wait")))
 	case it.Installed:
 		if u, ok := s.updateFor(env, it); ok {
-			lines = append(lines, ui.T(p.Warn, ui.G.Up+" new version "+u.Latest), gap())
+			lines = append(lines, ui.T(p.Warn.Bold(true), ui.G.Up+" new version "+u.Latest), gap(), ui.Of(button(env, true, "Update  u"), space(1), button(env, false, "More…  ⏎")))
+		} else if env.Data.UpdatesKnown {
+			lines = append(lines, ui.T(p.Ok, ui.G.Tick+" up to date"), gap(), ui.Of(button(env, true, "Actions  ⏎")))
+		} else {
+			lines = append(lines, ui.Of(button(env, true, "Actions  ⏎")))
 		}
-		lines = append(lines, ui.Of(ui.S(p.Ok, ui.G.Tick+" installed  "), button(env, true, "Actions  ⏎")), gap(), muted(env, "Open it, update it or remove it."))
-	case s.marks[it.key()]:
-		lines = append(lines, ui.Of(button(env, true, "Install  ⏎"), space(1), ui.S(p.Mu, "marked")))
+		lines = append(lines, gap(), muted(env, "Open it, update it or remove it."))
 	default:
-		lines = append(lines, ui.Of(button(env, true, "Install  ⏎"), space(1), button(env, false, "Mark  space")))
+		lines = append(lines, ui.Of(button(env, true, "Install  ⏎"), space(1), button(env, false, "Select  space")))
 	}
-	if n := len(s.marks); n > 0 {
-		lines = append(lines, gap(), muted(env, fmt.Sprintf("%d marked · ⏎ installs them all", n)))
+	if n := len(env.Data.AppUpdates); inst && n > 0 {
+		lines = append(lines, gap(), ui.T(p.Warn, fmt.Sprintf("%s %s can be updated", ui.G.Up, plural(n, "app", "apps"))), ui.Of(button(env, false, "Update all  U")))
 	}
 	return lines
 }
 
 func (s *Store) Hints(env *core.Env) []ui.Hint {
 	if s.ask != nil && s.zone != zSearch {
-		return []ui.Hint{{Key: "y", Action: "delete its data"}, {Key: "n", Action: "keep it"}}
+		return []ui.Hint{{Key: "y", Action: "delete their data"}, {Key: "n", Action: "keep it"}}
 	}
 	switch s.zone {
 	case zSearch:
@@ -827,7 +1088,10 @@ func (s *Store) Hints(env *core.Env) []ui.Hint {
 		}
 		return []ui.Hint{{Key: "↑↓", Action: "choose"}, {Key: "⏎", Action: "do it"}, {Key: "esc", Action: "close"}}
 	}
-	return []ui.Hint{{Key: "↑", Action: "search"}, {Key: "space", Action: "mark"}, {Key: "⏎", Action: "install or manage"}, {Key: "/", Action: "search"}}
+	if s.installedView() {
+		return []ui.Hint{{Key: "space", Action: "select"}, {Key: "a", Action: "all"}, {Key: "u", Action: "update"}, {Key: "r", Action: "remove"}, {Key: "⏎", Action: "more"}}
+	}
+	return []ui.Hint{{Key: "↑", Action: "search"}, {Key: "space", Action: "select"}, {Key: "a", Action: "all"}, {Key: "⏎", Action: "install"}}
 }
 
 func (s *Store) Click(env *core.Env, x, y int) tea.Cmd {
@@ -848,6 +1112,15 @@ func (s *Store) Click(env *core.Env, x, y int) tea.Cmd {
 		i := s.list.top + (y-storeHeader)/storeItemH
 		if i >= 0 && i < len(its) {
 			s.list.sel = i
+			// un clic en la casilla marca la app
+			if x < 5 && its[i].Installed == s.installedView() {
+				k := its[i].key()
+				if s.marks[k] {
+					delete(s.marks, k)
+				} else {
+					s.marks[k] = true
+				}
+			}
 		}
 	}
 	return nil

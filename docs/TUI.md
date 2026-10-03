@@ -37,7 +37,8 @@ La pantalla **no reimplementa nada**: llama a la CLI y lee su JSON (el contrato 
 | `↑` `↓`, `j` `k` | Mover (también `g`/`G` principio y fin, `Ctrl-u`/`Ctrl-d` media página) |
 | `←` `→`, `h` `l`, `[` `]`, `Tab`, `Shift-Tab`, `1` … `6` | Cambiar de pestaña (en el asistente y dentro de un campo de texto no cambian) |
 | `⏎` | Elegir o ejecutar |
-| `espacio` | Marcar (Tienda y Setup) |
+| `espacio` | Marcar (Tienda: casillas en Installed y en los resultados; Setup) |
+| `a`, `u`, `U`, `r` | Tienda, con apps instaladas: marcar todas, actualizar las marcadas, actualizar todas, quitar las marcadas |
 | `r` / `c` | Update: repetir el escaneo / buscar versiones nuevas. Doctor: comprobar otra vez |
 | `/` o `↑` | Buscar (Tienda). Con `↑` y `↓` se recorren la caja, las pestañas Results/Installed/origen y la lista; `←` `→` cambian de pestaña dentro de la Tienda |
 | `:` | **Paleta de comandos**: escribe `go store`, `theme alba`, `search brave`, `update check`… |

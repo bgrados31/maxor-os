@@ -240,6 +240,7 @@ cmd_install() {
     [ "$ok" = true ] || rc=1
     results="$(jq -c --arg id "$id" --arg s "$s" --argjson ok "$ok" '. + [{id: $id, source: $s, ok: $ok}]' <<< "$results")"
   done
+  app_refresh_launcher
   [ "$json" = 1 ] && printf '%s\n' "$results"
   return "$rc"
 }
@@ -261,6 +262,18 @@ app_lock() {
   mkdir -p "$state" 2> /dev/null || return 0
   exec 9> "$state/apps.lock"
   flock -w 600 9 || true
+}
+
+# El lanzador de apps (Super+Espacio) se entera de las apps nuevas, pero no de las que
+# se quitan: el perfil de nix cambia de carpeta y su vigilancia sigue mirando la vieja.
+# Crear y borrar un archivo en la carpeta de aplicaciones del usuario le hace releer todo.
+app_refresh_launcher() {
+  local d="${XDG_DATA_HOME:-$HOME/.local/share}/applications" f
+  mkdir -p "$d" 2> /dev/null || return 0
+  f="$d/.maxor-refresh"
+  : > "$f" 2> /dev/null || return 0
+  sleep 0.3
+  rm -f "$f"
 }
 
 # Tamaño legible de un número de bytes.
@@ -375,6 +388,7 @@ cmd_remove() {
     results="$(jq -c --arg id "$id" --arg s "$s" --argjson ok "$ok" --argjson left "$left" --argjson purged "$purged" \
       '. + [{id: $id, source: $s, ok: $ok, purged: $purged, leftovers: (if $purged then [] else $left end)}]' <<< "$results")"
   done
+  app_refresh_launcher
   [ "$json" = 1 ] && printf '%s\n' "$results"
   return "$rc"
 }
@@ -512,6 +526,7 @@ cmd_apps() {
           esac
           uresults="$(jq -c --arg id "$u" --arg s "$us" --argjson ok "$uok" '. + [{id: $id, source: $s, ok: $ok}]' <<< "$uresults")"
         done
+        app_refresh_launcher
         [ "$json" = 1 ] && printf '%s\n' "$uresults"
         jq -e 'all(.[]; .ok)' <<< "$uresults" > /dev/null
         return $?
@@ -521,6 +536,7 @@ cmd_apps() {
       ui_intro @apps.upd_title
       ui_run @apps.upd_nix app_nix profile upgrade --all || true
       ui_run @apps.upd_flatpak flatpak update --user -y --noninteractive || true
+      app_refresh_launcher
       ui_outro @apps.up_to_date
       echo
       ;;

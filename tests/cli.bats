@@ -290,3 +290,11 @@ setup() {
   [ "$status" = 0 ]
   echo "$output" | jq -e 'type == "array"'
 }
+
+@test "remove avisa al lanzador de apps y no deja su archivo de aviso" {
+  mkdir -p "$HOME/.local/share/Fooapp"
+  run "$MAXOR_BIN" remove fooapp --purge --json
+  [ "$status" = 0 ]
+  [ -d "$HOME/.local/share/applications" ]
+  [ ! -e "$HOME/.local/share/applications/.maxor-refresh" ]
+}
