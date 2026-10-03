@@ -5,7 +5,7 @@
 #   settings.lua   apariencia, entrada y animaciones
 #   rules.lua      reglas de ventana y de capa
 #   binds.lua      atajos
-#   theme.lua      forma del tema activo (la genera `maxor theme apply`)
+#   theme.lua      forma del tema activo; se carga después de DMS para no ser pisada
 #   user.lua       tuyo: se carga el último y el sistema nunca lo pisa
 #
 # Los cuatro primeros son de solo lectura (vienen de este repo). Los colores,
@@ -24,7 +24,6 @@
       require("maxor.settings")
       require("maxor.rules")
       require("maxor.binds")
-      require("maxor.theme")
 
       -- Archivos gestionados por DMS (colores del tema, monitores, etc.)
       require("dms.colors")
@@ -33,6 +32,9 @@
       require("dms.cursor")
       require("dms.binds-user")
       require("dms.windowrules")
+
+      -- La forma del tema va después de DMS: DMS genera su propio layout y lo pisaría
+      require("maxor.theme")
 
       -- Tu configuración personal, al final para poder sobrescribir todo
       require("maxor.user")

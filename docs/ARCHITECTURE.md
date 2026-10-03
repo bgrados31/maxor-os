@@ -108,9 +108,10 @@ la [fase 2](ROADMAP.md).
 
 `hyprland.lua` solo carga módulos, en este orden:
 
-1. `maxor.settings`, `maxor.rules`, `maxor.binds`, `maxor.theme`: de solo lectura. El último carga la forma que `maxor theme apply` genera para el tema activo.
-2. `dms.*`: colores del tema, monitores, cursor y reglas que gestiona DankMaterialShell.
-3. `maxor.user`: **tuyo**. Se crea una sola vez desde `user.lua.example`, se carga el último y el
+1. `maxor.settings`, `maxor.rules`, `maxor.binds`: de solo lectura, vienen de este repositorio.
+2. `dms.*`: colores del tema, monitores, cursor, reglas y **layout** (esquinas y espacios) que gestiona DankMaterialShell.
+3. `maxor.theme`: la forma del tema activo. Va después de DMS a propósito: el layout de DMS fija sus propias esquinas y espacios, y si este módulo cargara antes, DMS lo pisaría.
+4. `maxor.user`: **tuyo**. Se crea una sola vez desde `user.lua.example`, se carga el último y el
    sistema nunca lo modifica, así que lo que pongas ahí sobrescribe todo lo anterior.
 
 Los monitores los gestiona DMS (`dms.outputs`); por eso no hay un `monitors.lua` propio.

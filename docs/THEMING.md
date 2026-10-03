@@ -43,7 +43,8 @@ fondo, y entre el acento y su texto.
    `~/.config/maxor/current/hyprlock.conf`. En temas claros el fondo desenfocado se aclara para
    que el texto oscuro se lea.
 4. **Forma**: si el tema trae `style.json`, se genera `~/.config/maxor/current/hyprland.lua` y se
-   recarga Hyprland (esquinas, espacios, desenfoque y velocidad de las animaciones).
+   recarga Hyprland (esquinas, espacios, desenfoque y velocidad de las animaciones). Esta forma se
+   carga después de la de DMS, que genera su propio layout y de otro modo la pisaría.
 5. **Wallpaper**: si el tema trae `wallpaper.png`, se aplica con DMS.
 6. **kitty**: recibe `SIGUSR1` para releer su configuración.
 
@@ -157,7 +158,7 @@ Un tema solo aporta datos. `maxor theme install` y `apply`:
   rutas absolutas o con `..`;
 - no ejecutan ningún archivo del tema;
 - solo escriben en `~/.local/share/maxor/themes/`, `~/.config/maxor/current/`,
-  `~/.local/state/maxor/` y dos claves de `settings.json` de DMS.
+  `~/.local/state/maxor/` y dos claves de `settings.json` de DMS (tema y archivo del tema).
 
 ## Añadir un tema oficial
 
