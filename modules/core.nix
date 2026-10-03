@@ -6,8 +6,11 @@
   # ── Nix ─────────────────────────────────────────────────────────────
   nix.settings = {
     experimental-features = [ "nix-command" "flakes" ];
-    auto-optimise-store = true;
+    warn-dirty = false;
+    connect-timeout = 5;
+    download-buffer-size = 268435456; # 256 MB: descargas de cache más rápidas
   };
+  nix.optimise.automatic = true; # deduplica en segundo plano (auto-optimise-store frena cada build)
   nix.gc = {
     automatic = true;
     dates = "weekly";
@@ -18,6 +21,12 @@
 
   # ── Sistema ─────────────────────────────────────────────────────────
   zramSwap.enable = true; # swap comprimido en RAM
+  boot.kernel.sysctl."vm.swappiness" = 150; # con zram conviene usarlo antes que el disco
+  services.fstrim.enable = true; # TRIM semanal del NVMe
+  services.journald.extraConfig = "SystemMaxUse=200M";
+  documentation.nixos.enable = false; # no generar el manual de opciones en cada rebuild
+  services.power-profiles-daemon.enable = true; # perfiles ahorro/equilibrado/rendimiento (DMS los muestra)
+  services.thermald.enable = true; # control térmico Intel
   networking.networkmanager.enable = true;
   programs.fish.enable = true;
 
