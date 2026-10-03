@@ -61,3 +61,13 @@ catalog_keys() { grep -ohE 'MSG\[[a-z0-9_.]+\]' "$SRC/lib/lang/en.sh" | sed 's/M
   msg out "100% listo"
   [ "$out" = "100% listo" ]
 }
+
+@test "la ayuda de los comandos principales trae ejemplos que empiezan por maxor" {
+  load_lib
+  local c
+  for c in theme search install remove apps update rollback doctor hardware profile ui backup restore logs; do
+    [[ "${MSG[help.$c]}" == *"Examples:"* ]] || { echo "help.$c sin ejemplos"; false; }
+    # cada ejemplo es una línea con sangría que empieza por «maxor»
+    [[ "${MSG[help.$c]}" == *$'\n    maxor'* ]] || { echo "help.$c: ejemplos mal formados"; false; }
+  done
+}
