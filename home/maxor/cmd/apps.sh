@@ -37,35 +37,16 @@ app_step() {
 # Relevancia de un resultado: 0 exacto, 1 empieza por, 2 contiene, 3 solo en la descripción.
 app_rank='def rank($q): ($q | ascii_downcase) as $x | (.id | split(".") | last | ascii_downcase) as $i | ((.name // "") | ascii_downcase) as $n | if $i == $x or $n == $x then 0 elif ($i | startswith($x)) or ($n | startswith($x)) then 1 elif ($i | contains($x)) or ($n | contains($x)) then 2 else 3 end; '
 
-# Barra de progreso: indeterminada (un pulso que corre) o llena si ya terminó.
-app_bar() { # app_bar paso terminado
-  local i="$1" done_="$2" w=18 k out=""
-  for ((k = 0; k < w; k++)); do
-    if [ "$done_" = 1 ]; then
-      out+="$E_OK▰"
-    elif (((k - i % (w + 4) + w + 4) % (w + 4) < 4)); then
-      out+="$E_AC▰"
-    else
-      out+="$E_MU▱"
-    fi
-  done
-  printf '%s%s' "$out" "$E_FG"
-}
-
+# La búsqueda en paralelo habla el mismo idioma que ui_run: spinner por origen y,
+# al terminar, el mismo «◇» de cualquier paso hecho.
 app_search_frame() { # consulta paso listo_nix listo_flatpak
-  local q="$1" i="$2" d1="$3" d2="$4" st1 st2
-  local w_done w_busy
-  msg w_done @search.done; msg w_busy @search.searching
-  if [ "$d1" = 1 ]; then st1="${E_OK}${w_done}${E_FG}"; else st1="${E_MU}${w_busy}${E_FG}"; fi
-  if [ "$d2" = 1 ]; then st2="${E_OK}${w_done}${E_FG}"; else st2="${E_MU}${w_busy}${E_FG}"; fi
-  ui_open @search.title
-  ui_line ""
-  ui_line " $(ui_c "$E_AC" "⌕")  ${E_BOLD}${q}${E_NB}$(ui_c "$E_AC" "▏")"
-  ui_line ""
-  ui_line " $(ui_c "$E_MU" "nixpkgs")  $(app_bar "$i" "$d1")  $st1"
-  ui_line " $(ui_c "$E_MU" "flathub")  $(app_bar "$i" "$d2")  $st2"
-  ui_line ""
-  ui_close
+  local i="$2" d1="$3" d2="$4" sp w_done l1 l2
+  sp="${UI_SPIN[i % ${#UI_SPIN[@]}]}"
+  msg w_done @search.done
+  msg l1 @search.searching_in nixpkgs
+  msg l2 @search.searching_in Flathub
+  if [ "$d1" = 1 ]; then printf '%s%s%s  nixpkgs  %s%s%s\n' "$E_OK" "$G_OK" "$E_RST" "$E_MU" "$w_done" "$E_RST"; else printf '%s%s%s  %s\n' "$E_AC" "$sp" "$E_RST" "$l1"; fi
+  if [ "$d2" = 1 ]; then printf '%s%s%s  flathub  %s%s%s\n' "$E_OK" "$G_OK" "$E_RST" "$E_MU" "$w_done" "$E_RST"; else printf '%s%s%s  %s\n' "$E_AC" "$sp" "$E_RST" "$l2"; fi
 }
 
 # Busca en los dos orígenes a la vez. Deja en SEARCH_ALL un JSON ordenado por
@@ -147,32 +128,32 @@ app_pick_frame() {
   up=$from
   down=$((n - to))
 
-  ui_open @search.title
-  ui_line ""
+  ui_intro @search.title
+  ui_text ""
   msg info @search.results "$n"
   if [ "$inter" = 1 ] && [ "$marked" -gt 0 ]; then msg info @search.results_marked "$n" "$marked"; fi
-  ui_split " ${E_AC}⌕${E_FG}  ${E_BOLD}${q}${E_NB}" "${E_MU}${info}${E_FG} "
+  ui_split " ${E_AC}${G_FIND}${E_RST}  ${E_BOLD}${q}${E_NB}" "${E_MU}${info}${E_RST} "
   local nn
-  if [ "$inter" = 1 ] && [ "$up" -gt 0 ]; then msg nn @search.up "$up"; ui_line " ${E_MU}   ${nn}${E_FG}"; else ui_line ""; fi
+  if [ "$inter" = 1 ] && [ "$up" -gt 0 ]; then msg nn @search.up "$up"; ui_text " ${E_MU}   ${nn}${E_RST}"; else ui_text ""; fi
 
   local tag mark box name idp desc room
   for ((k = from; k < to; k++)); do
-    if [ "$inter" = 1 ] && [ "$k" = "$cur" ]; then mark="${E_AC}❯${E_FG}"; else mark=" "; fi
+    if [ "$inter" = 1 ] && [ "$k" = "$cur" ]; then mark="${E_AC}${G_SEL}${E_RST}"; else mark=" "; fi
     if [ "${P_INST[k]}" = 1 ]; then
-      box="${E_OK}✓${E_FG}"
+      box="${E_OK}${G_TICK}${E_RST}"
     elif [ "${P_SEL[k]:-0}" = 1 ]; then
-      box="${E_AC}◼${E_FG}"
+      box="${E_AC}${G_ON}${E_RST}"
     elif [ "$inter" = 1 ]; then
-      box="${E_MU}◻${E_FG}"
+      box="${E_MU}${G_OFF}${E_RST}"
     else
-      box="${E_MU}·${E_FG}"
+      box="${E_MU}${G_INFO}${E_RST}"
     fi
     if [ "${P_INST[k]}" = 1 ]; then
-      tag="${E_OK}instalada${E_FG}"
+      msg tag @search.installed; tag="${E_OK}${tag}${E_RST}"
     elif [ "${P_SRC[k]}" = nix ]; then
-      tag="${E_AC2}nixpkgs${E_FG}"
+      tag="${E_AC2}nixpkgs${E_RST}"
     else
-      tag="${E_AC}flathub${E_FG}"
+      tag="${E_AC}flathub${E_RST}"
     fi
     ui_truncv name "${P_NAME[k]}" $((ui_w - 24))
     if [ "$inter" = 1 ] && [ "$k" = "$cur" ]; then name="${E_BOLD}${name}${E_NB}"; fi
@@ -182,17 +163,17 @@ app_pick_frame() {
     room=$((ui_w - 15 - ${#idp}))
     [ "$room" -lt 0 ] && room=0
     ui_truncv desc "${P_DESC[k]}" "$room"
-    ui_line "      ${E_MU}id${E_FG} ${E_AC}${idp}${E_FG}  ${E_MU}${desc}${E_FG}"
+    ui_text "      ${E_MU}id${E_RST} ${E_AC}${idp}${E_RST}  ${E_MU}${desc}${E_RST}"
   done
 
-  if [ "$inter" = 1 ] && [ "$down" -gt 0 ]; then msg nn @search.down "$down"; ui_line " ${E_MU}   ${nn}${E_FG}"; else ui_line ""; fi
+  if [ "$inter" = 1 ] && [ "$down" -gt 0 ]; then msg nn @search.down "$down"; ui_text " ${E_MU}   ${nn}${E_RST}"; else ui_text ""; fi
   if [ "$inter" = 1 ]; then
     ui_hints "↑↓:@search.k_move" "space:@search.k_mark" "⏎:@search.k_install" "q:@search.k_quit"
   else
     msg nn @search.install_hint
-    ui_line " ${E_MU}${nn}${E_FG} ${E_AC}maxor install <id>${E_FG}"
+    ui_text " ${E_MU}${nn}${E_RST} ${E_AC}maxor install <id>${E_RST}"
   fi
-  ui_close
+  ui_outro
 }
 
 # Mueve el cursor de la lista y mantiene visible la fila resaltada.
@@ -301,7 +282,7 @@ cmd_search() {
     local ans
     local pr
     msg pr @search.prompt
-    printf '\n %s⌕%s  %s%s%s ' "$E_AC" "$E_RST" "$E_BOLD" "$pr" "$E_RST"
+    printf '\n%s%s%s  %s%s%s ' "$E_AC" "$G_FIND" "$E_RST" "$E_BOLD" "$pr" "$E_RST"
     read -r ans
     [ -n "$ans" ] || return 0
     read -r -a q <<< "$ans"
@@ -462,25 +443,9 @@ app_list_json() {
 
 # Carga la lista de apps; en una terminal con color muestra un esqueleto
 # parpadeando mientras llega, y la lista lo sustituye sin que la pantalla salte.
-app_list_load() { # → APPS_ALL
-  if ! ui_anim; then APPS_ALL="$(app_list_json)"; return 0; fi
-  local tmp pid i=0 frame prev=0
-  tmp="$(mktemp)"
-  app_list_json > "$tmp" &
-  pid=$!
-  printf '\e[?25l'
-  while kill -0 "$pid" 2> /dev/null; do
-    frame="$(ui_skeleton_frame @apps.title 3 "$i")"
-    ui_paint "$frame" "$prev"
-    ui_count_lines "$frame"; prev=$UI_LINES
-    i=$((i + 1))
-    sleep 0.1
-  done
-  wait "$pid" || true
-  if [ "$prev" -gt 0 ]; then printf '\e[%dA\e[J' "$prev"; fi
-  printf '\e[?25h'
-  APPS_ALL="$(cat "$tmp")"
-  rm -f "$tmp"
+app_list_load() { # → APPS_ALL (con el cargador único; la línea de resultado queda en el riel)
+  ui_run @apps.loading app_list_json
+  APPS_ALL="$UI_OUT"
 }
 
 cmd_apps() {
@@ -495,29 +460,30 @@ cmd_apps() {
         app_list_json
         return 0
       fi
+      echo
+      ui_intro @apps.title
       app_list_load
       all="$APPS_ALL"
-      echo
-      ui_open @apps.title
-      ui_line ""
+      ui_section @apps.sec_installed
       if [ "$(jq 'length' <<< "$all")" = 0 ]; then
         ui_row info @apps.empty
       else
         while IFS=$'\t' read -r src id ver; do
           ui_split " $(ui_c "$E_MU" "·")  $id" "$(ui_c "$E_AC2" "$src") "
-          if [ -n "$ver" ]; then msg vtxt @apps.version "$ver"; ui_line "      ${E_MU}${vtxt}${E_FG}"; fi
+          if [ -n "$ver" ]; then msg vtxt @apps.version "$ver"; ui_text "      ${E_MU}${vtxt}${E_RST}"; fi
         done < <(jq -r '.[] | [.source, .id, .version] | @tsv' <<< "$all")
       fi
-      ui_line ""
-      ui_close
+      ui_outro
       echo
       ;;
     update)
       [ "$json" = 1 ] && die_code "$EX_USAGE" @apps.no_json
       echo
+      ui_intro @apps.upd_title
       ui_run @apps.upd_nix app_nix profile upgrade --all || true
       ui_run @apps.upd_flatpak flatpak update --user -y --noninteractive || true
-      ui_say ok @apps.up_to_date
+      ui_outro @apps.up_to_date
+      echo
       ;;
     *) usage_error apps ;;
   esac

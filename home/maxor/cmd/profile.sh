@@ -30,17 +30,16 @@ profile_list() {
     return 0
   fi
   echo
-  ui_open @profile.title "$host"
-  ui_line ""
-  local on id desc
+  ui_intro @profile.title "$host"
+  ui_text ""
+  local on id desc hint
   while IFS=$'\t' read -r on id desc; do
     printf -v id '%-9s' "$id"
     if [ "$on" = true ]; then ui_row ok "$id $desc"; else ui_row info "$id $desc"; fi
   done < <(jq -r '.[] | [.enabled, .id, .description] | @tsv' <<< "$all")
-  ui_line ""
-  ui_close
+  msg hint @profile.hint
+  ui_outro "${E_MU}${hint}${E_RST}"
   echo
-  ui_say info @profile.hint
 }
 
 profile_set() { # enable|disable nombre [opciones de update]

@@ -1,60 +1,18 @@
-# ── Componentes: segmentos, diff y errores ───────────────────────────
+# ── Componentes: ayuda de teclas, diff y errores ─────────────────────
 # Piezas reutilizables que cualquier comando puede pedir en lugar de dibujar la
-# suya. Van dentro de una ventana (entre ui_open y ui_close). Las etiquetas
-# aceptan «@clave» (ver i18n.sh).
+# suya. Van dentro del riel (entre ui_intro y ui_outro). Las etiquetas aceptan
+# «@clave» (ver i18n.sh).
 
-# ── Segmentos (estilo de subrayado y puntos) ─────────────────────────
-# ui_tabs ACTIVA etiqueta…       pestañas; la activa (desde 0) lleva subrayado
-ui_tabs() {
-  local act="$1" i=0 lbl ul top="" under=""
-  shift
-  for lbl in "$@"; do
-    msg lbl "$lbl"
-    ui_repv ul "${#lbl}" ' '
-    if [ "$i" = "$act" ]; then
-      ui_repv ul "${#lbl}" '▔'
-      top+="${E_BOLD}${E_AC}${lbl}${E_FG}${E_NB}   "
-      under+="${E_AC}${ul}${E_FG}   "
-    else
-      top+="${E_MU}${lbl}${E_FG}   "
-      under+="${ul}   "
-    fi
-    i=$((i + 1))
-  done
-  ui_line " $top"
-  ui_line " $under"
-}
-
-# ui_status dato…                barra de estado: dato • dato • dato
-ui_status() {
-  local out="" d first=1
-  for d in "$@"; do
-    if [ "$first" = 1 ]; then first=0; else out+=" ${E_AC}•${E_FG} "; fi
-    out+="${E_MU}${d}${E_FG}"
-  done
-  ui_line " $out"
-}
-
-# ui_crumbs nivel…               migas de pan: maxor › temas › brasa (el último destaca)
-ui_crumbs() {
-  local out="" d i=0 n=$#
-  for d in "$@"; do
-    i=$((i + 1))
-    msg d "$d"
-    if [ "$i" = "$n" ]; then out+="${E_BOLD}${d}${E_NB}"; else out+="${E_MU}${d}${E_FG} ${E_AC}›${E_FG} "; fi
-  done
-  ui_line " $out"
-}
-
+# ── Ayuda de teclas ──────────────────────────────────────────────────
 # ui_hints tecla:acción…         ayuda de teclas fija al pie de una pantalla interactiva
 ui_hints() {
   local out="" h k a
   for h in "$@"; do
     k="${h%%:*}"
     msg a "${h#*:}"
-    out+="${E_AC}${k}${E_FG} ${a}   "
+    out+="${E_AC}${k}${E_RST} ${a}   "
   done
-  ui_line " $out"
+  ui_text " $out"
 }
 
 # ── Diff de cambios (salida de `nix store diff-closures`) ────────────
@@ -92,13 +50,13 @@ ui_diff() {
 
   local sum l_new l_upd l_del l_chg chgtxt=""
   msg l_new @diff.new; msg l_upd @diff.updated; msg l_del @diff.removed; msg l_chg @diff.changed
-  if [ "$UI_DIFF_CHG" -gt 0 ]; then chgtxt="   ${E_MU}~${UI_DIFF_CHG} ${l_chg}${E_FG}"; fi
-  ui_line " ${E_OK}+${UI_DIFF_ADD}${E_FG} ${E_MU}${l_new}${E_FG}   ${E_WARN}↑${UI_DIFF_UPD}${E_FG} ${E_MU}${l_upd}${E_FG}   ${E_BAD}−${UI_DIFF_DEL}${E_FG} ${E_MU}${l_del}${E_FG}${chgtxt}"
+  if [ "$UI_DIFF_CHG" -gt 0 ]; then chgtxt="   ${E_MU}${G_CHG}${UI_DIFF_CHG} ${l_chg}${E_RST}"; fi
+  ui_text " ${E_OK}${G_ADD}${UI_DIFF_ADD}${E_RST} ${E_MU}${l_new}${E_RST}   ${E_WARN}${G_UP}${UI_DIFF_UPD}${E_RST} ${E_MU}${l_upd}${E_RST}   ${E_BAD}${G_DEL}${UI_DIFF_DEL}${E_RST} ${E_MU}${l_del}${E_RST}${chgtxt}"
   if [ "$UI_DIFF_CFG" -gt 0 ]; then
     msg sum @diff.config_files "$UI_DIFF_CFG"
-    ui_line " ${E_MU}${sum}${E_FG}"
+    ui_text " ${E_MU}${sum}${E_RST}"
   fi
-  ui_line ""
+  ui_text ""
 
   local shown=0 total=$((UI_DIFF_ADD + UI_DIFF_UPD + UI_DIFF_DEL + UI_DIFF_CHG)) item n v s sym col nm
   local nu=${#upd[@]} na=${#add[@]} nd=${#del[@]}
@@ -106,19 +64,19 @@ ui_diff() {
     [ -n "$item" ] || continue
     if [ "$shown" -ge "$max" ]; then break; fi
     IFS='|' read -r n v s <<< "$item"
-    if [ "$shown" -lt "$nu" ]; then sym="↑"; col="$E_WARN"
-    elif [ "$shown" -lt $((nu + na)) ]; then sym="+"; col="$E_OK"
-    elif [ "$shown" -lt $((nu + na + nd)) ]; then sym="−"; col="$E_BAD"
-    else sym="~"; col="$E_MU"; fi
+    if [ "$shown" -lt "$nu" ]; then sym="$G_UP"; col="$E_WARN"
+    elif [ "$shown" -lt $((nu + na)) ]; then sym="$G_ADD"; col="$E_OK"
+    elif [ "$shown" -lt $((nu + na + nd)) ]; then sym="$G_DEL"; col="$E_BAD"
+    else sym="$G_CHG"; col="$E_MU"; fi
     ui_truncv nm "$n" 26
     printf -v nm '%-26s' "$nm"
     ui_truncv v "$v" $((ui_w - 46))
-    ui_split " ${col}${sym}${E_FG} ${nm} ${E_MU}${v}${E_FG}" "${E_MU}${s}${E_FG} "
+    ui_split " ${col}${sym}${E_RST} ${nm} ${E_MU}${v}${E_RST}" "${E_MU}${s}${E_RST} "
     shown=$((shown + 1))
   done
   if [ "$total" -gt "$shown" ]; then
     msg sum @diff.more "$((total - shown))"
-    ui_line " ${E_MU}${sum}${E_FG}"
+    ui_text " ${E_MU}${sum}${E_RST}"
   fi
   return 0
 }
@@ -135,12 +93,12 @@ ui_error() {
   if [ "${4:-}" = log ]; then msg lbl @ui.details; rows+=("$lbl|maxor logs --last|$E_AC"); fi
   log ERROR "$title${cause:+ · $cause}"
   {
-    printf ' %s✗%s  %s%s%s\n' "$E_BAD" "$E_RST" "$E_BOLD" "$title" "$E_RST"
+    printf '%s%s%s  %s%s%s\n' "$E_BAD" "$G_BAD" "$E_RST" "$E_BOLD" "$title" "$E_RST"
     n=${#rows[@]}
     for ((i = 0; i < n; i++)); do
       IFS='|' read -r lbl txt col <<< "${rows[i]}"
-      glyph="├"; [ "$i" = $((n - 1)) ] && glyph="└"
-      printf '    %s%s%s %s%-8s%s %s%s%s\n' "$E_MU" "$glyph" "$E_RST" "$E_MU" "$lbl" "$E_RST" "${col:-}" "$txt" "$E_RST"
+      glyph="$G_TEE"; [ "$i" = $((n - 1)) ] && glyph="$G_END"
+      printf '   %s%s%s %s%-8s%s %s%s%s\n' "$E_MU" "$glyph" "$E_RST" "$E_MU" "$lbl" "$E_RST" "${col:-}" "$txt" "$E_RST"
     done
   } >&2
   return 0

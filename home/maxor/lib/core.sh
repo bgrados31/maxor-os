@@ -1,4 +1,6 @@
 # ── Núcleo: rutas, errores, registro y flake ─────────────────────────
+# El locale original se guarda antes de forzar C.UTF-8: term.sh lo usa para decidir los glifos.
+MAXOR_ORIG_LOCALE="${LC_ALL:-${LC_CTYPE:-${LANG:-}}}"
 # C.UTF-8 existe siempre en glibc: así ${#var} cuenta caracteres, no bytes.
 export LC_ALL=C.UTF-8
 
@@ -59,7 +61,12 @@ die_code() { # die_code CÓDIGO mensaje|@clave [args…]
   shift
   msg m "$@"
   log ERROR "$m"
-  printf '%s✗%s maxor: %s\n' "$E_BAD" "$E_RST" "$m" >&2
+  if [ "${UI_RAIL:-0}" = 1 ]; then
+    # dentro del riel: se cierra con el error
+    printf '%s%s%s\n%s%s%s  %s%s%s %s\n' "$E_MU" "$G_BAR" "$E_RST" "$E_AC" "$G_END" "$E_RST" "$E_BAD" "$G_BAD" "$E_RST" "$m" >&2
+  else
+    printf '%s%s%s maxor: %s\n' "$E_BAD" "$G_BAD" "$E_RST" "$m" >&2
+  fi
   exit "$c"
 }
 die() { die_code "$EX_FAIL" "$@"; } # die mensaje|@clave [args…]

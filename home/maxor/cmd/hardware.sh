@@ -72,7 +72,7 @@ hw_detect() {
 hw_show() {
   local j="$1" kind virtinfo line
   echo
-  ui_open @hardware.title
+  ui_intro @hardware.title
   ui_section @hardware.sec_machine
   ui_row info "$(jq -r '.cpu.model' <<< "$j")"
   if [ "$(jq -r '.laptop' <<< "$j")" = true ]; then msg kind @hardware.laptop; else msg kind @hardware.desktop; fi
@@ -106,8 +106,8 @@ hw_show() {
   else ui_row ok @hardware.use_mesa; fi
   if [ "$(jq -r '.laptop' <<< "$j")" = true ]; then ui_row ok @hardware.use_laptop; fi
   if [ -n "$virtinfo" ]; then ui_row ok @hardware.use_guest "$virtinfo"; fi
-  ui_line ""
-  ui_close
+  ui_text ""
+  ui_outro
   echo
 }
 

@@ -67,21 +67,7 @@ DIFF=$'firefox: 149.0 → 150.0, +12.3 MiB\nearlyoom: ∅ → 1.9.0, 52.3 KiB\nf
   grep -q "Disk exploded" "$logfile"
 }
 
-@test "ui_tabs subraya solo la pestaña activa" {
-  load_lib
-  out="$(ui_tabs 1 Apps Themes Extras)"
-  [[ "$out" == *"Apps"*"Themes"*"Extras"* ]]
-  under="$(sed -n '2p' <<< "$out")"
-  [ "$(grep -o '▔' <<< "$under" | wc -l)" = 6 ]
-}
-
-@test "ui_status separa con puntos y ui_crumbs resalta el último" {
-  load_lib
-  [[ "$(ui_status nitro sakura "gen 42")" == *"nitro"*"•"*"sakura"*"•"*"gen 42"* ]]
-  [[ "$(ui_crumbs maxor help theme)" == *"maxor"*"›"*"help"*"›"*"theme"* ]]
-}
-
 @test "ui_hints separa tecla y acción" {
   load_lib
-  [[ "$(ui_hints "q:quit" "⏎:go")" == *"q quit"*"⏎ go"* ]]
+  [[ "$(ui_hints "q:quit" "⏎:go" | strip_ansi)" == *"q quit"*"⏎ go"* ]]
 }

@@ -8,7 +8,7 @@ cmd_doctor() {
   bad() { ui_row bad "$@"; fails=$((fails + 1)); }
 
   echo
-  ui_open @doctor.title "$host"
+  ui_intro @doctor.title "$host"
 
   ui_section @doctor.sec_system
   ok "$(os_pretty) · kernel $(uname -r)"
@@ -67,14 +67,13 @@ cmd_doctor() {
   if [ "${use:-0}" -ge 90 ]; then warn @doctor.root "$use"; else ok @doctor.root "$use"; fi
 
   ui_section @doctor.sec_identity
-  local f fams cur="-"
+  local f fams
   fams="$(fc-list : family 2> /dev/null || true)"
   for f in "Figtree" "Red Hat Mono" "Krona One"; do
     if grep -q -i -F "$f" <<< "$fams"; then ok @doctor.font_ok "$f"; else warn @doctor.font_warn "$f"; fi
   done
   if [ -f "$state/current" ]; then
-    cur="$(cat "$state/current")"
-    ok @doctor.theme_ok "$cur"
+    ok @doctor.theme_ok "$(cat "$state/current")"
     if [ -f "$cfg/current/dms-theme.json" ]; then ok @doctor.dms_ok; else warn @doctor.dms_warn; fi
   else
     warn @doctor.theme_none
@@ -102,20 +101,18 @@ cmd_doctor() {
     warn @doctor.hw_missing
   fi
 
-  ui_line ""
-  ui_status "$host" "theme $cur" "kernel $(uname -r)"
-  ui_close
-  echo
-  local pill txt
+  local txt
   if [ "$fails" -gt 0 ]; then
-    msg pill @doctor.pill_bad; msg txt @doctor.sum_bad "$fails" "$warns"
-    printf ' %s  %s\n' "$(ui_pill bad "$pill")" "$txt"
+    msg txt @doctor.sum_bad "$fails" "$warns"
+    ui_outro "${E_BAD}${txt}${E_RST}"
+    echo
     return 1
   elif [ "$warns" -gt 0 ]; then
-    msg pill @doctor.pill_warn; msg txt @doctor.sum_warn "$warns"
-    printf ' %s  %s\n' "$(ui_pill warn "$pill")" "$txt"
+    msg txt @doctor.sum_warn "$warns"
+    ui_outro "${E_WARN}${txt}${E_RST}"
   else
-    msg pill @doctor.pill_ok; msg txt @doctor.sum_ok
-    printf ' %s  %s\n' "$(ui_pill ok "$pill")" "$txt"
+    msg txt @doctor.sum_ok
+    ui_outro "${E_OK}${txt}${E_RST}"
   fi
+  echo
 }

@@ -1,7 +1,7 @@
-# ── Terminal: capacidades, paleta del tema y utilidades de texto ─────
-# Cada comando se dibuja como una ventana con barra de título, pintada con
-# la paleta del tema activo (color de 24 bits). Si la salida no es una
-# terminal, o NO_COLOR está definido, todo se imprime como texto plano.
+# ── Terminal: capacidades, glifos, paleta del tema y utilidades de texto ─
+# La salida es lineal, con un riel vertical y la paleta del tema activo (color
+# de 24 bits). Si la salida no es una terminal, o NO_COLOR está definido, es el
+# mismo texto sin colores ni animación.
 shopt -s extglob # patrones como *([0-9;]) en las expansiones, sin procesos externos
 ui_on=0
 if [ -n "${MAXOR_FORCE_UI:-}" ] || { [ -t 1 ] && [ -z "${NO_COLOR:-}" ] && [ "${TERM:-dumb}" != "dumb" ]; }; then
@@ -11,6 +11,25 @@ fi
 ui_w="${COLUMNS:-$(tput cols 2> /dev/null || echo 80)}"
 [ "$ui_w" -gt 78 ] && ui_w=78
 [ "$ui_w" -lt 50 ] && ui_w=50
+
+# ── Glifos ───────────────────────────────────────────────────────────
+# Unicode, con respaldo ASCII en terminales limitadas (TERM=linux o un locale que
+# no es UTF-8) o con MAXOR_ASCII=1. Un solo vocabulario para toda la CLI.
+ui_ascii=0
+if [ "${MAXOR_ASCII:-0}" = 1 ] || [ "${TERM:-}" = linux ]; then
+  ui_ascii=1
+elif [ -n "$MAXOR_ORIG_LOCALE" ]; then
+  case "${MAXOR_ORIG_LOCALE,,}" in *utf-8* | *utf8*) ;; *) ui_ascii=1 ;; esac
+fi
+if [ "$ui_ascii" = 1 ]; then
+  G_FIND='?' G_TEE='+' G_TOP='+' G_BAR='|' G_END='+' G_OK='o' G_ASK='*' G_TICK='v' G_WARN='!' G_BAD='x' G_INFO='-'
+  G_SEL='>' G_ON='[x]' G_OFF='[ ]' G_DOT='*' G_UP='^' G_ADD='+' G_DEL='-' G_CHG='~' G_BARON='#' G_BAROFF='-'
+  UI_SPIN=('|' '/' '-' "\\")
+else
+  G_FIND='⌕' G_TEE='├' G_TOP='┌' G_BAR='│' G_END='└' G_OK='◇' G_ASK='◆' G_TICK='✓' G_WARN='!' G_BAD='✗' G_INFO='·'
+  G_SEL='❯' G_ON='◼' G_OFF='◻' G_DOT='•' G_UP='↑' G_ADD='+' G_DEL='−' G_CHG='~' G_BARON='▰' G_BAROFF='▱'
+  UI_SPIN=(⠋ ⠙ ⠹ ⠸ ⠼ ⠴ ⠦ ⠧ ⠇ ⠏)
+fi
 
 E_RST="" E_BOLD="" E_NB="" E_FG="" E_MU="" E_AC="" E_AC2="" E_BG="" E_BG2=""
 E_OK="" E_WARN="" E_BAD="" E_BGOK="" E_BGWARN="" E_BGBAD="" E_INK=""
@@ -45,7 +64,7 @@ ui_palette() {
 ui_palette
 
 # Texto con color; al terminar vuelve al color base de la ventana.
-ui_c() { printf '%s%s%s' "$1" "$2" "$E_FG"; }
+ui_c() { printf '%s%s%s' "$1" "$2" "$E_RST"; }
 # Todo lo de abajo se ejecuta sin lanzar procesos (nada de sed, wc ni $(…) en
 # los caminos calientes): una ventana de 30 líneas se pinta en milisegundos.
 # Largo visible: quita las secuencias de color y cuenta caracteres.

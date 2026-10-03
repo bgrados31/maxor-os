@@ -23,13 +23,12 @@ help_window() { # help_window comando
   local body line
   msg body "@help.$1"
   echo
-  ui_open "maxor help $1"
-  ui_crumbs maxor help "$1"
-  ui_line ""
-  while IFS= read -r line; do ui_line " $line"; done <<< "$body"
-  ui_line ""
-  ui_close
-  echo
+  ui_intro "maxor help $1"
+  ui_text ""
+  while IFS= read -r line; do
+    if [ -n "$line" ]; then ui_text " $line"; else ui_text ""; fi
+  done <<< "$body"
+  ui_outro
 }
 
 # Uso incorrecto: muestra la ayuda del comando y sale con EX_USAGE.
@@ -49,14 +48,11 @@ cmd_help() {
 
 # Pantalla principal: los comandos agrupados, con su resumen.
 usage() {
-  local g c title sum cur="-" pretty name pad
+  local g c title sum cur="-" pretty name
   [ -f "$state/current" ] && cur="$(cat "$state/current")"
   pretty="$(os_pretty)"
   echo
-  ui_open maxor
-  ui_line ""
-  ui_line " ${E_BOLD}${E_AC}M A X O R   O S${E_FG}${E_NB}"
-  ui_line " ${E_MU}$pretty${E_FG}"
+  ui_intro "${E_AC}M A X O R${E_RST}  ${E_MU}$pretty · maxor $MAXOR_VERSION${E_RST}"
   for g in "${CMD_GROUPS[@]}"; do
     msg title "@group.$g"
     ui_section "$title"
@@ -65,14 +61,10 @@ usage() {
       msg sum "@cmd.$c"
       printf -v name '%-12s' "$c"
       ui_truncv sum "$sum" $((ui_w - 20))
-      ui_line " ${E_AC}${name}${E_FG}${sum}"
+      ui_text " ${E_AC}${name}${E_RST}${sum}"
     done
   done
-  ui_line ""
-  ui_status "$host" "theme $cur" "maxor $MAXOR_VERSION"
-  ui_line ""
   msg sum @help.footer
-  ui_line " ${E_MU}${sum}${E_FG}"
-  ui_close
+  ui_outro "${E_MU}${sum}${E_RST}"
   echo
 }

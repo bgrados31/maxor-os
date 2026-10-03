@@ -4,46 +4,37 @@ step_one() { echo "one"; }
 step_two() { echo "two"; }
 step_fail() { echo "boom" >&2; return 3; }
 
-@test "ui_pipeline ejecuta los pasos en orden y guarda lo que imprime cada uno" {
+@test "ui_run devuelve la salida en UI_OUT y marca el éxito con ◇" {
   load_lib
-  ui_pipeline "Title" "Step A" step_one "Step B" step_two > /dev/null
-  [ "${UI_OUTS[0]}" = one ]
-  [ "${UI_OUTS[1]}" = two ]
+  run ui_run "Doing it" step_one
+  [ "$status" = 0 ]
+  [[ "$output" == *"◇  Doing it"* ]]
+  ui_run "Doing it" step_two > /dev/null
+  [ "$UI_OUT" = two ]
 }
 
-@test "ui_pipeline se detiene en el primer fallo y devuelve su código" {
+@test "ui_run con fallo conserva el código, muestra la causa y dónde mirar" {
   load_lib
-  run ui_pipeline "Title" "Step A" step_one "Step B" step_fail "Step C" step_two
+  run ui_run "Doing it" step_fail
   [ "$status" = 3 ]
-  [[ "$output" == *"Step A"* ]]
-  [[ "$output" == *"Step B"* ]]
+  [[ "$output" == *"✗  Doing it"* ]]
   [[ "$output" == *"boom"* ]]
-  [[ "$output" != *"Step C"* ]]
+  [[ "$output" == *"maxor logs --last"* ]]
 }
 
 @test "un fallo deja el detalle en el registro" {
   load_lib
-  ui_pipeline "Title" "Step B" step_fail > /dev/null 2>&1 || true
+  ui_run "Doing it" step_fail > /dev/null 2>&1 || true
   [ -s "$logdir/last-error.log" ]
   grep -q boom "$logdir/last-error.log"
   grep -q "exit 3" "$logdir/last-error.log"
 }
 
-@test "ui_run devuelve la salida en UI_OUT y marca el éxito" {
+@test "dentro del riel cada paso va precedido de una línea de riel" {
   load_lib
-  run ui_run "Doing it" step_one
-  [ "$status" = 0 ]
-  [[ "$output" == *"Doing it"* ]]
-  ui_run "Doing it" step_two > /dev/null
-  [ "$UI_OUT" = two ]
-}
-
-@test "ui_run con fallo conserva el código y avisa dónde mirar" {
-  load_lib
-  run ui_run "Doing it" step_fail
-  [ "$status" = 3 ]
-  [[ "$output" == *"boom"* ]]
-  [[ "$output" == *"maxor logs --last"* ]]
+  out="$({ ui_intro "t"; ui_run "One" step_one; ui_run "Two" step_two; ui_outro "end"; } | strip_ansi)"
+  expected=$'┌  t\n│\n◇  One\n│\n◇  Two\n│\n└  end'
+  [ "$out" = "$expected" ] || { echo "$out"; false; }
 }
 
 @test "--quiet calla los éxitos pero no los errores" {
@@ -56,11 +47,13 @@ step_fail() { echo "boom" >&2; return 3; }
   [[ "$output" == *"boom"* ]]
 }
 
-@test "ui_run_tail se comporta como ui_run fuera de una terminal" {
+@test "los pasos en secuencia se hacen con llamadas seguidas y se detienen al fallar" {
   load_lib
-  run ui_run_tail "Building" step_one
-  [ "$status" = 0 ]
-  [[ "$output" == *"Building"* ]]
+  seq() { ui_run "A" step_one && ui_run "B" step_fail && ui_run "C" step_two; }
+  run seq
+  [ "$status" = 3 ]
+  [[ "$output" == *"A"* && "$output" == *"B"* ]]
+  [[ "$output" != *"C"* ]]
 }
 
 @test "ui_progress no dibuja fuera de una terminal y termina con una línea" {
@@ -71,9 +64,7 @@ step_fail() { echo "boom" >&2; return 3; }
   [[ "$output" == *"Copying files"* ]]
 }
 
-@test "ui_skeleton_frame dibuja el número de filas pedido dentro de una ventana" {
-  load_lib color
-  out="$(ui_skeleton_frame "maxor · apps" 3 0 | strip_ansi)"
-  [ "$(grep -c '░' <<< "$out")" = 3 ]
-  [[ "$out" == *"╭"* && "$out" == *"╰"* ]]
+@test "el cargador solo existe una vez: no quedan variantes" {
+  load_lib
+  ! declare -F ui_run_tail ui_pipeline ui_skeleton_frame ui_flat_split > /dev/null
 }

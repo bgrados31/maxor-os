@@ -21,33 +21,91 @@ load helper
   ui_truncv t "abc" 6; [ "$t" = "abc" ]
 }
 
-@test "todas las líneas de una ventana miden lo mismo" {
-  load_lib color
-  out="$({ ui_open "title"; ui_line ""; ui_row ok "row ok"; ui_row bad "a much longer row of text that must be cut to fit the width of the window"; ui_split " left" "right "; ui_section "section"; ui_kv key value; ui_close; } | strip_ansi)"
-  [ -n "$out" ]
-  while IFS= read -r line; do
-    [ "${#line}" = "$ui_w" ] || { echo "ancho ${#line} ≠ $ui_w: '$line'"; false; }
-  done <<< "$out"
-}
-
-@test "las líneas con colores no desalinean el borde" {
-  load_lib color
-  out="$(ui_line " ${E_AC}●${E_FG} texto ${E_OK}✓${E_FG}" | strip_ansi)"
-  [ "${#out}" = "$ui_w" ]
-}
-
-@test "sin color la salida es texto plano, sin bordes" {
+@test "el riel: intro, paso, bloque, fila y cierre" {
   load_lib
-  run ui_row ok "plain"
-  [ "$status" = 0 ]
-  [[ "$output" != *$'\e'* ]]
-  [[ "$output" == *"plain"* ]]
+  out="$({ ui_intro "title"; ui_step ok "a done thing"; ui_section "Block"; ui_row ok "a row"; ui_outro "bye"; } | strip_ansi)"
+  expected=$'┌  title\n│\n◇  a done thing\n│\n◇  Block\n│  ✓ a row\n│\n└  bye'
+  [ "$out" = "$expected" ] || { echo "$out"; false; }
+}
+
+@test "la línea vacía del riel nunca se duplica" {
+  load_lib
+  out="$({ ui_intro "t"; ui_text ""; ui_section "S"; ui_text ""; ui_text ""; ui_outro; } | strip_ansi)"
+  dup="$(awk 'prev=="│" && $0=="│"{print "dup"} {prev=$0}' <<< "$out")"
+  [ -z "$dup" ] || { echo "$out"; false; }
+}
+
+@test "ui_outro sin mensaje no deja espacios al final" {
+  load_lib
+  out="$({ ui_intro "t"; ui_outro; } | strip_ansi)"
+  [[ "$out" == *$'\n└' ]]
+}
+
+@test "con color y sin color es el mismo texto" {
+  load_lib color
+  con="$({ ui_intro "t"; ui_step ok "x"; ui_row warn "y"; ui_outro "z"; } | strip_ansi)"
+  load_lib
+  sin="$({ ui_intro "t"; ui_step ok "x"; ui_row warn "y"; ui_outro "z"; } | strip_ansi)"
+  [ "$con" = "$sin" ]
+}
+
+@test "sin color no hay secuencias de escape" {
+  load_lib
+  out="$({ ui_intro "t"; ui_step ok "x"; ui_row bad "y"; ui_outro "z"; })"
+  [[ "$out" != *$'\e'* ]]
+}
+
+@test "respaldo ASCII: solo caracteres ASCII, con la misma estructura" {
+  export MAXOR_ASCII=1
+  load_lib
+  out="$({ ui_intro "title"; ui_step ok "done"; ui_section "Block"; ui_row ok "row"; ui_outro "bye"; })"
+  ! LC_ALL=C grep -qP '[^\x00-\x7F]' <<< "$out" || { echo "$out"; false; }
+  [[ "$out" == "+  title"* ]]
+  [[ "$out" == *"o  done"* ]]
+  [[ "$out" == *"|  v row"* ]]
+}
+
+@test "un locale que no es UTF-8 activa el respaldo ASCII" {
+  export LANG=C
+  load_lib
+  [ "$ui_ascii" = 1 ]
+  export LANG=es_PE.UTF-8
+  load_lib
+  [ "$ui_ascii" = 0 ]
+}
+
+@test "una fila muy larga se recorta al ancho de la terminal" {
+  load_lib color
+  long="$(printf 'x%.0s' $(seq 1 200))"
+  out="$(ui_row ok "$long" | strip_ansi)"
+  [ "${#out}" -le "$ui_w" ]
+  [[ "$out" == *"…" ]]
+}
+
+@test "ui_split deja el texto de la derecha pegado al borde" {
+  load_lib color
+  out="$(ui_split " left" "right " | strip_ansi)"
+  [[ "$out" == *"right " ]]
+  [ "${#out}" -le "$ui_w" ]
+}
+
+@test "un error dentro del riel lo cierra" {
+  load_lib
+  out="$( (ui_intro "t"; die "boom") 2>&1 | strip_ansi || true)"
+  [[ "$out" == *"└  ✗ boom"* ]]
+}
+
+@test "ui_confirm acepta y y rechaza el resto" {
+  load_lib
+  echo y | ui_confirm "Sure?" > /dev/null
+  ! (echo n | ui_confirm "Sure?" > /dev/null)
+  ! (echo "" | ui_confirm "Sure?" > /dev/null)
 }
 
 @test "--no-color apaga los colores" {
   load_lib color
   ui_disable
-  run ui_say ok "x"
+  run ui_step ok "x"
   [[ "$output" != *$'\e'* ]]
 }
 

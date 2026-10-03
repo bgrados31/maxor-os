@@ -31,7 +31,7 @@ theme_list() {
   # Una sola lectura de todos los temas (y solo los válidos), no una por tema.
   rows="$(jq -r 'select([.bg,.s,.s2,.fg,.mu,.ac,.ac2,.on] | all(type == "string" and test("^#[0-9a-fA-F]{6}$")))
     | [input_filename, (.mode // "dark"), .s2, .ac, .ac2, .fg] | @tsv' "$themes"/*/colors.json 2> /dev/null || true)"
-  ui_open @theme.title_list
+  ui_intro @theme.title_list
   for m in dark light; do
     if [ "$m" = light ]; then msg label @theme.light; else msg label @theme.dark; fi
     ui_section "$label"
@@ -46,16 +46,14 @@ theme_list() {
         done < "$dir/theme.toml"
       fi
       [ -n "$name" ] || name="$n"
-      mark=" "; [ "$n" = "$cur" ] && mark="${E_AC}●${E_FG}"
+      mark=" "; [ "$n" = "$cur" ] && mark="${E_AC}●${E_RST}"
       ui_truncv name "$name" 24
       printf -v n '%-13s' "$n"
-      ui_line " $mark $n $(ui_swatch "$s2" "$ac" "$ac2" "$fg")  ${E_MU}${name}${E_FG}"
+      ui_text " $mark $n $(ui_swatch "$s2" "$ac" "$ac2" "$fg")  ${E_MU}${name}${E_RST}"
     done <<< "$rows"
   done
-  ui_line ""
   msg l @theme.legend
-  ui_line " ${E_MU}${l}${E_FG}"
-  ui_close
+  ui_outro "${E_MU}${l}${E_RST}"
 }
 
 theme_apply() {
@@ -148,17 +146,15 @@ theme_apply() {
   # La ventana ya se dibuja con los colores del tema nuevo.
   ui_palette
   local title hint; title="$(theme_meta "$dir" name)"; [ -n "$title" ] || title="$name"
-  ui_open @theme.applied_title
-  ui_line ""
-  ui_line " ${E_BOLD}${E_AC}${title}${E_FG}${E_NB}  ${E_MU}($name · $mw)${E_FG}"
-  ui_line " $(ui_swatch "$bg" "$s2" "$mu" "$fg" "$ac" "$ac2")"
-  ui_line ""
+  ui_intro @theme.applied_title
+  ui_text ""
+  ui_text " ${E_BOLD}${E_AC}${title}${E_RST}${E_NB}  ${E_MU}($name · $mw)${E_RST}"
+  ui_text " $(ui_swatch "$bg" "$s2" "$mu" "$fg" "$ac" "$ac2")"
+  ui_text ""
   local st
   for st in "${steps[@]}"; do ui_row "${st%%|*}" "${st#*|}"; done
-  ui_line ""
   msg hint @theme.applied_hint
-  ui_line " ${E_MU}${hint}${E_FG}"
-  ui_close
+  ui_outro "${E_MU}${hint}${E_RST}"
 }
 
 theme_undo() {
@@ -239,18 +235,16 @@ theme_install() { # theme_install <carpeta|archivo.tar.gz> [--force]
     jq '{rounding, gaps_in, gaps_out, border_size, blur_size, blur_passes, inactive, anim} | with_entries(select(.value != null))' "$dir/style.json" > "$dest/style.json"
   fi
   local shown
-  ui_open @theme.installed_title
-  ui_line ""
-  ui_line " ${E_BOLD}${E_AC}${id}${E_FG}${E_NB}  $(ui_swatch "$(jq -r .s2 "$dest/colors.json")" "$(jq -r .ac "$dest/colors.json")" "$(jq -r .ac2 "$dest/colors.json")" "$(jq -r .fg "$dest/colors.json")")"
-  ui_line ""
+  ui_intro @theme.installed_title
+  ui_text ""
+  ui_text " ${E_BOLD}${E_AC}${id}${E_RST}${E_NB}  $(ui_swatch "$(jq -r .s2 "$dest/colors.json")" "$(jq -r .ac "$dest/colors.json")" "$(jq -r .ac2 "$dest/colors.json")" "$(jq -r .fg "$dest/colors.json")")"
+  ui_text ""
   ui_row ok @theme.v_colors
   if [ -f "$dest/style.json" ]; then ui_row ok @theme.v_shape; fi
   ui_truncv shown "${dest/#$HOME/~}" $((ui_w - 24))
   ui_row ok @theme.copied "$shown"
   ui_row info @theme.nothing_run
-  ui_line ""
-  ui_line " ${E_MU}maxor theme apply $id${E_FG}"
-  ui_close
+  ui_outro "${E_MU}maxor theme apply $id${E_RST}"
 }
 
 theme_export() { # theme_export <nombre>
