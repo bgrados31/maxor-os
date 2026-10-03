@@ -61,8 +61,20 @@ in
     theme = "maxor";
     themePackages = [ maxorPlymouth ];
   };
-  boot.consoleLogLevel = 3;
-  boot.kernelParams = [ "quiet" "splash" "udev.log_level=3" ];
+  boot.consoleLogLevel = 0; # ni los avisos del kernel (p. ej. watchdog) al apagar
+  boot.kernelParams = [
+    "quiet"
+    "splash"
+    "udev.log_level=3"
+    "rd.udev.log_level=3"
+    "systemd.show_status=false"
+    "systemd.log_level=warning" # systemd-shutdown no imprime "Syncing filesystems..." etc.
+    "rd.systemd.show_status=false"
+    "vt.global_cursor_default=0" # sin cursor parpadeando sobre el splash
+  ];
+  boot.initrd.verbose = false;
+  # initrd con systemd: el splash aparece antes y sin saltos de texto
+  boot.initrd.systemd.enable = true;
 
   # Menú de arranque: muestra el menú un par de segundos y renombra la entrada
   boot.loader.timeout = 3;
