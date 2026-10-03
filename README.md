@@ -31,7 +31,7 @@ fuentes y temas) vive en un flake: un cambio es un archivo, y volver atrás es e
 generación anterior en el menú de arranque.
 
 El objetivo a largo plazo es una distribución completa, con tienda de apps, tienda de temas e
-instalador propios. Hoy el proyecto está en la **fase 3 de 7** (ver [hoja de ruta](docs/ROADMAP.md)).
+instalador propios. Hoy el proyecto está entre las **fases 2 y 3 de 7** (ver [hoja de ruta](docs/ROADMAP.md)).
 
 ## Qué incluye
 
@@ -81,6 +81,16 @@ Temas oficiales actuales: **Sakura nocturna** (por defecto) y **Glaciar**. Un te
 carpeta de datos (`colors.json`, `theme.toml`, `wallpaper.png`) y nunca ejecuta código.
 Detalles y cómo crear el tuyo en [docs/THEMING.md](docs/THEMING.md).
 
+## Herramienta `maxor`
+
+```sh
+maxor update       # actualiza, muestra los cambios y pregunta antes de aplicar
+maxor rollback     # vuelve a la generación anterior
+maxor doctor       # diagnóstico: servicios, sesión, GPU, arranque, fuentes
+```
+
+Referencia completa en [docs/CLI.md](docs/CLI.md).
+
 ## Atajos principales
 
 | Atajo | Acción |
@@ -102,13 +112,17 @@ Detalles y cómo crear el tuyo en [docs/THEMING.md](docs/THEMING.md).
 
 ```
 flake.nix                      entradas: nixpkgs 26.05, home-manager, DMS
-hosts/nitro/                   configuración propia de la máquina (arranque, NVIDIA, usuario)
+hosts/nitro/                   lo propio de la máquina: arranque, NVIDIA, región, usuario
+modules/core.nix               Nix, red, audio, Bluetooth, paquetes base
+modules/desktop.nix            Hyprland, login, PAM, servicios del escritorio
 modules/branding.nix           nombre del sistema, Plymouth, arranque silencioso
 modules/fonts.nix              Figtree, Red Hat Mono, Krona One
 home/bryan.nix                 usuario: kitty, fish, GTK/Qt, apps
-home/hyprland.nix              Hyprland (Lua) y atajos
+home/hyprland.nix              carga los módulos Lua de Hyprland
+home/hyprland/                 settings.lua, rules.lua, binds.lua y user.lua.example
 home/lockscreen.nix            hyprlock y hypridle
-home/maxor.nix                 CLI `maxor` y temas oficiales
+home/maxor.nix                 CLI `maxor`, temas oficiales
+home/maxor/system.sh           maxor update, rollback y doctor
 branding/                      logotipo en texto
 docs/                          documentación
 ```
@@ -117,6 +131,7 @@ docs/                          documentación
 
 - [Instalación y adaptación a otro equipo](docs/INSTALL.md)
 - [Arquitectura](docs/ARCHITECTURE.md)
+- [Herramienta `maxor`](docs/CLI.md)
 - [Motor de temas](docs/THEMING.md)
 - [Identidad visual](docs/IDENTITY.md)
 - [Solución de problemas](docs/TROUBLESHOOTING.md)

@@ -13,15 +13,19 @@ home-manager como módulo de NixOS. La regla de diseño es separar cuatro cosas:
 
 | Ruta | Responsabilidad |
 |---|---|
-| `flake.nix` | Entradas (nixpkgs 26.05, home-manager 26.05, DMS) y la definición de `nixosConfigurations.nitro` |
-| `hosts/nitro/configuration.nix` | Arranque (systemd-boot + XBOOTLDR), Nix, red, NVIDIA PRIME, sesión, audio, Bluetooth, usuario |
+| `flake.nix` | Entradas (nixpkgs 26.05, home-manager 26.05, DMS), `nixosModules.default` y `nixosConfigurations.nitro` |
+| `hosts/nitro/configuration.nix` | Solo lo propio del equipo: arranque (systemd-boot + XBOOTLDR), región y teclado, NVIDIA PRIME, usuario |
 | `hosts/nitro/hardware-configuration.nix` | Generado por `nixos-generate-config`; propio de este equipo |
+| `modules/core.nix` | Ajustes de Nix, red, zram, audio (PipeWire), Bluetooth, impresión, paquetes base |
+| `modules/desktop.nix` | Hyprland, SDDM, PAM de hyprlock, variables de sesión, servicios del escritorio |
 | `modules/branding.nix` | `system.nixos.distroName`, tema Plymouth, parámetros de arranque silencioso, `/etc/issue` |
 | `modules/fonts.nix` | Fuentes del sistema y la que usa Plymouth |
 | `home/bryan.nix` | kitty, fish, starship, GTK/Qt, cursor, paquetes de usuario, `gh` |
-| `home/hyprland.nix` | Configuración de Hyprland en Lua y todos los atajos |
+| `home/hyprland.nix` | Carga los módulos Lua de Hyprland y crea `user.lua` la primera vez |
+| `home/hyprland/*.lua` | `settings.lua` (apariencia), `rules.lua` (reglas), `binds.lua` (atajos), `user.lua.example` |
 | `home/lockscreen.nix` | hyprlock (diseño) e hypridle (inactividad) |
-| `home/maxor.nix` | CLI `maxor` y empaquetado de los temas oficiales |
+| `home/maxor.nix` | CLI `maxor`, comandos de tema y temas oficiales |
+| `home/maxor/system.sh` | `maxor update`, `rollback` y `doctor` |
 
 ## Cómo se reparten las responsabilidades de color
 
@@ -82,3 +86,30 @@ ESP. `configurationLimit = 10` limita cuántas generaciones se conservan.
   [THEMING.md](THEMING.md#seguridad).
 - **Separar sistema y usuario.** El usuario personaliza en `~/.config/maxor/`; el sistema se
   actualiza sin pisarle nada.
+
+## Reutilizar Maxor desde otro flake
+
+Los módulos de sistema se exponen como `nixosModules.default` (núcleo, escritorio, identidad y
+fuentes). Otro flake puede importarlos y añadir solo su hardware:
+
+```nix
+{
+  inputs.maxor.url = "github:bgrados31/maxor-os";
+  # …
+  modules = [ maxor.nixosModules.default ./mi-equipo.nix ];
+}
+```
+
+La configuración de usuario (`home/`) todavía no se exporta como módulo; es un paso pendiente de
+la [fase 2](ROADMAP.md).
+
+## Configuración de Hyprland en módulos
+
+`hyprland.lua` solo carga módulos, en este orden:
+
+1. `maxor.settings`, `maxor.rules`, `maxor.binds`: de solo lectura, vienen de este repositorio.
+2. `dms.*`: colores del tema, monitores, cursor y reglas que gestiona DankMaterialShell.
+3. `maxor.user`: **tuyo**. Se crea una sola vez desde `user.lua.example`, se carga el último y el
+   sistema nunca lo modifica, así que lo que pongas ahí sobrescribe todo lo anterior.
+
+Los monitores los gestiona DMS (`dms.outputs`); por eso no hay un `monitors.lua` propio.

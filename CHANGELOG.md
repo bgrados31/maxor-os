@@ -7,6 +7,10 @@ no usa versiones numeradas.
 
 ### Añadido
 
+- **`maxor update`, `maxor rollback` y `maxor doctor`**: actualizar mostrando los cambios antes de aplicar, volver atrás y diagnosticar el sistema.
+- **Configuración de Hyprland en módulos Lua** (`settings`, `rules`, `binds`) y un `user.lua` personal que el sistema nunca sobrescribe.
+- **`nixosModules.default`** para reutilizar los módulos de sistema desde otro flake.
+
 - **Motor de temas** (`maxor theme list | current | apply | undo`) con los temas oficiales
   Sakura nocturna y Glaciar. Un tema es una carpeta de datos validada antes de aplicarse.
 - **Lockscreen** con hyprlock e inactividad con hypridle, con la paleta del tema activo.
@@ -18,6 +22,8 @@ no usa versiones numeradas.
 - **GitHub CLI** disponible para el usuario.
 
 ### Cambiado
+
+- La configuración del sistema se divide en `modules/core.nix` y `modules/desktop.nix`; `hosts/nitro` conserva solo lo propio del equipo.
 
 - Hyprland es la única sesión: se eliminaron Budgie y LightDM. El login pasa a SDDM en Wayland.
 - Esquinas de 8 px y desenfoque moderado en Hyprland.

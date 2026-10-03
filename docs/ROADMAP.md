@@ -10,7 +10,7 @@ propio e instalador propio. Referencias de experiencia: Ryoku OS, Omarchy y los 
 |---|---|---|
 | 0 | Base NixOS + Hyprland + DMS funcionando | Hecha |
 | 1 | Solo Hyprland, branding mínimo (`os-release`, Plymouth, fastfetch) | Hecha |
-| 2 | Repo ordenado y modular, CLI `maxor` v0 (update, rollback, doctor) | En curso |
+| 2 | Repo ordenado y modular, CLI `maxor` v0 (update, rollback, doctor) | Casi hecha |
 | 3 | Motor de temas y temas oficiales | Núcleo hecho, faltan temas |
 | 4 | Shell Maxor y greeter propio | Pendiente |
 | 5 | Maxor Store (apps Flatpak y temas) | Pendiente |
@@ -20,11 +20,13 @@ propio e instalador propio. Referencias de experiencia: Ryoku OS, Omarchy y los 
 ## Fase 2: repo ordenado y CLI
 
 - [x] Repositorio con documentación, licencia y CI.
-- [ ] Separar `configuration.nix` en `modules/core.nix`, `desktop.nix`, `shell.nix`, `theming.nix`.
-- [ ] Dejar `hosts/<equipo>` solo con lo propio del hardware (GPU, discos).
-- [ ] Configuración de Hyprland en módulos Lua (`binds`, `rules`, `animations`, `monitors`) y un
-      `user.lua` que nunca se sobrescriba.
-- [ ] `maxor update`, `maxor rollback` y `maxor doctor` (GPU, portales, servicios fallidos).
+- [x] Separar `configuration.nix` en `modules/core.nix` y `modules/desktop.nix`; `branding` y `fonts` ya eran módulos.
+- [ ] Extraer `modules/shell.nix` y `modules/theming.nix` cuando el shell propio exista (fase 4).
+- [x] Dejar `hosts/<equipo>` solo con lo propio del equipo (arranque, GPU, región, usuario).
+- [ ] Exportar `homeModules.default` para reutilizar la configuración de usuario.
+- [x] Configuración de Hyprland en módulos Lua (`settings`, `rules`, `binds`) y un `user.lua` que nunca se sobrescribe.
+      Los monitores los gestiona DMS.
+- [x] `maxor update`, `maxor rollback` y `maxor doctor`.
 
 ## Fase 3: motor de temas
 
