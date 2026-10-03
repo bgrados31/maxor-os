@@ -1,18 +1,22 @@
 {
   "gaming": {
     "title": "Gaming",
-    "description": "Steam, Proton, GameMode, MangoHud, Gamescope and Lutris."
+    "description": "Steam, Proton, GameMode, MangoHud, Gamescope and Lutris.",
+    "includes": ["Steam", "Proton (ProtonUp-Qt)", "GameMode", "MangoHud", "Gamescope", "Lutris"]
   },
   "dev": {
     "title": "Development",
-    "description": "Compilers and languages (C, Node, Python, Go, Rust), Git and GitHub CLI, Podman with Docker compatibility and direnv."
+    "description": "Compilers and languages (C, Node, Python, Go, Rust), Git and GitHub CLI, Podman with Docker compatibility and direnv.",
+    "includes": ["C compilers and build tools", "Node.js", "Python", "Go", "Rust", "Git and GitHub CLI", "Podman (the docker command works)", "direnv"]
   },
   "creator": {
     "title": "Creator",
-    "description": "OBS, GIMP, Inkscape, Krita, Kdenlive, Blender, Audacity and HandBrake."
+    "description": "OBS, GIMP, Inkscape, Krita, Kdenlive, Blender, Audacity and HandBrake.",
+    "includes": ["OBS Studio", "GIMP", "Inkscape", "Krita", "Kdenlive", "Blender", "Audacity", "HandBrake"]
   },
   "office": {
     "title": "Office",
-    "description": "LibreOffice with Spanish and English dictionaries, Thunderbird and Okular."
+    "description": "LibreOffice with Spanish and English dictionaries, Thunderbird and Okular.",
+    "includes": ["LibreOffice", "Spanish and English dictionaries", "Thunderbird", "Okular"]
   }
 }

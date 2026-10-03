@@ -18,6 +18,9 @@ no usa versiones numeradas.
 
 ### Añadido
 
+- **Los detalles se adaptan a tu ventana**: con ≥96 columnas van en un panel al lado; en una ventana estrecha (una de cuatro en la pantalla, ~90×25) pasan a un cajón compacto debajo, con lo esencial de cada pestaña (la app elegida y sus botones, el comando del arreglo del Doctor, los botones de Update, el tema elegido con un fastfetch en una fila); y `D` los oculta o los muestra, y lo recuerda (`tui-prefs.json`). El tamaño mínimo baja a 64×20 y la Tienda usa una cabecera compacta en ventanas bajas para que quepan más apps.
+- **Los perfiles dicen lo que instalan**: cada uno lista sus programas (`includes` en el catálogo y en `maxor profile list --json`), en una línea en la lista y uno a uno en el panel.
+- **Aviso diario de apps con versión nueva**: un temporizador de usuario (`maxor-app-updates`) ejecuta `maxor apps updates --refresh --notify` una vez al día y avisa con una notificación; mirar no compila ni descarga nada.
 - **Volver a una versión anterior del sistema desde Update**: `g` abre las últimas generaciones (con fecha, versión y kernel), se elige una y `⏎` vuelve a ella; tras volver se escanea otra vez. La CLI suma `maxor rollback <N>` y `maxor rollback --list [--json]`. Los datos y las apps instaladas con maxor no se tocan.
 - **Exit es una pestaña más**: al llegar a ella no sale; enseña lo que queda pendiente (apps por actualizar, avisos del doctor, una actualización lista) y sale con `⏎` o con un clic en su botón.
 - **La Tienda tiene una barra de acciones rápidas** bajo las pestañas, con botones que también se pulsan con el ratón: con apps marcadas, `Update n` (o `Check for updates`) y `Remove n`; sin marcar, `Update all n` y `Check for updates`; en los resultados, `Install n`. Se quitan los filtros nixpkgs/All/flathub: cada fila ya dice de dónde viene.

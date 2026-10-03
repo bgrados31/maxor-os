@@ -86,6 +86,12 @@ type Screen interface {
 	Wheel(env *Env, dy int) tea.Cmd
 }
 
+// Briefer es opcional: una versión corta de Side (1 a 4 filas) para el cajón de abajo, que
+// se usa cuando la ventana es estrecha y no cabe el panel al lado. Sin ella se compacta Side.
+type Briefer interface {
+	Brief(env *Env, w int) []ui.Line
+}
+
 // Base da valores por defecto a lo que casi ninguna pantalla necesita.
 type Base struct{}
 

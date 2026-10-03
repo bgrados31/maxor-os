@@ -43,9 +43,12 @@ La pantalla **no reimplementa nada**: llama a la CLI y lee su JSON (el contrato 
 | `g` | Update: abrir las generaciones del sistema para volver a una anterior |
 | `r` / `c` | Update: repetir el escaneo / buscar versiones nuevas. Doctor: comprobar otra vez |
 | `/` o `↑` | Buscar (Tienda). Con `↑` y `↓` se recorren la caja, las pestañas Results/Installed/origen y la lista; `←` `→` cambian de pestaña dentro de la Tienda |
+| `D` | Mostrar u ocultar los detalles (al lado, o abajo si la ventana es estrecha); se recuerda |
 | `:` | **Paleta de comandos**: escribe `go store`, `theme alba`, `search brave`, `update check`… |
 | `?` | Ayuda con todas las teclas |
 | `q`, `Ctrl-C` | Volver a tu terminal (la pestaña **Exit** enseña lo pendiente y sale con `⏎`; también `exit` en la paleta) |
+
+**Ventanas estrechas.** Con menos de 96 columnas los detalles no caben al lado y se dibujan en un cajón compacto debajo (hasta 64×20 de mínimo). Cada pantalla decide qué es lo esencial con `Brief` (opcional en `core.Screen`); si no la tiene, se usa su panel lateral sin huecos.
 
 El **ratón** funciona (opcional con `--no-mouse`): clic en una pestaña o una fila y la rueda para
 desplazar. Mientras hay un campo de texto con el foco, las teclas globales (`q`, `:`, `?`…) son

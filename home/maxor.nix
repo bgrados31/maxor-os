@@ -30,6 +30,28 @@ in
 {
   home.packages = [ maxor maxorTui ];
 
+  # Una vez al día mira si alguna app instalada con maxor tiene versión nueva y, si la hay,
+  # lo avisa con una notificación. Mirar es barato (no compila ni descarga nada del sistema);
+  # actualizar sigue siendo cosa tuya, desde la Tienda.
+  systemd.user.services.maxor-app-updates = {
+    Unit.Description = "Look for new versions of the apps installed with maxor";
+    Service = {
+      Type = "oneshot";
+      ExecStart = "${maxor}/bin/maxor apps updates --refresh --notify";
+      Environment = [ "PATH=${lib.makeBinPath [ pkgs.libnotify pkgs.coreutils pkgs.nix pkgs.flatpak ]}" ];
+      Nice = 15;
+    };
+  };
+  systemd.user.timers.maxor-app-updates = {
+    Unit.Description = "Daily look for new app versions";
+    Timer = {
+      OnCalendar = "daily";
+      RandomizedDelaySec = "30min";
+      Persistent = true;
+    };
+    Install.WantedBy = [ "timers.target" ];
+  };
+
   # Temas oficiales: carpetas de solo lectura junto a los tuyos, y sus
   # wallpapers en ~/Pictures/Wallpapers para el selector de DMS.
   home.file = (lib.mapAttrs'

@@ -287,3 +287,38 @@ func (d *Doctor) Click(env *core.Env, x, y int) tea.Cmd {
 	}
 	return nil
 }
+
+// Brief: la comprobación elegida, y su comando y cómo ejecutarlo si lo tiene.
+func (d *Doctor) Brief(env *core.Env, w int) []ui.Line {
+	p := env.P
+	d.settle(env)
+	row, ok := d.current(env)
+	if !ok {
+		return []ui.Line{muted(env, "Waiting for the checks.")}
+	}
+	st, g := p.Level(row.it.Level)
+	lines := []ui.Line{ui.Of(ui.S(st, g+" "), ui.S(p.Text, row.it.Text))}
+	switch {
+	case row.it.Level == "ok":
+		return append(lines, muted(env, "This one passes: nothing to do."))
+	case row.it.Fix == "":
+		for _, a := range advice {
+			if strings.Contains(row.it.Text, a.match) {
+				return append(lines, muted(env, a.text))
+			}
+		}
+		return append(lines, muted(env, "No automatic fix for this one."))
+	}
+	lines = append(lines, ui.T(p.Ac, "$ "+row.it.Fix))
+	switch {
+	case row.it.Kind == "inspect":
+		lines = append(lines, ui.Of(button(env, true, "Show it  ⏎"), ui.S(p.Mu, "  only shows information")))
+	case d.armed == row.it.ID && row.it.Confirm:
+		lines = append(lines, ui.Of(ui.S(p.Warn, ui.G.Warn+" this changes your system  "), button(env, true, "Run it  ⏎"), ui.S(p.Mu, "  or move to cancel")))
+	case d.armed == row.it.ID:
+		lines = append(lines, ui.Of(button(env, true, "Run it  ⏎"), ui.S(p.Mu, "  or move to cancel")))
+	default:
+		lines = append(lines, ui.Of(button(env, true, "Prepare fix  ⏎")))
+	}
+	return lines
+}

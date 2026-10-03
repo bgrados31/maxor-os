@@ -198,8 +198,9 @@ type Hardware struct {
 type Profile struct {
 	ID          string `json:"id"`
 	Title       string `json:"title"`
-	Description string `json:"description"`
-	Enabled     bool   `json:"enabled"`
+	Description string   `json:"description"`
+	Includes    []string `json:"includes"` // lo que instala, uno por línea
+	Enabled     bool     `json:"enabled"`
 }
 
 type Change struct {

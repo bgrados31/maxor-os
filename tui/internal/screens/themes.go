@@ -336,3 +336,28 @@ func (t *Themes) Wheel(env *core.Env, dy int) tea.Cmd {
 	t.list.move(dy*2, len(ordered(env)), 1<<20)
 	return t.preview(env)
 }
+
+// Brief: el tema elegido con su color, un fastfetch en una fila y los colores de estado.
+func (t *Themes) Brief(env *core.Env, w int) []ui.Line {
+	p := env.P
+	t.settle(env)
+	list := ordered(env)
+	if len(list) == 0 || t.list.sel >= len(list) {
+		return []ui.Line{muted(env, "Waiting for the themes.")}
+	}
+	th := list[t.list.sel]
+	acc := func(c string) lipgloss.Style { return p.Fill.Foreground(lipgloss.Color(c)) }
+	head := []ui.Seg{ui.S(acc(th.Colors.Ac).Bold(true), ui.G.Swatch+"  "), ui.S(p.Bold, th.Name), ui.S(p.Mu, "  "+th.Mode)}
+	if th.Active {
+		head = append(head, ui.S(p.Ok, "  "+ui.G.Tick+" in use"))
+	}
+	strip := []ui.Seg{ui.S(p.Ac.Bold(true), "▄ maxor  "), ui.S(p.Mu, "Hyprland · fish  ")}
+	for _, c := range []string{th.Colors.Ac, th.Colors.Ac2} {
+		strip = append(strip, ui.S(acc(c), "███"))
+	}
+	for _, st := range []lipgloss.Style{p.Ok, p.Warn, p.Bad} {
+		strip = append(strip, ui.S(st, "███"))
+	}
+	return []ui.Line{ui.Of(head...), ui.Of(strip...),
+		ui.Of(ui.S(p.Ok, ui.G.Tick+" done  "), ui.S(p.Warn, ui.G.Warn+" careful  "), ui.S(p.Bad, ui.G.Bad+" failed  "), button(env, true, "Apply  ⏎"), space(1), button(env, false, "Undo  u"))}
+}

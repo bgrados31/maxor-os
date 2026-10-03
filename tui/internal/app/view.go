@@ -6,6 +6,7 @@ import (
 
 	"github.com/charmbracelet/x/ansi"
 
+	"github.com/bgrados31/maxor-os/tui/internal/core"
 	"github.com/bgrados31/maxor-os/tui/internal/ui"
 )
 
@@ -160,12 +161,16 @@ func (m *Model) body(page ui.Painter, w, h int) []string {
 		return out
 	}
 
+	// Los detalles van al lado si la ventana es ancha; si es estrecha (una de cuatro en la
+	// pantalla), en un cajón compacto debajo; y con «D» se ocultan del todo.
 	sideW := 0
-	switch {
-	case w >= 120:
-		sideW = 40
-	case w >= 96:
-		sideW = 34
+	if !m.prefs.DetailsHidden {
+		switch {
+		case w >= 120:
+			sideW = 40
+		case w >= 96:
+			sideW = 34
+		}
 	}
 	mw := avail
 	var side []ui.Line
@@ -178,11 +183,23 @@ func (m *Model) body(page ui.Painter, w, h int) []string {
 		}
 	}
 	m.mainX0, m.mainW, m.bodyTop = 1, mw, 2
-	cols = append(cols, []string{}) // margen izquierdo
-	mainRows := m.panel(s.Main(m.env, mw-4, h-2), mw, h)
-	left := make([]string, h)
+
+	// cajón de abajo: solo si no hay panel al lado, no se ocultó y queda alto para la lista
+	var drawer []ui.Line
+	if sideW == 0 && !m.prefs.DetailsHidden && h >= 17 {
+		drawer = m.drawerLines(s, avail-4, h)
+	}
+	mainH := h
+	drawerH := 0
+	if len(drawer) > 0 {
+		drawerH = len(drawer) + 2
+		mainH = h - drawerH - 1
+	}
+	mainRows := m.panel(s.Main(m.env, mw-4, mainH-2), mw, mainH)
+	left := make([]string, mainH)
+	right := make([]string, mainH)
 	for i := range left {
-		left[i] = pad
+		left[i], right[i] = pad, pad
 	}
 	cols = [][]string{left, mainRows}
 	if sideW > 0 {
@@ -192,12 +209,45 @@ func (m *Model) body(page ui.Painter, w, h int) []string {
 		}
 		cols = append(cols, gapCol, m.panel(side, sideW, h))
 	}
-	right := make([]string, h)
-	for i := range right {
-		right[i] = pad
-	}
 	cols = append(cols, right)
-	return ui.JoinH("", cols...)
+	rows := ui.JoinH("", cols...)
+	if drawerH > 0 {
+		rows = append(rows, blankRow(page, w))
+		for _, r := range m.panel(drawer, avail, drawerH) {
+			rows = append(rows, pad+r+pad)
+		}
+	}
+	return rows
+}
+
+// drawerLines es el contenido del cajón de detalles: la versión corta de la pantalla si la
+// tiene, o su panel lateral sin las filas en blanco, recortado a lo que cabe.
+func (m *Model) drawerLines(s core.Screen, w, h int) []ui.Line {
+	limit := 3
+	if h >= 24 {
+		limit = 5
+	}
+	var lines []ui.Line
+	if b, ok := s.(core.Briefer); ok {
+		lines = b.Brief(m.env, w)
+	} else {
+		for _, l := range s.Side(m.env, w, h) {
+			if len(l.L) > 0 {
+				lines = append(lines, l)
+			}
+		}
+		// el título del panel («DETAILS») ya lo dice el cajón: ocupa una fila sin aportar
+		if len(lines) > 1 {
+			lines = lines[1:]
+		}
+	}
+	if _, ok := s.(core.Briefer); ok {
+		limit = 5 // la versión corta ya viene medida: solo se acota el máximo
+	}
+	if len(lines) > limit {
+		lines = lines[:limit]
+	}
+	return lines
 }
 
 // center coloca un panel de pw de ancho en el centro del cuerpo.
@@ -231,7 +281,7 @@ func (m *Model) helpLines() []ui.Line {
 	if !m.setupFocus {
 		lines = append(lines, kv("← →   h l", "previous · next tab"), kv("tab  shift+tab", "next · previous tab"), kv("1 … 6", "jump to a tab"))
 	}
-	lines = append(lines, kv(":", "command palette"), kv("?", "this help"), kv("q", "back to your terminal"))
+	lines = append(lines, kv(":", "command palette"), kv("D", "show or hide the details"), kv("?", "this help"), kv("q", "back to your terminal"))
 	// y lo propio de la pantalla en la que estás
 	if hs := m.screens[m.active].Hints(m.env); len(hs) > 0 {
 		lines = append(lines, ui.Blank(), ui.T(p.Mu, strings.ToUpper("On "+m.screens[m.active].Title())), ui.Blank())

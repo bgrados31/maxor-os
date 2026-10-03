@@ -579,9 +579,24 @@ cmd_apps() {
       echo
       ;;
     updates)
-      local fresh=""
-      for a in "$@"; do [ "$a" = "--refresh" ] && fresh=refresh; done
-      app_updates_cached "$fresh"
+      local fresh="" notify=0 upd_json n names ttl m
+      for a in "$@"; do
+        [ "$a" = "--refresh" ] && fresh=refresh
+        [ "$a" = "--notify" ] && notify=1
+      done
+      upd_json="$(app_updates_cached "$fresh")"
+      printf '%s\n' "$upd_json"
+      # --notify (lo usa el temporizador diario): avisa con una notificación si hay algo nuevo
+      if [ "$notify" = 1 ]; then
+        n="$(jq 'length' <<< "$upd_json")"
+        if [ "$n" -gt 0 ] && command -v notify-send > /dev/null 2>&1; then
+          names="$(jq -r '[.[].id] | .[:4] | join(", ")' <<< "$upd_json")"
+          [ "$n" -gt 4 ] && names="$names…"
+          msg m @apps.notify_body "$n" "$names"
+          msg ttl @apps.notify_title
+          notify-send -a Maxor -i software-update-available "$ttl" "$m" || true
+        fi
+      fi
       ;;
     repair)
       # Deja a la vista las apps de flatpak ya instaladas (menú, iconos y comando).

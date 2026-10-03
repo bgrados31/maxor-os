@@ -420,3 +420,31 @@ func (u *Update) Wheel(env *core.Env, dy int) tea.Cmd {
 	}
 	return nil
 }
+
+// Brief: los botones de Update en una fila (o la generación elegida, en el historial).
+func (u *Update) Brief(env *core.Env, w int) []ui.Line {
+	p := env.P
+	if u.history {
+		if !u.gensOK || u.gsel.sel >= len(u.gens) {
+			return []ui.Line{muted(env, "Reading…")}
+		}
+		g := u.gens[u.gsel.sel]
+		l1 := ui.Of(ui.S(p.Bold, fmt.Sprintf("Generation %d", g.Generation)), ui.S(p.Mu, "  "+genTime(g).Format("Jan 2, 15:04")+" · NixOS "+g.Nixos+" · kernel "+g.Kernel))
+		if g.Current {
+			return []ui.Line{l1, ui.T(p.Ok, ui.G.Tick+" this is your current one")}
+		}
+		return []ui.Line{l1, ui.Of(button(env, true, "Go back to this  ⏎"), ui.S(p.Mu, "  your files are not touched; needs your password"))}
+	}
+	up := env.Data.Update
+	canApply := up != nil && !up.UpToDate
+	var row []ui.Seg
+	if canApply {
+		row = append(row, button(env, true, "Apply  ⏎"), space(1))
+	}
+	row = append(row, button(env, !canApply, "Rescan  r"), space(1), button(env, false, "New versions  c"), space(1), button(env, false, "Go back  g"))
+	lines := []ui.Line{ui.Of(row...)}
+	if st := env.Data.UpdateStatus; st != nil && st.Dirty && canApply {
+		lines = append(lines, ui.T(p.Warn, "Uncommitted changes are included in the build."))
+	}
+	return lines
+}

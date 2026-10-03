@@ -35,8 +35,8 @@ type Options struct {
 type tickMsg struct{}
 
 const (
-	minW = 80
-	minH = 24
+	minW = 64 // una ventana de cuatro en una pantalla normal ronda las 90×25
+	minH = 20
 )
 
 type tabRect struct{ x0, x1 int }
@@ -69,6 +69,7 @@ type Model struct {
 	mainX0     int
 	mainW      int
 	setupFocus bool
+	prefs      prefs
 }
 
 // New crea el modelo. El cliente se inyecta para poder probar sin la CLI real.
@@ -85,7 +86,7 @@ func New(opts Options, client *maxor.Client) *Model {
 	env.Host, _ = os.Hostname()
 	env.P = ui.NewPainter(t, t.P.S)
 
-	m := &Model{env: env, opts: opts, inited: map[string]bool{}, base: t, setupFocus: env.Setup}
+	m := &Model{env: env, opts: opts, inited: map[string]bool{}, base: t, setupFocus: env.Setup, prefs: loadPrefs()}
 	if env.Setup {
 		m.screens = []core.Screen{screens.NewSetup()}
 	} else {
@@ -294,6 +295,8 @@ func (m *Model) key(k tea.KeyMsg, cmds []tea.Cmd) (tea.Model, tea.Cmd) {
 			m.overlay = ovPalette
 			m.pal = palette{}
 			return m, nil
+		case "D":
+			return m, m.toggleDetails()
 		}
 		if !m.setupFocus && len(m.screens) > 1 {
 			n := len(m.screens)
@@ -355,4 +358,14 @@ func (m *Model) mouse(msg tea.MouseMsg) tea.Cmd {
 		}
 	}
 	return nil
+}
+
+// toggleDetails muestra u oculta los detalles (al lado o abajo) y lo recuerda.
+func (m *Model) toggleDetails() tea.Cmd {
+	m.prefs.DetailsHidden = !m.prefs.DetailsHidden
+	m.prefs.save()
+	if m.prefs.DetailsHidden {
+		return core.Toast("info", "Details hidden. Press D to show them again")
+	}
+	return core.Toast("info", "Details shown")
 }

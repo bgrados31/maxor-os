@@ -26,6 +26,8 @@ type Store struct {
 	zone     int // dónde está el foco: caja de búsqueda, pestañas o lista
 	chip     int // pestaña con el foco (posición en chips())
 	chipX    [][2]int
+	hdr      int // filas de cabecera de la lista (7, o 4 en modo compacto)
+	itemH    int // filas por app (3, o 2 en modo compacto)
 	actX     [][2]int // columnas de cada botón de la barra de acciones
 	actKey   []string // la tecla que hace lo mismo que cada botón
 	query    string
@@ -101,10 +103,13 @@ func (i item) key() string { return i.Source + ":" + i.ID }
 const (
 	storeHeader = 7 // caja de búsqueda (3) + hueco + pestañas + barra de acciones + hueco
 	storeItemH  = 3 // nombre, descripción y un respiro
+	// En una ventana baja (una de cuatro en pantalla) la cabecera se encoge a 4 filas y cada
+	// app ocupa 2 en vez de 3, para que quepan más en la lista.
+	compactBelow = 22
 )
 
 func NewStore() *Store {
-	s := &Store{marks: map[string]bool{}, zone: zList, busy: map[string]string{}}
+	s := &Store{marks: map[string]bool{}, zone: zList, busy: map[string]string{}, hdr: storeHeader, itemH: storeItemH}
 	s.in.Placeholder = "Search apps in nixpkgs and Flathub…"
 	return s
 }
@@ -915,10 +920,20 @@ func (s *Store) actionBar(env *core.Env, w int) ui.Line {
 
 func (s *Store) Main(env *core.Env, w, h int) []ui.Line {
 	p := env.P
-	s.rows = max((h-storeHeader)/storeItemH, 1)
+	s.hdr, s.itemH = storeHeader, storeItemH
+	if h < compactBelow {
+		s.hdr, s.itemH = 4, 2
+	}
+	s.rows = max((h-s.hdr)/s.itemH, 1)
 	its := s.items(env)
-	lines := s.searchBox(env, w)
-	lines = append(lines, gap(), s.tabsRow(env, w), s.actionBar(env, w), gap())
+	var lines []ui.Line
+	if s.itemH == 2 {
+		box := s.searchBox(env, w)
+		lines = append(lines, box[1], s.tabsRow(env, w), s.actionBar(env, w), gap())
+	} else {
+		lines = s.searchBox(env, w)
+		lines = append(lines, gap(), s.tabsRow(env, w), s.actionBar(env, w), gap())
+	}
 
 	// Cargando: la lista aparece ya, con la forma que tendrá
 	loading := env.Tasks.Loading("store.search") && (s.showInst || !s.searched)
@@ -1008,8 +1023,10 @@ func (s *Store) Main(env *core.Env, w, h int) []ui.Line {
 		}
 		lines = append(lines,
 			ui.Line{L: []ui.Seg{box, ui.S(nameSt, it.Name)}, R: right, Sel: sel},
-			ui.Line{L: second, Sel: sel},
-			gap())
+			ui.Line{L: second, Sel: sel})
+		if s.itemH > 2 {
+			lines = append(lines, gap())
+		}
 	}
 	return lines
 }
@@ -1135,9 +1152,9 @@ func (s *Store) Hints(env *core.Env) []ui.Hint {
 
 func (s *Store) Click(env *core.Env, x, y int) tea.Cmd {
 	switch {
-	case y < 3:
+	case y < s.hdr-4+1 && s.hdr == 4 || y < 3 && s.hdr != 4:
 		s.zone = zSearch
-	case y == 5: // la barra de acciones rápidas
+	case y == s.hdr-2: // la barra de acciones rápidas
 		for i, r := range s.actX {
 			if x >= r[0] && x < r[1] {
 				k := s.actKey[i]
@@ -1153,18 +1170,18 @@ func (s *Store) Click(env *core.Env, x, y int) tea.Cmd {
 				return cmd
 			}
 		}
-	case y == 4: // las pestañas
+	case y == s.hdr-3: // las pestañas
 		s.zone = zChips
 		for i, r := range s.chipX {
 			if x >= r[0] && x < r[1]+1 {
 				s.pickChip(env, i)
 			}
 		}
-	case y >= storeHeader:
+	case y >= s.hdr:
 		s.zone = zList
 		s.menu = nil
 		its := s.items(env)
-		i := s.list.top + (y-storeHeader)/storeItemH
+		i := s.list.top + (y-s.hdr)/max(s.itemH, 1)
 		if i >= 0 && i < len(its) {
 			s.list.sel = i
 			// un clic en la casilla marca la app
@@ -1207,4 +1224,71 @@ func humanBytes(b int64) string {
 		return fmt.Sprintf("%.1f MiB", float64(b)/(1<<20))
 	}
 	return fmt.Sprintf("%d KiB", (b+1023)/1024)
+}
+
+// Brief es el cajón de detalles de una ventana estrecha: lo esencial en pocas filas.
+func (s *Store) Brief(env *core.Env, w int) []ui.Line {
+	p := env.P
+	if s.ask != nil {
+		var total int64
+		for _, e := range s.ask.Entries {
+			total += sumBytes(e.Left)
+		}
+		return []ui.Line{
+			ui.Of(ui.S(p.Warn, ui.G.Warn+" "), ui.S(p.Text, "Their data is still on disk ("+humanBytes(total)+")")),
+			ui.Of(button(env, true, "Delete data  y"), space(1), button(env, false, "Keep  n")),
+		}
+	}
+	if s.menu != nil {
+		mn := s.menu
+		title := mn.items[0].Name
+		if len(mn.items) > 1 {
+			title = fmt.Sprintf("%d apps", len(mn.items))
+		}
+		if mn.confirm {
+			size := ""
+			if len(mn.data) > 0 {
+				size = " (" + humanBytes(sumBytes(mn.data)) + ")"
+			}
+			return []ui.Line{
+				ui.Of(ui.S(p.Warn.Bold(true), ui.G.Warn+" This cannot be undone: "), ui.S(p.Text, "deletes "+title+" and its data"+size)),
+				ui.Of(button(env, true, "Yes, delete  ⏎"), space(1), button(env, false, "No  esc")),
+			}
+		}
+		lines := []ui.Line{ui.T(p.Bold, title)}
+		for i, e := range s.menuEntries(env) {
+			lines = append(lines, ui.Line{L: []ui.Seg{ui.S(p.Text, " "+e.label), ui.S(p.Mu, "  "+e.hint)}, R: []ui.Seg{ui.S(p.Mu, e.key+" ")}, Sel: i == mn.sel})
+		}
+		return lines
+	}
+	its := s.items(env)
+	inst := s.installedView()
+	if n := s.markedCount(its); n > 0 {
+		return []ui.Line{ui.Of(ui.S(p.Ac, ui.G.On+" "), ui.S(p.Text, fmt.Sprintf("%d selected", n)), ui.S(p.Mu, "  ·  use the buttons above, or ⏎ for more"))}
+	}
+	if len(its) == 0 || s.list.sel >= len(its) {
+		return []ui.Line{muted(env, "Search with /  ·  space selects several apps")}
+	}
+	it := its[s.list.sel]
+	head := []ui.Seg{ui.S(p.Bold, it.Name), ui.S(p.Mu, "  "+srcName(it.Source))}
+	if v := shortVersion(it.Version); v != "" {
+		head = append(head, ui.S(p.Mu, " · "+v))
+	}
+	lines := []ui.Line{ui.Of(head...)}
+	if it.Desc != "" && !inst {
+		lines = append(lines, muted(env, it.Desc))
+	}
+	switch {
+	case s.busy[it.key()] != "":
+		lines = append(lines, ui.T(p.Warn, ui.G.Warn+" "+s.busy[it.key()]+"…"))
+	case it.Installed:
+		if u, ok := s.updateFor(env, it); ok {
+			lines = append(lines, ui.Of(ui.S(p.Warn.Bold(true), ui.G.Up+" "+u.Latest+" available  "), button(env, true, "Update  u"), space(1), button(env, false, "More  ⏎")))
+		} else {
+			lines = append(lines, ui.Of(ui.S(p.Ok, ui.G.Tick+" up to date  "), button(env, true, "Actions  ⏎")))
+		}
+	default:
+		lines = append(lines, ui.Of(button(env, true, "Install  ⏎"), space(1), button(env, false, "Select  space")))
+	}
+	return lines
 }

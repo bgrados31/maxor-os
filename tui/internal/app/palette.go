@@ -53,6 +53,7 @@ func (m *Model) paletteItems() []paletteItem {
 		}})
 	}
 	items = append(items,
+		paletteItem{Label: "details", Hint: "show or hide the details panel", Run: func(m *Model) tea.Cmd { return m.toggleDetails() }},
 		paletteItem{Label: "exit", Hint: "back to your terminal", Run: func(m *Model) tea.Cmd { return core.Quit() }},
 		paletteItem{Label: "quit", Hint: "back to your terminal", Run: func(m *Model) tea.Cmd { return tea.Quit }})
 	return items

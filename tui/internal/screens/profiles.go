@@ -185,7 +185,7 @@ func (p *Profiles) Main(env *core.Env, w, h int) []ui.Line {
 		}
 		lines = append(lines,
 			ui.Line{L: []ui.Seg{mark, ui.S(pt.Bold, pr.Title)}, R: []ui.Seg{state}, Sel: i == p.list.sel},
-			ui.Line{L: []ui.Seg{ui.S(pt.Mu, "     "+firstSentence(pr.Description))}, Sel: i == p.list.sel},
+			ui.Line{L: []ui.Seg{ui.S(pt.Mu, "     "+briefIncludes(pr, 3))}, Sel: i == p.list.sel},
 			gap())
 	}
 	return lines
@@ -203,6 +203,19 @@ func (p *Profiles) Side(env *core.Env, w, h int) []ui.Line {
 		lines = append(lines, plain(env, l))
 	}
 	lines = append(lines, gap())
+	if len(pr.Includes) > 0 {
+		lines = append(lines, heading(env, "Includes"))
+		for _, it := range pr.Includes {
+			for i, l := range ui.Wrap(it, w-2) {
+				pre := "  "
+				if i == 0 {
+					pre = ui.G.Add + " "
+				}
+				lines = append(lines, ui.Of(ui.S(pt.Ac, pre), ui.S(pt.Text, l)))
+			}
+		}
+		lines = append(lines, gap())
+	}
 	if p.want[pr.ID] {
 		lines = append(lines, ui.Of(button(env, false, "Turn off  ⏎")))
 	} else {
@@ -250,3 +263,30 @@ func (p *Profiles) Wheel(env *core.Env, dy int) tea.Cmd {
 }
 
 var _ = strings.TrimSpace
+
+// Brief: el perfil elegido y lo pendiente de aplicar.
+func (p *Profiles) Brief(env *core.Env, w int) []ui.Line {
+	pt := env.P
+	ps := env.Data.Profiles
+	if len(ps) == 0 || p.list.sel >= len(ps) {
+		return []ui.Line{muted(env, "Waiting for the profiles.")}
+	}
+	pr := ps[p.list.sel]
+	lines := []ui.Line{ui.Of(ui.S(pt.Bold, pr.Title), ui.S(pt.Mu, "  "+briefIncludes(pr, 4)))}
+	if on, off := p.pending(env); len(on)+len(off) > 0 {
+		row := []ui.Seg{ui.S(pt.Warn, ui.G.Warn+" "+plural(len(on)+len(off), "change", "changes")+" to apply  "), button(env, true, "Apply  a"), space(1), button(env, false, "Discard  x")}
+		return append(lines, ui.Of(row...))
+	}
+	return append(lines, muted(env, "space or ⏎ turns it on or off"))
+}
+
+// briefIncludes resume lo que trae un perfil: los primeros n elementos y cuántos más.
+func briefIncludes(pr maxor.Profile, n int) string {
+	if len(pr.Includes) == 0 {
+		return firstSentence(pr.Description)
+	}
+	if len(pr.Includes) <= n {
+		return strings.Join(pr.Includes, " · ")
+	}
+	return strings.Join(pr.Includes[:n], " · ") + fmt.Sprintf(" · +%d more", len(pr.Includes)-n)
+}

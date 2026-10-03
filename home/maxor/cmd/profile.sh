@@ -23,7 +23,7 @@ profile_list() {
   need_flake
   local all
   all="$(jq -c --argjson on "$(profile_enabled)" \
-    'to_entries | map({id: .key, title: .value.title, description: .value.description, enabled: (.key as $k | $on | index($k) != null)})' \
+    'to_entries | map({id: .key, title: .value.title, description: .value.description, includes: (.value.includes // []), enabled: (.key as $k | $on | index($k) != null)})' \
     "$MAXOR_PROFILES")"
   if [ "$json" = 1 ]; then
     printf '%s\n' "$all"

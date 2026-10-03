@@ -85,7 +85,7 @@ func newCLI() *fakeCLI {
 		"update --status":   `{"flake":"/home/b/nixos-config","branch":"development","commit":"9b80dfd","dirty":true,"files":5,"fingerprint":"fp1","channel":"nixos-26.05","nixpkgs_rev":"774debe","nixpkgs_date":1789000000,"generation":28}`,
 		"update --cached":   `null`,
 		"hardware detect":   `{"version":1,"cpu":{"vendor":"intel","model":"13th Gen Intel(R) Core(TM) i5-13500H"},"gpus":[{"vendor":"intel","id":"8086:a7a0","bus":"PCI:0:2:0","primary":true},{"vendor":"nvidia","id":"10de:28e1","bus":"PCI:1:0:0","primary":false}],"laptop":true,"virt":"none","bluetooth":true}`,
-		"profile list --json": `[{"id":"gaming","title":"Gaming","description":"Steam, Proton and GameMode. More.","enabled":false},{"id":"office","title":"Office","description":"LibreOffice and Thunderbird.","enabled":false}]`,
+		"profile list --json": `[{"id":"gaming","title":"Gaming","description":"Steam, Proton and GameMode. More.","includes":["Steam","Proton","GameMode","MangoHud"],"enabled":false},{"id":"office","title":"Office","description":"LibreOffice and Thunderbird.","includes":["LibreOffice","Thunderbird"],"enabled":false}]`,
 		"search brave --json": `[{"source":"nix","id":"brave","name":"brave","version":"1.96.59","description":"Privacy-oriented browser"},{"source":"flatpak","id":"com.brave.Browser","name":"Brave Browser","version":"","description":"Fast Internet, AI, Adblock"}]`,
 		"install --nix brave --json": `[{"id":"brave","source":"nix","ok":true}]`,
 		"update --json":              scanJSON(true),
@@ -185,7 +185,7 @@ func summaryText(m *Model) string {
 // ── pruebas ──────────────────────────────────────────────────────────
 
 func TestLaVistaSiempreMideExactamenteElTerminal(t *testing.T) {
-	for _, size := range [][2]int{{80, 24}, {100, 30}, {120, 40}, {160, 50}, {200, 60}} {
+	for _, size := range [][2]int{{64, 20}, {80, 24}, {89, 25}, {100, 30}, {120, 40}, {160, 50}, {200, 60}} {
 		m, _ := setup(t, Options{})
 		m.Update(tea.WindowSizeMsg{Width: size[0], Height: size[1]})
 		for _, id := range []string{"home", "store", "themes", "update", "doctor", "profiles", "exit"} {
@@ -212,9 +212,9 @@ func TestLaVistaSiempreMideExactamenteElTerminal(t *testing.T) {
 
 func TestDemasiadoPequenoAvisaEnLugarDeRomperse(t *testing.T) {
 	m, _ := setup(t, Options{})
-	m.Update(tea.WindowSizeMsg{Width: 60, Height: 20})
+	m.Update(tea.WindowSizeMsg{Width: 56, Height: 18})
 	out := view(m)
-	if !strings.Contains(out, "needs at least 80×24") || len(strings.Split(out, "\n")) != 20 {
+	if !strings.Contains(out, "needs at least 64×20") || len(strings.Split(out, "\n")) != 18 {
 		t.Fatalf("aviso de tamaño:\n%s", out)
 	}
 }
@@ -1375,5 +1375,103 @@ func TestUpdateVuelveAUnaGeneracionAnterior(t *testing.T) {
 	}
 	if f.n("update --json --no-lock") != before+1 {
 		t.Fatal("tras volver atrás se escanea otra vez")
+	}
+}
+
+func TestLosDetallesSeAdaptanAlAnchoDeLaVentana(t *testing.T) {
+	// ancha: al lado, sin cajón
+	m, _ := setupWith(t, bulkCLI(), Options{Screen: "store"})
+	m.Update(tea.WindowSizeMsg{Width: 140, Height: 40})
+	out := view(m)
+	if !strings.Contains(out, "DETAILS") {
+		t.Fatalf("ancha: panel al lado:\n%s", out)
+	}
+	// estrecha (una de cuatro en la pantalla): cajón abajo con lo esencial
+	m.Update(tea.WindowSizeMsg{Width: 89, Height: 25})
+	out = view(m)
+	lines := strings.Split(out, "\n")
+	if strings.Contains(out, "DETAILS") {
+		t.Fatalf("estrecha: no hay panel al lado:\n%s", out)
+	}
+	if !strings.Contains(out, "Actions  ⏎") || !strings.Contains(out, "up to date") {
+		t.Fatalf("estrecha: el cajón enseña lo esencial de la app elegida:\n%s", out)
+	}
+	if len(lines) != 25 {
+		t.Fatalf("mide %d filas, no 25", len(lines))
+	}
+	// y sigue habiendo varias apps en la lista (cabecera compacta)
+	n := 0
+	for _, l := range lines {
+		if strings.Contains(l, "nixpkgs ·") {
+			n++
+		}
+	}
+	if n < 3 {
+		t.Fatalf("la lista compacta debe enseñar al menos 3 apps, enseña %d:\n%s", n, out)
+	}
+}
+
+func TestElCajonMuestraElComandoDelDoctorYLosBotonesDeUpdate(t *testing.T) {
+	m, _ := setupWith(t, bulkCLI(), Options{Screen: "doctor"})
+	m.Update(tea.WindowSizeMsg{Width: 89, Height: 25})
+	if out := view(m); !strings.Contains(out, "$ git -C /home/b/nixos-config status") || !strings.Contains(out, "Prepare fix") {
+		t.Fatalf("el cajón del Doctor enseña el comando antes de ejecutarlo:\n%s", out)
+	}
+	send(m, core.GoMsg{ID: "update"})
+	if out := view(m); !strings.Contains(out, "Rescan  r") || !strings.Contains(out, "Go back  g") {
+		t.Fatalf("el cajón de Update enseña sus botones:\n%s", out)
+	}
+	send(m, core.GoMsg{ID: "themes"})
+	if out := view(m); !strings.Contains(out, "Apply  ⏎") || !strings.Contains(out, "Hyprland") {
+		t.Fatalf("el cajón de Themes enseña el tema:\n%s", out)
+	}
+}
+
+func TestDOcultaYMuestraLosDetallesYLoRecuerda(t *testing.T) {
+	m, _ := setupWith(t, bulkCLI(), Options{Screen: "store"})
+	m.Update(tea.WindowSizeMsg{Width: 140, Height: 40})
+	if !strings.Contains(view(m), "DETAILS") {
+		t.Fatal("al principio se ven")
+	}
+	send(m, key("D"))
+	out := view(m)
+	if strings.Contains(out, "DETAILS") || !has(out, "Details hidden") {
+		t.Fatalf("D oculta los detalles y lo dice:\n%s", out)
+	}
+	// ya no hay cajón en una ventana estrecha
+	m.Update(tea.WindowSizeMsg{Width: 89, Height: 25})
+	if strings.Contains(view(m), "Actions  ⏎") {
+		t.Fatal("oculto también abajo")
+	}
+	// se recuerda: un modelo nuevo lo lee del archivo de ajustes
+	m2 := New(Options{Screen: "store"}, maxor.NewWith(bulkCLI()))
+	m2.Update(tea.WindowSizeMsg{Width: 140, Height: 40})
+	if strings.Contains(view(m2), "DETAILS") {
+		t.Fatal("el ajuste se recuerda entre usos")
+	}
+	send(m, key("D"))
+	m.Update(tea.WindowSizeMsg{Width: 140, Height: 40})
+	if !strings.Contains(view(m), "DETAILS") {
+		t.Fatal("D otra vez los vuelve a mostrar")
+	}
+	// dentro de un campo de texto, D es una letra
+	send(m, key("/"), key("D"))
+	if !m.screens[m.active].Captures() || !strings.Contains(view(m), "DETAILS") {
+		t.Fatal("con el foco en la búsqueda, D se escribe")
+	}
+}
+
+func TestPerfilesEnseñanLoQueInstalan(t *testing.T) {
+	m, _ := setup(t, Options{Screen: "profiles"})
+	out := view(m)
+	if !strings.Contains(out, "Steam · Proton · GameMode · +1 more") || !strings.Contains(out, "LibreOffice · Thunderbird") {
+		t.Fatalf("la lista resume lo que lleva cada perfil:\n%s", out)
+	}
+	if !has(out, "Includes") || !strings.Contains(out, "+ MangoHud") && !strings.Contains(out, "MangoHud") {
+		t.Fatalf("el panel lista uno a uno lo que instala:\n%s", out)
+	}
+	m.Update(tea.WindowSizeMsg{Width: 89, Height: 25})
+	if out := view(m); !strings.Contains(out, "Gaming") || !strings.Contains(out, "Steam · Proton · GameMode · MangoHud") {
+		t.Fatalf("el cajón también dice lo que trae:\n%s", out)
 	}
 }

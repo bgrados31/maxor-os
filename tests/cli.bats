@@ -324,3 +324,10 @@ setup() {
   run "$MAXOR_BIN" rollback abc
   [ "$status" = 2 ]
 }
+
+@test "profile list --json dice lo que instala cada perfil" {
+  echo '{}' > "$MAXOR_FLAKE/flake.nix"
+  run "$MAXOR_BIN" profile list --json
+  [ "$status" = 0 ]
+  echo "$output" | jq -e 'length > 0 and all(.[]; (.includes | type == "array") and (.includes | length > 0))'
+}
