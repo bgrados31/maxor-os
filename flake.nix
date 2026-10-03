@@ -21,6 +21,7 @@
     nixosModules.default = {
       imports = [
         ./modules/core.nix
+        ./modules/hardware.nix
         ./modules/desktop.nix
         ./modules/greeter.nix
         ./modules/branding.nix

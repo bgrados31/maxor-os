@@ -18,6 +18,7 @@ usage() {
   ui_line " $(ui_c "$E_AC" "update") [-y] [--no-lock]     actualizar mostrando los cambios"
   ui_line " $(ui_c "$E_AC" "rollback") [-y]               volver a la generación anterior"
   ui_line " $(ui_c "$E_AC" "doctor")                      diagnóstico del sistema"
+  ui_line " $(ui_c "$E_AC" "hardware") [detect]          equipo detectado y drivers que usará"
   ui_line ""
   ui_close
   echo
@@ -37,6 +38,7 @@ case "${1:-}" in
   update) shift; cmd_update "$@" ;;
   rollback) shift; cmd_rollback "$@" ;;
   doctor) cmd_doctor ;;
+  hardware) shift; cmd_hardware "$@" ;;
   "" | -h | --help | help) usage ;;
   *) usage; exit 1 ;;
 esac

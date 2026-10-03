@@ -157,6 +157,18 @@ cmd_doctor() {
   else
     warn "no encuentro el flake en $flake_dir (MAXOR_FLAKE)"
   fi
+  local hwf="$flake_dir/hosts/$host/hardware.json" cur sig
+  sig='[.cpu.vendor, .laptop, .virt, ([.gpus[] | .vendor + .id + .bus] | sort)]'
+  if [ -f "$hwf" ]; then
+    cur="$(hw_detect)"
+    if [ "$(jq -c "$sig" <<< "$cur")" = "$(jq -c "$sig" "$hwf")" ]; then
+      ok "hardware.json coincide con este equipo"
+    else
+      warn "el hardware cambió respecto a hardware.json: maxor hardware detect --write"
+    fi
+  elif [ -f "$flake_dir/flake.nix" ]; then
+    warn "sin hardware.json: maxor hardware detect --write"
+  fi
 
   ui_line ""
   ui_close

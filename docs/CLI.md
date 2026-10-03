@@ -14,6 +14,7 @@ maxor theme export <nombre>       empaquetar un tema
 maxor update [-y] [--no-lock]     actualizar mostrando los cambios
 maxor rollback [-y]               volver a la generación anterior
 maxor doctor                      diagnóstico del sistema
+maxor hardware [detect [--write]]  equipo detectado y drivers que usará
 ```
 
 ## La interfaz
@@ -112,6 +113,7 @@ en scripts.
 | `home/maxor/style.sh` | `style.json` → Lua de Hyprland (validación y generación) |
 | `home/maxor/theme.sh` | `maxor theme …` |
 | `home/maxor/system.sh` | `update`, `rollback` y `doctor` |
+| `home/maxor/hardware.sh` | `hardware`: detección del equipo |
 | `home/maxor/main.sh` | Ayuda y despacho de comandos |
 
 Los scripts se concatenan en ese orden y pasan `shellcheck` en cada compilación (lo ejecuta

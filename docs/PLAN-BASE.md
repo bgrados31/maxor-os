@@ -29,7 +29,8 @@ y apagado silenciosos, sesión limpia, Thunar.
 - [ ] Flatpak y Flathub activos desde el primer arranque (los usará la tienda).
 - [ ] `earlyoom`, y evaluar un kernel más reciente o `zen` y un planificador `scx`.
 - [ ] Perfiles `maxor profile gaming|dev|minimal|creator` (Steam/gamemode, toolchains, etc.).
-- [ ] Gráficos: modo «sin GPU dedicada» y conmutación PRIME guiada con `maxor gpu`.
+- [x] Drivers por equipo: detección de CPU/GPU/portátil/VM con `maxor hardware` y `modules/hardware.nix` ([HARDWARE.md](HARDWARE.md)).
+- [ ] Gráficos: conmutación PRIME guiada con `maxor gpu` y modo «sin GPU dedicada».
 - [ ] `maxor doctor --fix` para lo corregible, y `maxor doctor --json`.
 - [ ] `maxor backup` (config de usuario) y `maxor restore`.
 - [ ] Paquetes de usuario sin editar `.nix`: `~/.config/maxor/packages.nix` y `maxor install`.

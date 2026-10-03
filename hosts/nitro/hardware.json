@@ -1,0 +1,24 @@
+{
+  "version": 1,
+  "cpu": {
+    "vendor": "intel",
+    "model": "13th Gen Intel(R) Core(TM) i5-13500H"
+  },
+  "gpus": [
+    {
+      "vendor": "intel",
+      "id": "8086:a7a0",
+      "bus": "PCI:0:2:0",
+      "primary": true
+    },
+    {
+      "vendor": "nvidia",
+      "id": "10de:28e1",
+      "bus": "PCI:1:0:0",
+      "primary": false
+    }
+  ],
+  "laptop": true,
+  "virt": "none",
+  "bluetooth": true
+}

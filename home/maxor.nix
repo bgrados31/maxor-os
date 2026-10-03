@@ -12,6 +12,7 @@
 #   style.sh    style.json → Lua de Hyprland
 #   theme.sh    maxor theme …
 #   system.sh   maxor update | rollback | doctor
+#   hardware.sh maxor hardware (detección del equipo)
 #   main.sh     ayuda y despacho de comandos
 let
   themesDir = ../themes;
@@ -42,6 +43,7 @@ let
       ./maxor/style.sh
       ./maxor/theme.sh
       ./maxor/system.sh
+      ./maxor/hardware.sh
       ./maxor/main.sh
     ];
   };
