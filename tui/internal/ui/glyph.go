@@ -15,6 +15,7 @@ type Glyphs struct {
 	Up, Add, Del, Chg              string
 	BarOn, BarOff, Find, Arrow     string
 	Ellipsis                       string
+	Swatch, Branch                 string // punto de color y símbolo de rama
 	Spin                           []string
 }
 
@@ -25,6 +26,7 @@ var unicode = Glyphs{
 	Up: "↑", Add: "+", Del: "−", Chg: "~",
 	BarOn: "▰", BarOff: "▱", Find: "⌕", Arrow: "→",
 	Ellipsis: "…",
+	Swatch:   "●", Branch: "⎇",
 	Spin:     []string{"⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"},
 }
 
@@ -35,6 +37,7 @@ var ascii = Glyphs{
 	Up: "^", Add: "+", Del: "-", Chg: "~",
 	BarOn: "#", BarOff: "-", Find: "?", Arrow: "->",
 	Ellipsis: "...",
+	Swatch:   "*", Branch: "branch",
 	Spin:     []string{"|", "/", "-", "\\"},
 }
 

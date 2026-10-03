@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"sort"
+	"strings"
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
@@ -15,11 +16,13 @@ import (
 	"github.com/bgrados31/maxor-os/tui/internal/ui"
 )
 
-// Themes elige el tema. Al moverte, toda la pantalla se pinta con ese tema (sin
-// tocar el sistema); con Intro se aplica de verdad con `maxor theme apply`.
+// Themes elige el tema. Cada tema se representa con un solo color, el de acento.
+// Al moverte, toda la pantalla se pinta con ese tema (sin tocar el sistema); con
+// Intro se aplica de verdad con `maxor theme apply`.
 type Themes struct {
 	core.Base
-	list   listState
+	list   listState // selección entre los temas (no cuenta las cabeceras)
+	top    int       // primera fila visible, contando las cabeceras
 	inited bool
 	rows   int
 }
@@ -56,6 +59,34 @@ func ToTheme(t maxor.Theme) theme.Theme {
 	})
 }
 
+// themeRow es una fila de la lista: una cabecera de grupo o un tema.
+type themeRow struct {
+	header string
+	idx    int // índice en ordered(); -1 en una cabecera
+}
+
+func (t *Themes) layout(env *core.Env) []themeRow {
+	list := ordered(env)
+	counts := map[string]int{}
+	for _, th := range list {
+		counts[th.Mode]++
+	}
+	var rows []themeRow
+	last := ""
+	for i, th := range list {
+		if th.Mode != last {
+			last = th.Mode
+			name := "Dark"
+			if th.Mode == "light" {
+				name = "Light"
+			}
+			rows = append(rows, themeRow{header: fmt.Sprintf("%s · %d", strings.ToUpper(name), counts[th.Mode]), idx: -1})
+		}
+		rows = append(rows, themeRow{idx: i})
+	}
+	return rows
+}
+
 func (t *Themes) settle(env *core.Env) {
 	if t.inited || !env.Data.ThemesLoaded {
 		return
@@ -89,20 +120,16 @@ func (t *Themes) Update(env *core.Env, msg tea.Msg) (core.Screen, tea.Cmd) {
 			if m.Err != nil {
 				return t, core.Toast("bad", "Could not change the theme: "+oneLine(m.Err.Error()))
 			}
-			verb := "Applied theme "
-			if m.ID == "themes.undo" {
-				verb = "Went back to the previous theme"
-			}
-			note := verb
+			note := "Went back to the previous theme"
 			if s, ok := m.Value.(string); ok && m.ID == "themes.apply" {
-				note += s
+				note = "Applied theme " + s
 			}
 			return t, tea.Batch(func() tea.Msg { return core.ThemeChangedMsg{} }, LoadThemes(env, true), core.Toast("ok", note), core.Note("ok", note))
 		}
 	case tea.KeyMsg:
 		list := ordered(env)
 		if d, mv := listKey(m); mv {
-			t.list.move(d, len(list), max(t.rows, 1))
+			t.list.move(d, len(list), 1<<20)
 			return t, t.preview(env)
 		}
 		switch {
@@ -129,37 +156,66 @@ func (t *Themes) Main(env *core.Env, w, h int) []ui.Line {
 		if err := env.Data.Err["themes"]; err != nil {
 			return failed(env, "Could not load the themes", err)
 		}
-		return append([]ui.Line{heading(env, "Themes")}, skeletonRows(env, 6, 14, 10)...)
+		lines := []ui.Line{heading(env, "Themes"), gap()}
+		for i := 0; i < 8; i++ {
+			lines = append(lines, ui.Skeleton(p, env.Frame+i*2, 2, 14+i%3*4))
+		}
+		return lines
 	}
 	t.settle(env)
 	list := ordered(env)
-	lines := []ui.Line{}
+	rows := t.layout(env)
+
+	// Ventana: la fila seleccionada siempre se ve, con su cabecera si es la primera del grupo.
+	selRow := 0
+	for i, r := range rows {
+		if r.idx == t.list.sel {
+			selRow = i
+		}
+	}
+	avail := max(t.rows, 1)
+	if selRow < t.top {
+		t.top = selRow
+	}
+	if selRow >= t.top+avail {
+		t.top = selRow - avail + 1
+	}
+	if selRow > 0 && rows[selRow-1].idx < 0 && t.top > selRow-1 {
+		t.top = selRow - 1
+	}
+	if t.top > len(rows)-avail {
+		t.top = len(rows) - avail
+	}
+	if t.top < 0 {
+		t.top = 0
+	}
+
+	var lines []ui.Line
 	if l, ok := working(env, "themes.apply", "Applying the theme"); ok {
 		lines = append(lines, l)
 	} else {
-		lines = append(lines, heading(env, fmt.Sprintf("%d themes · dark and light", len(list))))
+		lines = append(lines, heading(env, fmt.Sprintf("%d themes", len(list))))
 	}
 	lines = append(lines, gap())
-	from, to := t.list.window(len(list), t.rows)
-	for i := from; i < to; i++ {
-		th := list[i]
-		mark := " "
-		if th.Active {
-			mark = ui.G.Dot
+	for i := t.top; i < len(rows) && i < t.top+avail; i++ {
+		r := rows[i]
+		if r.idx < 0 {
+			lines = append(lines, ui.T(p.Mu.Bold(true), r.header))
+			continue
 		}
-		sw := func(c string) ui.Seg { return ui.S(p.Fill.Foreground(lipgloss.Color(c)), "██") }
-		lines = append(lines, ui.Line{
-			L: []ui.Seg{ui.S(p.Ac, mark+" "), ui.S(p.Text, fmt.Sprintf("%-14s", th.ID)), sw(th.Colors.S2), sw(th.Colors.Ac), sw(th.Colors.Ac2), sw(th.Colors.Fg)},
-			R: []ui.Seg{ui.S(p.Mu, th.Name+" ")},
-			Sel: i == t.list.sel,
-		})
+		th := list[r.idx]
+		dot := ui.S(p.Fill.Foreground(lipgloss.Color(th.Colors.Ac)).Bold(true), ui.G.Swatch+"  ")
+		right := []ui.Seg{ui.S(p.Mu, th.Mode+" ")}
+		if th.Active {
+			right = []ui.Seg{ui.S(p.Ok, ui.G.Tick+" in use  "), ui.S(p.Mu, th.Mode+" ")}
+		}
+		lines = append(lines, ui.Line{L: []ui.Seg{dot, ui.S(p.Text, th.Name)}, R: right, Sel: r.idx == t.list.sel})
 	}
 	return lines
 }
 
 func (t *Themes) Side(env *core.Env, w, h int) []ui.Line {
-	p := env.P
-	t.settle(env) // el panel lateral se dibuja antes que el principal
+	t.settle(env)
 	list := ordered(env)
 	if len(list) == 0 || t.list.sel >= len(list) {
 		return []ui.Line{heading(env, "Preview")}
@@ -169,19 +225,28 @@ func (t *Themes) Side(env *core.Env, w, h int) []ui.Line {
 	pp := ui.NewPainter(pt, th.Colors.Bg)
 	pb := ui.NewPainter(pt, th.Colors.S2)
 	row := func(pa ui.Painter, segs ...ui.Seg) ui.Line { return ui.Line{L: ui.Cell(segs, w, pa.Fill)} }
+	sel := ui.Line{L: ui.Cell([]ui.Seg{ui.S(pp.Sel, " "+ui.G.Sel+" selected row")}, w, pp.Fill)}
 	sample := []ui.Line{
 		row(pb, ui.S(pb.Ac.Bold(true), " maxor "), ui.S(pb.Mu, ui.G.Arrow+" "+th.ID)),
+		row(pp),
 		row(pp, ui.S(pp.Ok, " "+ui.G.Tick+" applied")),
 		row(pp, ui.S(pp.Warn, " "+ui.G.Warn+" one warning")),
 		row(pp, ui.S(pp.Bad, " "+ui.G.Bad+" a problem")),
-		{L: ui.Cell([]ui.Seg{ui.S(pp.Sel, " "+ui.G.Sel+" selected row")}, w, pp.Fill)},
+		sel,
 		row(pp, ui.S(pp.Text, " plain text "), ui.S(pp.Mu, "muted")),
-		row(pp, ui.S(pp.Ac, " accent "), ui.S(pp.Ac2, "accent 2")),
+		row(pp),
 	}
-	lines := []ui.Line{heading(env, "Preview"), gap(), plain(env, th.Name), muted(env, th.Mode+" theme"), gap()}
+	p := env.P
+	lines := []ui.Line{
+		heading(env, "Preview"), gap(),
+		ui.Of(ui.S(p.Fill.Foreground(lipgloss.Color(th.Colors.Ac)).Bold(true), ui.G.Swatch+"  "), ui.S(p.Bold, th.Name)),
+		muted(env, "   "+th.Mode+" theme"), gap(),
+	}
 	lines = append(lines, sample...)
 	lines = append(lines, gap(), ui.Of(button(env, true, "Apply  ⏎"), space(1), button(env, false, "Undo  u")))
-	_ = p
+	if th.Active {
+		lines = append(lines, gap(), ui.T(p.Ok, ui.G.Tick+" this is the theme in use"))
+	}
 	return lines
 }
 
@@ -190,16 +255,16 @@ func (t *Themes) Hints(env *core.Env) []ui.Hint {
 }
 
 func (t *Themes) Click(env *core.Env, x, y int) tea.Cmd {
-	list := ordered(env)
-	i := t.list.top + y - 2
-	if i >= 0 && i < len(list) {
-		t.list.sel = i
+	rows := t.layout(env)
+	i := t.top + y - 2
+	if i >= 0 && i < len(rows) && rows[i].idx >= 0 {
+		t.list.sel = rows[i].idx
 		return t.preview(env)
 	}
 	return nil
 }
 
 func (t *Themes) Wheel(env *core.Env, dy int) tea.Cmd {
-	t.list.move(dy*2, len(ordered(env)), max(t.rows, 1))
+	t.list.move(dy*2, len(ordered(env)), 1<<20)
 	return t.preview(env)
 }

@@ -25,21 +25,48 @@ func Bar(p Painter, pct, width int) []Seg {
 	}
 }
 
-// Skeleton son huecos que parpadean mientras llegan los datos.
+// Skeleton son huecos con un brillo que los recorre de izquierda a derecha mientras
+// llegan los datos: se nota que la pantalla está viva y no una caja vacía.
 func Skeleton(p Painter, frame int, widths ...int) Line {
-	ch := "░"
-	if (frame/3)%2 == 1 {
-		ch = "▒"
+	block := "█"
+	if G.BarOn == "#" { // ASCII: sin degradado
+		return skeletonPlain(p, widths...)
 	}
-	if G.BarOn == "#" { // ASCII
-		ch = "."
+	total := 0
+	for _, w := range widths {
+		total += w + 2
 	}
-	segs := make([]Seg, 0, len(widths)*2)
+	center := float64((frame*2)%(total+18)) - 9 // el brillo entra por la izquierda y sale por la derecha
+	var segs []Seg
+	x := 0
+	for i, w := range widths {
+		if i > 0 {
+			segs = append(segs, Seg{T: "  "})
+			x += 2
+		}
+		for k := 0; k < w; k++ {
+			d := float64(x) - center
+			if d < 0 {
+				d = -d
+			}
+			t := 1 - d/7
+			if t < 0 {
+				t = 0
+			}
+			segs = append(segs, Seg{T: block, S: p.Fill.Foreground(lipgloss.Color(Mix(p.Dim, p.Glow, t)))})
+			x++
+		}
+	}
+	return Line{L: segs}
+}
+
+func skeletonPlain(p Painter, widths ...int) Line {
+	var segs []Seg
 	for i, w := range widths {
 		if i > 0 {
 			segs = append(segs, Seg{T: "  "})
 		}
-		segs = append(segs, Seg{T: strings.Repeat(ch, w), S: p.Mu})
+		segs = append(segs, Seg{T: strings.Repeat(".", w), S: p.Mu})
 	}
 	return Line{L: segs}
 }

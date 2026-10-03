@@ -295,10 +295,10 @@ func (m *Model) key(k tea.KeyMsg, cmds []tea.Cmd) (tea.Model, tea.Cmd) {
 		if !m.setupFocus && len(m.screens) > 1 {
 			n := len(m.screens)
 			switch k.String() {
-			case "tab":
+			case "tab", "right", "l", "]":
 				add(core.Go(m.screens[(m.active+1)%n].ID()))
 				return m, tea.Batch(cmds...)
-			case "shift+tab":
+			case "shift+tab", "left", "h", "[":
 				add(core.Go(m.screens[(m.active+n-1)%n].ID()))
 				return m, tea.Batch(cmds...)
 			}

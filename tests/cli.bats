@@ -195,3 +195,45 @@ setup() {
   run "$MAXOR_BIN" ui nada
   [ "$status" = 2 ]
 }
+
+@test "doctor --json lleva el id de cada comprobación y su arreglo" {
+  bats_require_minimum_version 1.5.0
+  run --separate-stderr "$MAXOR_BIN" doctor --json
+  echo "$output" | jq -e 'all(.groups[].items[]; has("id") and has("fix") and has("confirm"))'
+  # las que están bien nunca ofrecen arreglo
+  echo "$output" | jq -e 'all(.groups[].items[] | select(.level == "ok"); .fix == null)'
+}
+
+@test "update --status cuenta la rama, el canal y la huella sin compilar nada" {
+  cd "$MAXOR_FLAKE"
+  git init -q -b development .
+  git config user.email t@t && git config user.name t
+  echo '{}' > flake.nix
+  echo '{"nodes":{"nixpkgs":{"original":{"ref":"nixos-26.05"},"locked":{"rev":"774debe1234567","lastModified":1790000000}}}}' > flake.lock
+  git add . && git commit -q -m init
+  run "$MAXOR_BIN" update --status
+  [ "$status" = 0 ]
+  echo "$output" | jq -e '.branch == "development" and .dirty == false and .files == 0 and .channel == "nixos-26.05" and .nixpkgs_rev == "774debe" and .nixpkgs_date == 1790000000 and (.fingerprint | length > 5)'
+  first="$(echo "$output" | jq -r .fingerprint)"
+  echo cambio >> flake.nix
+  run "$MAXOR_BIN" update --status
+  echo "$output" | jq -e '.dirty == true and .files == 1'
+  [ "$(echo "$output" | jq -r .fingerprint)" != "$first" ]
+}
+
+@test "update --status funciona aunque la configuración no sea un repositorio" {
+  touch "$MAXOR_FLAKE/flake.nix"
+  run "$MAXOR_BIN" update --status
+  [ "$status" = 0 ]
+  echo "$output" | jq -e '.branch == "" and .dirty == false and .generation >= 0'
+}
+
+@test "update --cached da null sin escaneo y el guardado cuando lo hay" {
+  touch "$MAXOR_FLAKE/flake.nix"
+  run "$MAXOR_BIN" update --cached
+  [ "$output" = null ]
+  mkdir -p "$XDG_STATE_HOME/maxor"
+  echo '{"up_to_date":true,"checked_at":1790000000,"fingerprint":"abc"}' > "$XDG_STATE_HOME/maxor/update-check.json"
+  run "$MAXOR_BIN" update --cached
+  echo "$output" | jq -e '.checked_at == 1790000000 and .up_to_date == true'
+}

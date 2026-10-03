@@ -1,6 +1,7 @@
 package ui
 
 import (
+	"fmt"
 	"strings"
 	"testing"
 	"time"
@@ -136,15 +137,58 @@ func TestDurationComoLaCLI(t *testing.T) {
 	}
 }
 
-func TestSkeletonParpadea(t *testing.T) {
+func TestSkeletonTieneUnBrilloQueSeMueve(t *testing.T) {
 	p := painter()
-	a := Skeleton(p, 0, 4, 6)
-	b := Skeleton(p, 3, 4, 6)
-	if a.L[0].T == b.L[0].T {
-		t.Fatal("el esqueleto debe alternar de forma entre fotogramas")
+	a := Skeleton(p, 0, 12, 20)
+	b := Skeleton(p, 6, 12, 20)
+	if len(a.L) == 0 || len(a.L) != len(b.L) {
+		t.Fatal("mismo número de celdas en cada fotograma")
 	}
-	if ansi.StringWidth(a.L[0].T) != 4 {
-		t.Fatal("ancho del hueco")
+	color := func(l Line) string {
+		var out []string
+		for _, sg := range l.L {
+			out = append(out, fmt.Sprint(sg.S.GetForeground()))
+		}
+		return strings.Join(out, ",")
+	}
+	if color(a) == color(b) {
+		t.Fatal("el brillo debe cambiar de sitio entre fotogramas")
+	}
+	w := 0
+	for _, sg := range a.L {
+		w += ansi.StringWidth(sg.T)
+	}
+	if w != 12+2+20 {
+		t.Fatalf("ancho total %d, se esperaba 34", w)
+	}
+}
+
+func TestMixMezclaColores(t *testing.T) {
+	if Mix("#000000", "#ffffff", 0.5) != "#808080" || Mix("#ff0000", "#0000ff", 0) != "#ff0000" || Mix("#ff0000", "#0000ff", 1) != "#0000ff" {
+		t.Fatal("mezcla incorrecta")
+	}
+}
+
+func TestSpreadColocaLosDosLadosEnElAncho(t *testing.T) {
+	p := painter()
+	segs := Spread([]Seg{S(p.Text, "izquierda")}, []Seg{S(p.Mu, "derecha")}, 30, p.Fill)
+	w := 0
+	var txt string
+	for _, sg := range segs {
+		w += ansi.StringWidth(sg.T)
+		txt += sg.T
+	}
+	if w != 30 || !strings.HasPrefix(txt, "izquierda") || !strings.HasSuffix(txt, "derecha") {
+		t.Fatalf("spread: %d %q", w, txt)
+	}
+	segs = Spread([]Seg{S(p.Text, "un nombre larguísimo que no cabe")}, []Seg{S(p.Mu, "nixpkgs")}, 20, p.Fill)
+	txt, w = "", 0
+	for _, sg := range segs {
+		w += ansi.StringWidth(sg.T)
+		txt += sg.T
+	}
+	if w != 20 || !strings.HasSuffix(txt, "nixpkgs") {
+		t.Fatalf("spread recortado: %d %q", w, txt)
 	}
 }
 

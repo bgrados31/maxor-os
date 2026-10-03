@@ -34,6 +34,13 @@ func LoadProfiles(env *core.Env, quiet bool) tea.Cmd {
 	return load(env, "profiles", "Loading profiles", quiet, func(ctx context.Context) (any, error) { return env.Client.Profiles(ctx) })
 }
 
+func LoadUpdateStatus(env *core.Env, quiet bool) tea.Cmd {
+	return load(env, "updatestatus", "Reading the configuration", quiet, func(ctx context.Context) (any, error) { return env.Client.UpdateStatus(ctx) })
+}
+func LoadUpdateCache(env *core.Env, quiet bool) tea.Cmd {
+	return load(env, "updatecache", "Reading the last scan", quiet, func(ctx context.Context) (any, error) { return env.Client.UpdateCached(ctx) })
+}
+
 // ApplyData guarda en env.Data el resultado de una carga. Devuelve false si el
 // mensaje no era de una carga compartida.
 func ApplyData(env *core.Env, d task.DoneMsg) bool {
@@ -59,6 +66,13 @@ func ApplyData(env *core.Env, d task.DoneMsg) bool {
 		env.Data.Hardware = &v
 	case []maxor.Profile:
 		env.Data.Profiles = v
+	case maxor.UpdateStatus:
+		env.Data.UpdateStatus = &v
+	case *maxor.UpdateCheck:
+		env.Data.CacheLoaded = true
+		if v != nil && (env.Data.Update == nil || v.CheckedAt > env.Data.Update.CheckedAt) {
+			env.Data.Update = v
+		}
 	}
 	return true
 }

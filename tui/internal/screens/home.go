@@ -14,6 +14,7 @@ import (
 type Home struct {
 	core.Base
 	list listState
+	half int // ancho de una tarjeta, para el clic
 }
 
 func NewHome() *Home { return &Home{} }
@@ -50,6 +51,12 @@ func (h *Home) Init(env *core.Env) tea.Cmd {
 	}
 	if env.Data.Hardware == nil {
 		cmds = append(cmds, LoadHardware(env, true))
+	}
+	if env.Data.UpdateStatus == nil {
+		cmds = append(cmds, LoadUpdateStatus(env, true))
+	}
+	if !env.Data.CacheLoaded {
+		cmds = append(cmds, LoadUpdateCache(env, true))
 	}
 	return tea.Batch(cmds...)
 }
@@ -100,8 +107,10 @@ func (h *Home) tile(env *core.Env, title string, loading bool, big []ui.Seg, sub
 	p := env.P
 	rows := [][]ui.Seg{{ui.S(p.Mu, title)}}
 	if loading {
-		sk := ui.Skeleton(p, env.Frame, 12)
-		return append(rows, sk.L, ui.Skeleton(p, env.Frame+2, 18).L)
+		// la tarjeta ya tiene su forma: título real y dos barras que brillan, cada
+		// tarjeta con su fase para que el brillo no vaya a la vez en todas
+		phase := env.Frame + len(title)*4
+		return append(rows, ui.Skeleton(p, phase, 13).L, ui.Skeleton(p, phase+3, 22).L)
 	}
 	return append(rows, big, []ui.Seg{ui.S(p.Mu, sub)})
 }
@@ -130,18 +139,20 @@ func (h *Home) Main(env *core.Env, w, hh int) []ui.Line {
 		sys = h.tile(env, "SYSTEM", true, nil, "")
 	}
 
-	// Actualizaciones
+	// Actualizaciones: lo que dejó el último escaneo, que la pestaña Update repite sola
 	var upd [][]ui.Seg
 	switch {
+	case d.Update == nil && !d.CacheLoaded:
+		upd = h.tile(env, "UPDATES", true, nil, "")
 	case d.Update == nil:
-		upd = h.tile(env, "UPDATES", false, []ui.Seg{ui.S(p.Mu, "Not checked yet")}, "press u to check")
+		upd = h.tile(env, "UPDATES", false, []ui.Seg{ui.S(p.Mu, "Not scanned yet")}, "open Update to scan")
 	case d.Update.UpToDate:
-		upd = h.tile(env, "UPDATES", false, []ui.Seg{ui.S(p.Ok.Bold(true), ui.G.Tick+" Up to date")}, "nothing to apply")
+		upd = h.tile(env, "UPDATES", false, []ui.Seg{ui.S(p.Ok.Bold(true), ui.G.Tick+" Up to date")}, "scanned "+ago(env.Now(), d.Update.CheckedAt))
 	default:
 		n := d.Update.Counts.New + d.Update.Counts.Updated + d.Update.Counts.Removed + d.Update.Counts.Changed
-		sub := "ready to apply"
+		sub := "scanned " + ago(env.Now(), d.Update.CheckedAt)
 		if d.Update.Kernel {
-			sub = "includes a new kernel"
+			sub = "new kernel · " + sub
 		}
 		upd = h.tile(env, "UPDATES", false, []ui.Seg{ui.S(p.Warn.Bold(true), plural(n, "change", "changes"))}, sub)
 	}
@@ -171,6 +182,7 @@ func (h *Home) Main(env *core.Env, w, hh int) []ui.Line {
 	}
 
 	half := (w - 2) / 2
+	h.half = half
 	row := func(a, b [][]ui.Seg) {
 		for i := 0; i < 3; i++ {
 			l := ui.Line{L: append(append(ui.Cell(a[i], half, p.Fill), ui.S(p.Fill, "  ")), ui.Cell(b[i], w-half-2, p.Fill)...)}
@@ -214,4 +226,19 @@ func (h *Home) Hints(env *core.Env) []ui.Hint {
 	return []ui.Hint{{Key: "↑↓", Action: "move"}, {Key: "⏎", Action: "go"}, {Key: "u s t d", Action: "shortcuts"}}
 }
 
-func (h *Home) Click(env *core.Env, x, y int) tea.Cmd { return nil }
+
+// Click lleva a la pestaña de la tarjeta pulsada.
+func (h *Home) Click(env *core.Env, x, y int) tea.Cmd {
+	right := x > h.half
+	switch {
+	case y >= 2 && y <= 4 && !right:
+		return core.Go("doctor")
+	case y >= 2 && y <= 4 && right:
+		return core.Go("update")
+	case y >= 6 && y <= 8 && !right:
+		return core.Go("store")
+	case y >= 6 && y <= 8 && right:
+		return core.Go("themes")
+	}
+	return nil
+}

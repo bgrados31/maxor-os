@@ -22,8 +22,8 @@ siempre (la lista de comandos, o los resultados como lista), así que nada depen
 | **Home** | El estado del equipo de un vistazo (sistema, actualizaciones, apps, tema, hardware) y las acciones rápidas | `doctor --json`, `apps --json`, `theme list --json`, `hardware detect` |
 | **Store** | Buscar en nixpkgs y Flathub, marcar varias apps, instalar y quitar | `search --json`, `install --json`, `remove --json`, `apps --json` |
 | **Themes** | Ver los temas; al moverte, **toda la pantalla se pinta con ese tema** sin tocar el sistema; con Intro se aplica | `theme list --json`, `theme apply`, `theme undo` |
-| **Update** | Comprobar qué cambiaría el sistema (sin aplicar nada) y, si lo confirmas, aplicarlo | `update --json [--no-lock]`, `update --no-lock -y` |
-| **Doctor** | Las comprobaciones agrupadas, con el detalle y un consejo para cada aviso | `doctor --json` |
+| **Update** | Rama y canal de la configuración, escaneo automático de lo que cambiaría (sin aplicar nada), rescan y aplicar | `update --status`, `update --cached`, `update --json [--no-lock]`, `update --no-lock -y` |
+| **Doctor** | Las comprobaciones agrupadas; cada aviso con arreglo se prepara con `⏎` y se ejecuta con otro `⏎` | `doctor --json` (campos `id`, `fix`, `confirm`) |
 | **Setup** | El asistente: detecta el equipo, elige el aspecto y los perfiles, y lo guarda | `hardware detect`, `theme list`, `profile list --json`, `theme apply`, `profile enable\|disable --no-apply` |
 
 La pantalla **no reimplementa nada**: llama a la CLI y lee su JSON (el contrato está en
@@ -35,9 +35,10 @@ La pantalla **no reimplementa nada**: llama a la CLI y lee su JSON (el contrato 
 | Tecla | Acción |
 |---|---|
 | `↑` `↓`, `j` `k` | Mover (también `g`/`G` principio y fin, `Ctrl-u`/`Ctrl-d` media página) |
-| `Tab`, `Shift-Tab`, `1` … `6` | Cambiar de pestaña |
+| `←` `→`, `h` `l`, `[` `]`, `Tab`, `Shift-Tab`, `1` … `6` | Cambiar de pestaña (en el asistente y dentro de un campo de texto no cambian) |
 | `⏎` | Elegir o ejecutar |
 | `espacio` | Marcar (Tienda y Setup) |
+| `r` / `c` | Update: repetir el escaneo / buscar versiones nuevas. Doctor: comprobar otra vez |
 | `/` | Buscar (Tienda) |
 | `:` | **Paleta de comandos**: escribe `go store`, `theme alba`, `search brave`, `update check`… |
 | `?` | Ayuda con todas las teclas |

@@ -208,3 +208,22 @@ func Wrap(text string, w int) []string {
 	}
 	return lines
 }
+
+// Spread coloca left a la izquierda y right a la derecha en exactamente w celdas,
+// rellenando el hueco con fill: para filas con texto a los dos lados sobre un fondo propio.
+func Spread(left, right []Seg, w int, fill lipgloss.Style) []Seg {
+	rw := segsWidth(right)
+	if rw > w {
+		right, rw = truncate(right, w), segsWidth(truncate(right, w))
+	}
+	budget := w - rw
+	if rw > 0 {
+		budget--
+	}
+	l := truncate(left, budget)
+	out := append([]Seg{}, l...)
+	if gap := w - segsWidth(l) - rw; gap > 0 {
+		out = append(out, Seg{T: strings.Repeat(" ", gap), S: fill})
+	}
+	return append(out, right...)
+}

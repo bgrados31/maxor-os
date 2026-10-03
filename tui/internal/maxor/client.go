@@ -115,8 +115,11 @@ func (c *Client) getJSON(ctx context.Context, v any, tolerant bool, args ...stri
 // ── Tipos del contrato JSON ──────────────────────────────────────────
 
 type DoctorItem struct {
-	Level string `json:"level"`
-	Text  string `json:"text"`
+	Level   string `json:"level"`
+	Text    string `json:"text"`
+	ID      string `json:"id"`      // clave de la comprobación (p. ej. git_dirty)
+	Fix     string `json:"fix"`     // comando que lo arregla o ayuda a verlo; vacío si no hay
+	Confirm bool   `json:"confirm"` // el arreglo pide confirmación (borra o cambia cosas)
 }
 type DoctorGroup struct {
 	Title string       `json:"title"`
@@ -205,10 +208,27 @@ type Counts struct {
 	Config  int `json:"config"`
 }
 type UpdateCheck struct {
-	UpToDate bool     `json:"up_to_date"`
-	Kernel   bool     `json:"kernel"`
-	Counts   Counts   `json:"counts"`
-	Changes  []Change `json:"changes"`
+	UpToDate    bool     `json:"up_to_date"`
+	Kernel      bool     `json:"kernel"`
+	Counts      Counts   `json:"counts"`
+	Changes     []Change `json:"changes"`
+	CheckedAt   int64    `json:"checked_at"`  // cuándo se hizo el escaneo (segundos Unix)
+	Fingerprint string   `json:"fingerprint"` // huella del repositorio en ese momento
+	Lock        bool     `json:"lock"`        // si refrescó las entradas del flake
+}
+
+// UpdateStatus es el estado barato de la configuración (no compila nada).
+type UpdateStatus struct {
+	Flake       string `json:"flake"`
+	Branch      string `json:"branch"`
+	Commit      string `json:"commit"`
+	Dirty       bool   `json:"dirty"`
+	Files       int    `json:"files"`
+	Fingerprint string `json:"fingerprint"`
+	Channel     string `json:"channel"`
+	NixpkgsRev  string `json:"nixpkgs_rev"`
+	NixpkgsDate int64  `json:"nixpkgs_date"`
+	Generation  int    `json:"generation"`
 }
 
 type Version struct {
@@ -309,5 +329,17 @@ func (c *Client) UpdateCheck(ctx context.Context, lock bool) (u UpdateCheck, err
 		args = append(args, "--no-lock")
 	}
 	err = c.getJSON(ctx, &u, false, args...)
+	return
+}
+
+// UpdateStatus lee la rama, el canal de nixpkgs y la generación: al instante.
+func (c *Client) UpdateStatus(ctx context.Context) (u UpdateStatus, err error) {
+	err = c.getJSON(ctx, &u, false, "update", "--status")
+	return
+}
+
+// UpdateCached devuelve el último escaneo guardado, o nil si no hay.
+func (c *Client) UpdateCached(ctx context.Context) (u *UpdateCheck, err error) {
+	err = c.getJSON(ctx, &u, false, "update", "--cached")
 	return
 }

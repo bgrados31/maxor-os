@@ -103,6 +103,8 @@ type Data struct {
 	Themes       []maxor.Theme
 	ThemesLoaded bool
 	Update       *maxor.UpdateCheck
+	UpdateStatus *maxor.UpdateStatus
+	CacheLoaded  bool // ya se leyó el escaneo guardado (haya o no)
 	Hardware     *maxor.Hardware
 	Profiles     []maxor.Profile
 	Err          map[string]error // último fallo de cada carga: apps, doctor, themes, hardware, profiles

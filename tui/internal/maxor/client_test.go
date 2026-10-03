@@ -160,3 +160,34 @@ func TestEjecutorRealCodigosYEntorno(t *testing.T) {
 		t.Fatalf("la pantalla debe llamar a la CLI con NO_COLOR y MAXOR_NO_TUI: %q", errb)
 	}
 }
+
+func TestUpdateStatusYCache(t *testing.T) {
+	c, _ := newFake(map[string]resp{
+		"update --status": {out: `{"flake":"/home/b/nixos-config","branch":"development","commit":"9b80dfd","dirty":true,"files":5,"fingerprint":"abc","channel":"nixos-26.05","nixpkgs_rev":"774debe","nixpkgs_date":1790920529,"generation":28}`},
+		"update --cached": {out: `{"up_to_date":false,"kernel":false,"counts":{"new":1},"changes":[],"checked_at":1790000000,"fingerprint":"abc","lock":false}`},
+	})
+	st, err := c.UpdateStatus(context.Background())
+	if err != nil || st.Branch != "development" || !st.Dirty || st.Files != 5 || st.Generation != 28 || st.Channel != "nixos-26.05" {
+		t.Fatalf("status: %+v %v", st, err)
+	}
+	u, err := c.UpdateCached(context.Background())
+	if err != nil || u == nil || u.CheckedAt != 1790000000 || u.Fingerprint != "abc" || u.Counts.New != 1 {
+		t.Fatalf("cache: %+v %v", u, err)
+	}
+	c2, _ := newFake(map[string]resp{"update --cached": {out: "null"}})
+	if u, err := c2.UpdateCached(context.Background()); err != nil || u != nil {
+		t.Fatalf("sin escaneo guardado debe ser nil: %+v %v", u, err)
+	}
+}
+
+func TestDoctorTraeIdYArreglo(t *testing.T) {
+	c, _ := newFake(map[string]resp{"doctor --json": {out: `{"ok":true,"fails":0,"warns":1,"groups":[{"title":"Configuration","items":[{"level":"warn","text":"uncommitted changes","id":"git_dirty","fix":"git status","confirm":false},{"level":"ok","text":"fine","id":"git_clean","fix":null,"confirm":false}]}]}`}})
+	d, err := c.Doctor(context.Background())
+	if err != nil {
+		t.Fatal(err)
+	}
+	it := d.Groups[0].Items
+	if it[0].ID != "git_dirty" || it[0].Fix != "git status" || it[1].Fix != "" {
+		t.Fatalf("items: %+v", it)
+	}
+}

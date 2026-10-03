@@ -104,7 +104,11 @@ func (m *Model) footer(p ui.Painter, w int) string {
 			have[h.Key] = true
 		}
 		hints = append([]ui.Hint{}, hints...)
-		for _, g := range []ui.Hint{{Key: ":", Action: "commands"}, {Key: "?", Action: "help"}, {Key: "q", Action: "quit"}} {
+		globals := []ui.Hint{{Key: ":", Action: "commands"}, {Key: "?", Action: "help"}, {Key: "q", Action: "quit"}}
+		if !m.setupFocus && len(m.screens) > 1 {
+			globals = append([]ui.Hint{{Key: "←→", Action: "tabs"}}, globals...)
+		}
+		for _, g := range globals {
 			if !have[g.Key] {
 				hints = append(hints, g)
 			}
@@ -223,14 +227,19 @@ func (m *Model) helpLines() []ui.Line {
 	kv := func(k, v string) ui.Line {
 		return ui.Of(ui.S(p.Ac.Bold(true), fmt.Sprintf("%-16s", k)), ui.S(p.Text, v))
 	}
-	lines := []ui.Line{ui.T(p.Mu, "KEYS"), ui.Blank(),
-		kv("↑ ↓   j k", "move"), kv("⏎", "choose"), kv("space", "mark"), kv("/", "search (Store)")}
+	lines := []ui.Line{ui.T(p.Mu, "KEYS"), ui.Blank(), kv("↑ ↓   j k", "move"), kv("⏎", "choose")}
 	if !m.setupFocus {
-		lines = append(lines, kv("tab  shift+tab", "next · previous tab"), kv("1 … 6", "jump to a tab"))
+		lines = append(lines, kv("← →   h l", "previous · next tab"), kv("tab  shift+tab", "next · previous tab"), kv("1 … 6", "jump to a tab"))
 	}
-	lines = append(lines, kv(":", "command palette"), kv("?", "this help"), kv("q", "back to your terminal"), ui.Blank(),
-		ui.T(p.Mu, "The mouse works too: click tabs and rows, use the wheel."), ui.T(p.Mu, "Press any key to close."))
-	return lines
+	lines = append(lines, kv(":", "command palette"), kv("?", "this help"), kv("q", "back to your terminal"))
+	// y lo propio de la pantalla en la que estás
+	if hs := m.screens[m.active].Hints(m.env); len(hs) > 0 {
+		lines = append(lines, ui.Blank(), ui.T(p.Mu, strings.ToUpper("On "+m.screens[m.active].Title())), ui.Blank())
+		for _, h := range hs {
+			lines = append(lines, kv(h.Key, h.Action))
+		}
+	}
+	return append(lines, ui.Blank(), ui.T(p.Mu, "The mouse works too: click tabs and rows, use the wheel."), ui.T(p.Mu, "Press any key to close."))
 }
 
 func (m *Model) paletteLines(pw int) []ui.Line {

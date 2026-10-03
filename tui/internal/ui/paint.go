@@ -1,6 +1,9 @@
 package ui
 
 import (
+	"fmt"
+	"strings"
+
 	"github.com/charmbracelet/lipgloss"
 
 	"github.com/bgrados31/maxor-os/tui/internal/theme"
@@ -14,6 +17,7 @@ type Painter struct {
 	Fill                                   lipgloss.Style
 	Text, Mu, Ac, Ac2, Ok, Warn, Bad, Bold lipgloss.Style
 	Sel                                    lipgloss.Style // fila seleccionada: fondo de acento
+	Dim, Glow                              string         // extremos del brillo del esqueleto (#rrggbb)
 	Btn, Btn2                              lipgloss.Style // botones principal y secundario
 }
 
@@ -23,6 +27,8 @@ func NewPainter(t theme.Theme, bg string) Painter {
 	base := lipgloss.NewStyle().Background(b)
 	fg := func(c string) lipgloss.Style { return base.Foreground(lipgloss.Color(c)) }
 	return Painter{
+		Dim:  Mix(bg, t.P.Mu, 0.16),
+		Glow: Mix(bg, t.P.Mu, 0.55),
 		Bg:   b,
 		Fill: base,
 		Text: fg(t.P.Fg),
@@ -50,4 +56,20 @@ func (p Painter) Level(level string) (lipgloss.Style, string) {
 		return p.Bad, G.Bad
 	}
 	return p.Mu, G.Info
+}
+
+// Mix mezcla dos colores #rrggbb: t=0 da a y t=1 da b.
+func Mix(a, b string, t float64) string {
+	pa, pb := parseHex(a), parseHex(b)
+	var out [3]int
+	for i := range out {
+		out[i] = int(float64(pa[i])*(1-t) + float64(pb[i])*t + 0.5)
+	}
+	return fmt.Sprintf("#%02x%02x%02x", out[0], out[1], out[2])
+}
+
+func parseHex(h string) [3]int {
+	var r, g, b int
+	fmt.Sscanf(strings.TrimPrefix(h, "#"), "%02x%02x%02x", &r, &g, &b)
+	return [3]int{r, g, b}
 }

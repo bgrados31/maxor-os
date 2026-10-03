@@ -1,6 +1,25 @@
 # ── Diagnóstico: doctor ──────────────────────────────────────────────
 maxor_cmd doctor system ""
 
+# Qué comando arregla (o ayuda a ver) cada comprobación. Va en el --json para que
+# la pantalla completa lo ofrezca: la lógica está aquí y no se duplica.
+#   doctor_fix id [argumentos del mensaje…]  →  imprime «comando» y «1» si pide confirmación
+doctor_fix() {
+  local id="$1"
+  shift
+  case "$id" in
+    hw_changed | hw_missing) printf 'maxor hardware detect --write\t0' ;;
+    git_dirty) printf "git -C '%s' status\t0" "$flake_dir" ;;
+    theme_none) printf 'maxor theme apply sakura\t0' ;;
+    dms_warn) printf 'maxor theme apply %s\t0' "$(cat "$state/current" 2> /dev/null || echo sakura)" ;;
+    sys_bad) printf 'systemctl --failed\t0' ;;
+    usr_bad) printf 'systemctl --user --failed\t0' ;;
+    unit_bad) printf 'systemctl --user status %s\t0' "${1:-dms}" ;;
+    disk_full) printf 'nix-collect-garbage -d\t1' ;;
+    *) printf '\t0' ;;
+  esac
+}
+
 cmd_doctor() {
   local json=0 fails=0 warns=0 rows=() cur_title=""
   case "${1:-}" in
@@ -11,10 +30,14 @@ cmd_doctor() {
   # Cada comprobación se anota (para --json) y, si no es --json, se dibuja.
   sec() { msg cur_title "$@"; if [ "$json" = 0 ]; then ui_section "$@"; fi; }
   rec() {
-    local lvl="$1" t
+    local lvl="$1" key="$2" t id="" fix
     shift
     msg t "$@"
-    rows+=("$cur_title"$'\t'"$lvl"$'\t'"$t")
+    if [[ "$key" == @doctor.* ]]; then id="${key#@doctor.}"; fi
+    # los argumentos del mensaje (sin la clave) sirven también para el arreglo
+    fix=$'\t0'
+    if [ "$json" = 1 ] && [ "$lvl" != ok ]; then fix="$(doctor_fix "$id" "${@:2}")"; fi
+    rows+=("$cur_title"$'\t'"$lvl"$'\t'"$t"$'\t'"$id"$'\t'"$fix")
     if [ "$json" = 0 ]; then ui_row "$lvl" "$t"; fi
   }
   ok() { rec ok "$@"; }
@@ -123,8 +146,8 @@ cmd_doctor() {
       | {ok: ($f == 0), fails: $f, warns: $w,
          groups: (reduce $r[] as $x ([];
            if length > 0 and .[-1].title == $x[0]
-           then .[-1].items += [{level: $x[1], text: $x[2]}]
-           else . + [{title: $x[0], items: [{level: $x[1], text: $x[2]}]}] end))}'
+           then .[-1].items += [{level: $x[1], text: $x[2], id: $x[3], fix: (if $x[4] == "" then null else $x[4] end), confirm: ($x[5] == "1")}]
+           else . + [{title: $x[0], items: [{level: $x[1], text: $x[2], id: $x[3], fix: (if $x[4] == "" then null else $x[4] end), confirm: ($x[5] == "1")}]}] end))}'
     [ "$fails" -eq 0 ]
     return
   fi

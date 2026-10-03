@@ -173,7 +173,7 @@ func (s *Setup) back() {
 func (s *Setup) key(env *core.Env, m tea.KeyMsg) (core.Screen, tea.Cmd) {
 	switch s.step {
 	case 0:
-		if isKey(m, "enter", "right", "l") {
+		if isKey(m, "enter") {
 			s.step = 1
 			return s, s.preview(env)
 		}
@@ -183,9 +183,9 @@ func (s *Setup) key(env *core.Env, m tea.KeyMsg) (core.Screen, tea.Cmd) {
 			return s, s.preview(env)
 		}
 		switch {
-		case isKey(m, "enter", "right", "l"):
+		case isKey(m, "enter"):
 			s.step = 2
-		case isKey(m, "esc", "backspace", "left", "h"):
+		case isKey(m, "esc", "backspace"):
 			s.back()
 			return s, func() tea.Msg { return core.PreviewThemeMsg{} }
 		}
@@ -200,16 +200,16 @@ func (s *Setup) key(env *core.Env, m tea.KeyMsg) (core.Screen, tea.Cmd) {
 				id := ps[s.prof.sel].ID
 				s.chosen[id] = !s.chosen[id]
 			}
-		case isKey(m, "enter", "right", "l"):
+		case isKey(m, "enter"):
 			s.step = 3
-		case isKey(m, "esc", "backspace", "left", "h"):
+		case isKey(m, "esc", "backspace"):
 			s.back()
 		}
 	case 3:
 		switch {
 		case isKey(m, "enter"):
 			return s, s.apply(env)
-		case isKey(m, "esc", "backspace", "left", "h"):
+		case isKey(m, "esc", "backspace"):
 			s.back()
 		}
 	case 4:

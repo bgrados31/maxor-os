@@ -1,19 +1,25 @@
 package screens
 
 import (
+	"os/exec"
 	"strings"
 
 	tea "github.com/charmbracelet/bubbletea"
 
 	"github.com/bgrados31/maxor-os/tui/internal/core"
+	"github.com/bgrados31/maxor-os/tui/internal/maxor"
 	"github.com/bgrados31/maxor-os/tui/internal/ui"
 )
 
-// Doctor muestra las comprobaciones del sistema, agrupadas.
+// Doctor muestra las comprobaciones del sistema, agrupadas. Cada aviso que tiene
+// arreglo lo ofrece: Intro lo prepara y un segundo Intro lo ejecuta (cediendo la
+// terminal, como Update). El comando lo decide la CLI (`doctor --json`, campo fix).
 type Doctor struct {
 	core.Base
-	list listState
-	rows int
+	list  listState
+	rows  int
+	inited bool
+	armed string // id de la comprobación cuyo arreglo está preparado
 }
 
 func NewDoctor() *Doctor { return &Doctor{} }
@@ -23,11 +29,13 @@ func (d *Doctor) Title() string { return "Doctor" }
 
 func (d *Doctor) Init(env *core.Env) tea.Cmd { return LoadDoctor(env, false) }
 
+// RunDoctorMsg pide volver a ejecutar las comprobaciones (la paleta de comandos).
+type RunDoctorMsg struct{}
+
 type doctorRow struct {
 	group string
 	item  int // -1 si es una cabecera de grupo
-	level string
-	text  string
+	it    maxor.DoctorItem
 }
 
 // flat aplana los grupos en filas; solo las comprobaciones se pueden seleccionar.
@@ -39,43 +47,95 @@ func (d *Doctor) flat(env *core.Env) (rows []doctorRow, items []int) {
 		rows = append(rows, doctorRow{group: g.Title, item: -1})
 		for _, it := range g.Items {
 			items = append(items, len(rows))
-			rows = append(rows, doctorRow{group: g.Title, item: len(items) - 1, level: it.Level, text: it.Text})
+			rows = append(rows, doctorRow{group: g.Title, item: len(items) - 1, it: it})
 		}
 	}
 	return
 }
 
-// RunDoctorMsg pide volver a ejecutar las comprobaciones (la paleta de comandos).
-type RunDoctorMsg struct{}
+// settle deja la selección en la primera comprobación que necesita atención.
+func (d *Doctor) settle(env *core.Env) {
+	if d.inited || env.Data.Doctor == nil {
+		return
+	}
+	d.inited = true
+	rows, items := d.flat(env)
+	for n, ri := range items {
+		if rows[ri].it.Level != "ok" {
+			d.list.sel = n
+			return
+		}
+	}
+}
+
+func (d *Doctor) current(env *core.Env) (doctorRow, bool) {
+	rows, items := d.flat(env)
+	if len(items) == 0 {
+		return doctorRow{}, false
+	}
+	return rows[items[min(d.list.sel, len(items)-1)]], true
+}
+
+// fixCmd cede la terminal al arreglo y espera un Intro antes de volver.
+func fixCmd(fix string) *exec.Cmd {
+	return exec.Command("sh", "-c", fix+`; rc=$?; echo; printf 'Press Enter to return to Maxor… '; read _; exit $rc`)
+}
 
 func (d *Doctor) Update(env *core.Env, msg tea.Msg) (core.Screen, tea.Cmd) {
-	if _, ok := msg.(RunDoctorMsg); ok {
+	switch m := msg.(type) {
+	case RunDoctorMsg:
+		d.armed = ""
 		return d, LoadDoctor(env, false)
-	}
-	if k, ok := msg.(tea.KeyMsg); ok {
+	case core.ExecDoneMsg:
+		if m.Tag != "doctor" {
+			return d, nil
+		}
+		d.armed, d.inited = "", false
+		kind, text := "ok", "Done. Checking again…"
+		if m.Err != nil {
+			kind, text = "warn", "The command ended with an error. Checking again…"
+		}
+		return d, tea.Batch(core.Toast(kind, text), LoadDoctor(env, false))
+	case tea.KeyMsg:
 		_, items := d.flat(env)
-		if dy, mv := listKey(k); mv {
+		if dy, mv := listKey(m); mv {
+			d.armed = ""
 			d.list.move(dy, len(items), 1<<20) // la ventana se ajusta al dibujar
 			return d, nil
 		}
-		if isKey(k, "r") {
+		switch {
+		case isKey(m, "r"):
+			d.armed = ""
 			return d, LoadDoctor(env, false)
+		case isKey(m, "enter"):
+			row, ok := d.current(env)
+			if !ok {
+				return d, nil
+			}
+			if row.it.Fix == "" {
+				if row.it.Level == "ok" {
+					return d, core.Toast("ok", "This one passes: nothing to fix")
+				}
+				return d, core.Toast("info", "No automatic fix for this one: see the advice on the right")
+			}
+			if d.armed != row.it.ID {
+				d.armed = row.it.ID
+				return d, nil // el panel lateral enseña el comando y pide un segundo Intro
+			}
+			d.armed = ""
+			return d, tea.ExecProcess(fixCmd(row.it.Fix), func(err error) tea.Msg { return core.ExecDoneMsg{Tag: "doctor", Err: err} })
 		}
 	}
 	return d, nil
 }
 
-// advice son los consejos para los avisos conocidos.
+// advice son los consejos para los avisos sin arreglo automático.
 var advice = []struct{ match, text string }{
-	{"uncommitted changes", "Commit or discard the changes: git -C ~/nixos-config status. maxor update keeps working meanwhile."},
 	{"kernel is not the running one", "Reboot to start the kernel that is installed."},
-	{"hardware changed", "Run maxor hardware detect --write, review it and commit it."},
-	{"no hardware.json", "Run maxor hardware detect --write so drivers can be chosen for this machine."},
 	{"theme missing", "Apply a theme again from the Themes tab."},
-	{"no theme applied", "Pick one in the Themes tab."},
-	{"failed system service", "See which one: systemctl --failed"},
-	{"failed user service", "See which one: systemctl --user --failed"},
-	{"is not active", "Check it: systemctl --user status <service>"},
+	{"nvidia-smi does not respond", "The NVIDIA driver may not be loaded: reboot, or check journalctl -b | grep -i nvidia."},
+	{"nvidia-offload is missing", "NVIDIA is present but the offload command is missing: check the hardware module."},
+	{"missing font", "A Maxor font is not installed: maxor update brings it back."},
 }
 
 func (d *Doctor) Main(env *core.Env, w, h int) []ui.Line {
@@ -87,8 +147,13 @@ func (d *Doctor) Main(env *core.Env, w, h int) []ui.Line {
 		if err := env.Data.Err["doctor"]; err != nil {
 			return failed(env, "Could not run the checks", err)
 		}
-		return append([]ui.Line{heading(env, "Checks")}, skeletonRows(env, 8, 3, 28)...)
+		lines := []ui.Line{heading(env, "Checks"), gap()}
+		for i := 0; i < 9; i++ {
+			lines = append(lines, ui.Skeleton(p, env.Frame+i, 2, 24+i*3%14))
+		}
+		return lines
 	}
+	d.settle(env)
 	doc := env.Data.Doctor
 	rows, items := d.flat(env)
 	d.rows = h
@@ -97,11 +162,10 @@ func (d *Doctor) Main(env *core.Env, w, h int) []ui.Line {
 	case doc.Fails > 0:
 		summary = ui.T(p.Bad.Bold(true), ui.G.Bad+"  problems found")
 	case doc.Warns > 0:
-		summary = ui.T(p.Warn.Bold(true), ui.G.Warn+"  works, with warnings")
+		summary = ui.T(p.Warn.Bold(true), ui.G.Warn+"  works, with "+plural(doc.Warns, "warning", "warnings"))
 	default:
 		summary = ui.T(p.Ok.Bold(true), ui.G.Tick+"  all good")
 	}
-	// Se desplaza para que la fila seleccionada se vea.
 	selRow := 0
 	if len(items) > 0 {
 		selRow = items[min(d.list.sel, len(items)-1)]
@@ -111,6 +175,10 @@ func (d *Doctor) Main(env *core.Env, w, h int) []ui.Line {
 	if selRow >= avail {
 		top = selRow - avail + 1
 	}
+	// al subir se ve la cabecera del grupo
+	if selRow > 0 && rows[selRow-1].item < 0 && top > selRow-1 {
+		top = selRow - 1
+	}
 	lines := []ui.Line{summary, gap()}
 	for i := top; i < len(rows) && len(lines) < h; i++ {
 		r := rows[i]
@@ -118,43 +186,92 @@ func (d *Doctor) Main(env *core.Env, w, h int) []ui.Line {
 			lines = append(lines, ui.T(p.Ac2.Bold(true), strings.ToUpper(r.group)))
 			continue
 		}
-		st, g := p.Level(r.level)
-		lines = append(lines, ui.Line{L: []ui.Seg{ui.S(st, g+" "), ui.S(p.Text, r.text)}, Sel: i == selRow})
+		st, g := p.Level(r.it.Level)
+		ln := ui.Line{L: []ui.Seg{ui.S(st, g+" "), ui.S(p.Text, r.it.Text)}, Sel: i == selRow}
+		if r.it.Fix != "" {
+			ln.R = []ui.Seg{ui.S(p.Ac, "fix ⏎ ")}
+		}
+		lines = append(lines, ln)
 	}
 	return lines
 }
 
 func (d *Doctor) Side(env *core.Env, w, h int) []ui.Line {
 	p := env.P
-	rows, items := d.flat(env)
-	if len(items) == 0 {
+	d.settle(env)
+	row, ok := d.current(env)
+	if !ok {
 		return []ui.Line{heading(env, "Details"), gap(), muted(env, "Waiting for the checks.")}
 	}
-	r := rows[items[min(d.list.sel, len(items)-1)]]
-	title := map[string]string{"ok": "Passing", "warn": "Needs attention", "bad": "Problem"}[r.level]
-	st, _ := p.Level(r.level)
-	lines := []ui.Line{heading(env, "Details"), gap(), ui.T(st.Bold(true), title), muted(env, r.group), gap()}
-	for _, l := range ui.Wrap(r.text, w) {
+	title := map[string]string{"ok": "Passing", "warn": "Needs attention", "bad": "Problem"}[row.it.Level]
+	st, _ := p.Level(row.it.Level)
+	lines := []ui.Line{heading(env, "Details"), gap(), ui.T(st.Bold(true), title), muted(env, row.group), gap()}
+	for _, l := range ui.Wrap(row.it.Text, w) {
 		lines = append(lines, plain(env, l))
 	}
-	for _, a := range advice {
-		if r.level != "ok" && strings.Contains(r.text, a.match) {
-			lines = append(lines, gap())
-			for _, l := range ui.Wrap(a.text, w) {
-				lines = append(lines, muted(env, l))
+	if row.it.Level != "ok" {
+		lines = append(lines, gap())
+		if row.it.Fix != "" {
+			lines = append(lines, heading(env, "Fix"))
+			for i, l := range ui.Wrap(row.it.Fix, w-2) {
+				pre := "  "
+				if i == 0 {
+					pre = "$ "
+				}
+				lines = append(lines, ui.T(p.Ac, pre+l))
 			}
-			break
+			lines = append(lines, gap())
+			switch {
+			case d.armed == row.it.ID && row.it.Confirm:
+				lines = append(lines, ui.T(p.Warn, ui.G.Warn+" this changes your system"), ui.Of(button(env, true, "Run it  ⏎")), muted(env, "or move away to cancel"))
+			case d.armed == row.it.ID:
+				lines = append(lines, ui.Of(button(env, true, "Run it  ⏎")), muted(env, "or move away to cancel"))
+			default:
+				lines = append(lines, ui.Of(button(env, true, "Prepare fix  ⏎")))
+			}
+		} else {
+			for _, a := range advice {
+				if strings.Contains(row.it.Text, a.match) {
+					for _, l := range ui.Wrap(a.text, w) {
+						lines = append(lines, muted(env, l))
+					}
+					break
+				}
+			}
 		}
 	}
 	return lines
 }
 
 func (d *Doctor) Hints(env *core.Env) []ui.Hint {
-	return []ui.Hint{{Key: "↑↓", Action: "move"}, {Key: "r", Action: "run again"}}
+	return []ui.Hint{{Key: "↑↓", Action: "move"}, {Key: "⏎", Action: "fix"}, {Key: "r", Action: "run again"}}
 }
 
 func (d *Doctor) Wheel(env *core.Env, dy int) tea.Cmd {
 	_, items := d.flat(env)
+	d.armed = ""
 	d.list.move(dy*3, len(items), 1<<20)
+	return nil
+}
+
+func (d *Doctor) Click(env *core.Env, x, y int) tea.Cmd {
+	rows, items := d.flat(env)
+	_ = rows
+	// la fila 0 es el resumen, la 1 un hueco; después las filas con cabeceras
+	avail := d.rows - 2
+	selRow := 0
+	if len(items) > 0 {
+		selRow = items[min(d.list.sel, len(items)-1)]
+	}
+	top := 0
+	if selRow >= avail {
+		top = selRow - avail + 1
+	}
+	target := top + y - 2
+	for n, ri := range items {
+		if ri == target {
+			d.list.sel, d.armed = n, ""
+		}
+	}
 	return nil
 }

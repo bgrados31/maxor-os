@@ -18,6 +18,14 @@ no usa versiones numeradas.
 
 ### Añadido
 
+- **Mejoras de la pantalla completa**:
+  - **← →** (y `h` `l`, `[` `]`) cambian de pestaña además de `Tab`; la ayuda `?` suma las teclas de la pantalla en la que estás.
+  - **Themes**: cada tema es un punto de su color de acento, agrupados en oscuros y claros, con una vista previa más clara.
+  - **Update**: enseña la rama, los archivos sin guardar, el canal de nixpkgs y la generación; el escaneo se hace solo al abrir (se guarda en disco y se repite si cambió el repositorio o tiene más de 6 h); `r` repite el escaneo y `c` busca versiones nuevas.
+  - **Doctor**: cada aviso con arreglo lo ofrece (`⏎` lo prepara, otro `⏎` lo ejecuta cediendo la terminal) y vuelve a comprobar.
+  - **Store**: caja de búsqueda propia, pestañas Results/Installed, filas de dos líneas con aire.
+  - **Home**: esqueleto con un brillo que se mueve y tarjetas en las que se puede pulsar.
+  - La CLI suma `maxor update --status` y `--cached`, y `doctor --json` trae `id`, `fix` y `confirm` por comprobación.
 - **`maxor-tui`, la pantalla completa** (Go y Bubble Tea, en `tui/`): se abre sobre tu terminal, con pestañas Home, Store, Themes, Update, Doctor y Setup; paleta de comandos con `:`, teclas vim, ratón, y al salir deja un resumen corto. Ver [TUI.md](docs/TUI.md).
   - Un solo cargador (spinner único en la barra de pestañas, nada antes de 150 ms, esqueletos mientras llegan los datos).
   - Los temas se previsualizan en toda la pantalla al moverte, sin tocar el sistema.

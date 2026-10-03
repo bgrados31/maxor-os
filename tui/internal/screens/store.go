@@ -22,11 +22,12 @@ type Store struct {
 	query    string
 	results  []maxor.Result
 	searched bool
+	showInst bool // ver «Installed» aunque haya resultados
 	list     listState
 	marks    map[string]bool
 	queue    []item
 	armed    string
-	rows     int
+	rows     int // apps que caben en pantalla
 }
 
 type item struct {
@@ -36,7 +37,10 @@ type item struct {
 
 func (i item) key() string { return i.Source + ":" + i.ID }
 
-const storeItemsTop = 3 // filas de Main antes de la primera app
+const (
+	storeHeader = 6 // caja de búsqueda (3) + hueco + pestañas + hueco
+	storeItemH  = 3 // nombre, descripción y un respiro
+)
 
 func NewStore() *Store {
 	s := &Store{marks: map[string]bool{}}
@@ -64,20 +68,25 @@ func (s *Store) installed(env *core.Env) map[string]bool {
 	return m
 }
 
-// items son las filas de la lista: los resultados de la búsqueda, o lo instalado.
-func (s *Store) items(env *core.Env) []item {
-	inst := s.installed(env)
-	var out []item
-	if s.searched {
-		for _, r := range s.results {
-			it := item{Source: r.Source, ID: r.ID, Name: r.Name, Version: r.Version, Desc: r.Description}
-			it.Installed = inst[it.key()]
-			out = append(out, it)
-		}
-		return out
-	}
+func (s *Store) installedItems(env *core.Env) []item {
+	out := make([]item, 0, len(env.Data.Apps))
 	for _, a := range env.Data.Apps {
 		out = append(out, item{Source: a.Source, ID: a.ID, Name: a.Name, Version: a.Version, Installed: true})
+	}
+	return out
+}
+
+// items son las filas de la lista: los resultados de la búsqueda, o lo instalado.
+func (s *Store) items(env *core.Env) []item {
+	if !s.searched || s.showInst {
+		return s.installedItems(env)
+	}
+	inst := s.installed(env)
+	out := make([]item, 0, len(s.results))
+	for _, r := range s.results {
+		it := item{Source: r.Source, ID: r.ID, Name: r.Name, Version: r.Version, Desc: r.Description}
+		it.Installed = inst[it.key()]
+		out = append(out, it)
 	}
 	return out
 }
@@ -85,7 +94,7 @@ func (s *Store) items(env *core.Env) []item {
 func (s *Store) search(env *core.Env) tea.Cmd {
 	q := strings.TrimSpace(s.in.Text())
 	if q == "" {
-		s.searched, s.results, s.query = false, nil, ""
+		s.searched, s.results, s.query, s.showInst = false, nil, "", false
 		s.list = listState{}
 		return nil
 	}
@@ -125,7 +134,7 @@ func (s *Store) Update(env *core.Env, msg tea.Msg) (core.Screen, tea.Cmd) {
 				return s, core.Toast("bad", "Search failed: "+oneLine(m.Err.Error()))
 			}
 			s.results, _ = m.Value.([]maxor.Result)
-			s.searched = true
+			s.searched, s.showInst = true, false
 			s.list = listState{}
 			return s, nil
 		case "store.install":
@@ -177,6 +186,11 @@ func (s *Store) key(env *core.Env, m tea.KeyMsg) (core.Screen, tea.Cmd) {
 	switch {
 	case isKey(m, "/"):
 		s.focus = true
+	case isKey(m, "i"):
+		if s.searched {
+			s.showInst = !s.showInst
+			s.list = listState{}
+		}
 	case isKey(m, "c"):
 		s.in.Set("")
 		s.search(env)
@@ -220,16 +234,47 @@ func (s *Store) key(env *core.Env, m tea.KeyMsg) (core.Screen, tea.Cmd) {
 	return s, nil
 }
 
-func (s *Store) Main(env *core.Env, w, h int) []ui.Line {
-	p := env.P
-	s.rows = h - storeItemsTop
-	// Campo de búsqueda
-	field := []ui.Seg{ui.S(p.Ac, ui.G.Find+"  ")}
-	field = append(field, s.in.Segs(p, s.focus, w-6)...)
-	lines := []ui.Line{{L: field}}
+func srcName(src string) string {
+	switch src {
+	case "nix":
+		return "nixpkgs"
+	case "flatpak":
+		return "flathub"
+	}
+	return src
+}
 
-	// Estado: el mismo cargador de siempre
-	status := gap()
+// searchBox es la caja de búsqueda: un bloque de tono propio, de tres filas, con
+// aire alrededor del texto y una barra de acento cuando tiene el foco.
+func (s *Store) searchBox(env *core.Env, w int) []ui.Line {
+	p2 := ui.NewPainter(env.Theme, env.Theme.P.S2)
+	bar := ui.S(p2.Fill, " ")
+	hint := "/ to search "
+	if s.focus {
+		bar = ui.S(p2.Ac.Bold(true), "▌")
+		hint = "⏎ search · esc cancel "
+	}
+	pad := ui.Line{L: ui.Spread([]ui.Seg{bar}, nil, w, p2.Fill)}
+	left := append([]ui.Seg{bar, ui.S(p2.Ac, "  "+ui.G.Find+"  ")}, s.in.Segs(p2, s.focus, w-30)...)
+	mid := ui.Line{L: ui.Spread(left, []ui.Seg{ui.S(p2.Mu, hint)}, w, p2.Fill)}
+	return []ui.Line{pad, mid, pad}
+}
+
+// tabsRow son las dos vistas (resultados e instalado) y, a la derecha, el cargador.
+func (s *Store) tabsRow(env *core.Env, w int, nRes, nInst int) ui.Line {
+	p := env.P
+	chip := func(label string, active bool) ui.Seg {
+		if active {
+			return ui.S(p.Btn, " "+label+" ")
+		}
+		return ui.S(p.Mu, " "+label+" ")
+	}
+	var left []ui.Seg
+	if s.searched {
+		left = append(left, chip(fmt.Sprintf("Results %d", nRes), !s.showInst), ui.Seg{T: " "})
+	}
+	left = append(left, chip(fmt.Sprintf("Installed %d", nInst), !s.searched || s.showInst))
+	var right []ui.Seg
 	for _, st := range []struct{ id, label string }{
 		{"store.search", "Searching " + s.query},
 		{"store.install", "Installing"},
@@ -237,61 +282,74 @@ func (s *Store) Main(env *core.Env, w, h int) []ui.Line {
 		{"data.apps", "Loading your apps"},
 	} {
 		if l, ok := working(env, st.id, st.label); ok {
-			status = l
+			right = l.L
 			break
 		}
 	}
 	if n := len(s.queue); n > 0 {
-		status = ui.Of(append(status.L, ui.S(p.Mu, fmt.Sprintf("  +%d queued", n)))...)
+		right = append(right, ui.S(p.Mu, fmt.Sprintf("  +%d queued", n)))
 	}
-	lines = append(lines, status)
+	return ui.Line{L: ui.Spread(left, right, w, p.Fill)}
+}
 
+func (s *Store) Main(env *core.Env, w, h int) []ui.Line {
+	p := env.P
+	s.rows = max((h-storeHeader)/storeItemH, 1)
 	its := s.items(env)
-	switch {
-	case !s.searched && !env.Data.AppsLoaded:
-		if err := env.Data.Err["apps"]; err != nil {
+	nRes := len(s.results)
+	lines := s.searchBox(env, w)
+	lines = append(lines, gap(), s.tabsRow(env, w, nRes, len(env.Data.Apps)), gap())
+
+	// Cargando: la lista aparece ya, con la forma que tendrá
+	loading := env.Tasks.Loading("store.search") && (s.showInst || !s.searched)
+	if (!env.Data.AppsLoaded && !s.searched) || loading {
+		if err := env.Data.Err["apps"]; err != nil && !env.Data.AppsLoaded && !loading {
 			return append(lines, failed(env, "Could not load your apps", err)...)
 		}
-		return append(append(lines, heading(env, "Installed with maxor")), skeletonRows(env, 5, 12, 10)...)
-	case s.searched:
-		// el texto de la búsqueda se muestra tal como se escribió, sin pasarlo a mayúsculas
-		lines = append(lines, muted(env, fmt.Sprintf("%d results for “%s”", len(its), s.query)))
-	default:
-		lines = append(lines, heading(env, fmt.Sprintf("Installed with maxor · %d", len(its))))
+		for i := 0; i < s.rows && i < 5; i++ {
+			lines = append(lines, ui.Of(ui.S(p.Mu, "   "), ui.Skeleton(p, env.Frame+i*2, 14+i*3%9).L[0]), ui.Of(ui.S(p.Mu, "   "), ui.Skeleton(p, env.Frame+i*2+1, 30+i*5%12).L[0]), gap())
+		}
+		return lines
 	}
 	if len(its) == 0 {
-		if s.searched {
-			return append(lines, muted(env, "Nothing matches “"+s.query+"”."), muted(env, "Try another word, or fewer letters."))
+		switch {
+		case s.searched && !s.showInst:
+			return append(lines, plain(env, "Nothing matches “"+s.query+"”."), muted(env, "Try another word, or fewer letters."))
+		default:
+			return append(lines, plain(env, "Nothing installed with maxor yet."), gap(), muted(env, "Press / and search: brave, btop, org.mozilla.firefox…"))
 		}
-		return append(lines, muted(env, "Nothing installed with maxor yet."), muted(env, "Press / to search."))
 	}
 	from, to := s.list.window(len(its), s.rows)
 	for i := from; i < to; i++ {
 		it := its[i]
+		sel := i == s.list.sel
 		var mark ui.Seg
 		switch {
 		case it.Installed:
-			mark = ui.S(p.Ok, ui.G.Tick+" ")
+			mark = ui.S(p.Ok, ui.G.Tick+"  ")
 		case s.marks[it.key()]:
-			mark = ui.S(p.Ac, ui.G.On+" ")
+			mark = ui.S(p.Ac, ui.G.On+"  ")
 		default:
-			mark = ui.S(p.Mu, ui.G.Off+" ")
+			mark = ui.S(p.Mu, ui.G.Off+"  ")
 		}
 		src := p.Ac
 		if it.Source == "nix" {
 			src = p.Ac2
 		}
-		srcName := it.Source
-		if srcName == "nix" {
-			srcName = "nixpkgs"
-		} else if srcName == "flatpak" {
-			srcName = "flathub"
+		ver := shortVersion(it.Version)
+		right := []ui.Seg{ui.S(src, srcName(it.Source))}
+		if ver != "" {
+			right = append(right, ui.S(p.Mu, "  "+ver))
 		}
-		lines = append(lines, ui.Line{
-			L:   []ui.Seg{mark, ui.S(p.Text, it.Name)},
-			R:   []ui.Seg{ui.S(src, srcName), ui.S(p.Mu, " "+shortVersion(it.Version)+" ")},
-			Sel: i == s.list.sel,
-		})
+		right = append(right, ui.Seg{T: " "})
+		desc := it.Desc
+		if desc == "" {
+			desc = it.ID
+		}
+		lines = append(lines,
+			ui.Line{L: []ui.Seg{mark, ui.S(p.Bold, it.Name)}, R: right, Sel: sel},
+			ui.Line{L: []ui.Seg{ui.S(p.Mu, "     "+desc)}, Sel: sel},
+			gap())
 	}
 	return lines
 }
@@ -308,7 +366,7 @@ func (s *Store) Side(env *core.Env, w, h int) []ui.Line {
 	p := env.P
 	its := s.items(env)
 	if len(its) == 0 || s.list.sel >= len(its) {
-		return []ui.Line{heading(env, "Details"), gap(), muted(env, "Search with /")}
+		return []ui.Line{heading(env, "Details"), gap(), muted(env, "Search with /"), gap(), muted(env, "Mark several with space"), muted(env, "and install them together.")}
 	}
 	it := its[s.list.sel]
 	lines := []ui.Line{heading(env, "Details"), gap(), ui.T(p.Bold, it.Name), muted(env, it.ID), gap()}
@@ -318,22 +376,17 @@ func (s *Store) Side(env *core.Env, w, h int) []ui.Line {
 		}
 		lines = append(lines, gap())
 	}
-	src := it.Source
-	if src == "nix" {
-		src = "nixpkgs"
-	} else if src == "flatpak" {
-		src = "flathub"
-	}
-	lines = append(lines, ui.Of(ui.S(p.Mu, "source   "), ui.S(p.Text, src)))
-	if it.Version != "" {
-		lines = append(lines, ui.Of(ui.S(p.Mu, "version  "), ui.S(p.Text, shortVersion(it.Version))))
+	lines = append(lines, ui.Of(ui.S(p.Mu, "source   "), ui.S(p.Text, srcName(it.Source))))
+	if v := shortVersion(it.Version); v != "" {
+		lines = append(lines, ui.Of(ui.S(p.Mu, "version  "), ui.S(p.Text, v)))
 	}
 	lines = append(lines, gap())
-	if it.Installed {
+	switch {
+	case it.Installed:
 		lines = append(lines, ui.Of(ui.S(p.Ok, ui.G.Tick+" installed  "), button(env, false, "Remove  r")))
-	} else if s.marks[it.key()] {
+	case s.marks[it.key()]:
 		lines = append(lines, ui.Of(button(env, true, "Install  ⏎"), space(1), ui.S(p.Mu, "marked")))
-	} else {
+	default:
 		lines = append(lines, ui.Of(button(env, true, "Install  ⏎"), space(1), button(env, false, "Mark  space")))
 	}
 	if n := len(s.marks); n > 0 {
@@ -346,19 +399,30 @@ func (s *Store) Hints(env *core.Env) []ui.Hint {
 	if s.focus {
 		return []ui.Hint{{Key: "⏎", Action: "search"}, {Key: "esc", Action: "cancel"}}
 	}
-	return []ui.Hint{{Key: "/", Action: "search"}, {Key: "↑↓", Action: "move"}, {Key: "space", Action: "mark"}, {Key: "⏎", Action: "install"}, {Key: "r", Action: "remove"}}
+	h := []ui.Hint{{Key: "/", Action: "search"}, {Key: "↑↓", Action: "move"}, {Key: "space", Action: "mark"}, {Key: "⏎", Action: "install"}, {Key: "r", Action: "remove"}}
+	if s.searched {
+		h = append(h, ui.Hint{Key: "i", Action: "installed"})
+	}
+	return h
 }
 
 func (s *Store) Click(env *core.Env, x, y int) tea.Cmd {
-	if y == 0 {
+	switch {
+	case y < 3:
 		s.focus = true
-		return nil
-	}
-	its := s.items(env)
-	i := s.list.top + y - storeItemsTop
-	if i >= 0 && i < len(its) {
-		s.list.sel = i
+	case y == 4: // las pestañas Results / Installed
+		if s.searched {
+			res := len(fmt.Sprintf(" Results %d ", len(s.results)))
+			s.showInst = x >= res+1
+			s.list = listState{}
+		}
+	case y >= storeHeader:
 		s.focus = false
+		its := s.items(env)
+		i := s.list.top + (y-storeHeader)/storeItemH
+		if i >= 0 && i < len(its) {
+			s.list.sel = i
+		}
 	}
 	return nil
 }
