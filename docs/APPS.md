@@ -8,7 +8,7 @@ las dos desde `maxor`, y una tercera —los perfiles— para configurar el equip
 ```
 maxor search <texto>              buscar en nixpkgs y Flathub
 maxor install <app…>              instalar
-maxor remove <app…>               quitar
+maxor remove <app…> [--purge]     quitar (con --purge, también sus carpetas en tu casa)
 maxor apps                        listar lo instalado con maxor
 maxor apps update                 actualizar nixpkgs y Flatpak
 ```
@@ -80,7 +80,7 @@ estándar, sin colores ni mensajes.
 | `maxor search <texto> --json` | `[{source, id, name, version, description}]` en una sola lista por relevancia, nixpkgs y Flathub mezclados (máx. 14) |
 | `maxor apps --json` | `[{source, id, name, version}]` |
 | `maxor install <app…> --json` | `[{id, source, ok}]` |
-| `maxor remove <app…> --json` | `[{id, source, ok}]` |
+| `maxor remove <app…> [--purge] --json` | `[{id, source, ok, purged, leftovers: [{path, bytes}]}]`. Las carpetas sobrantes son las que se llaman exactamente como la app (`~/.config`, `~/.local/share`, `~/.cache`, `~/.var/app`, `~/.nombre`); sin `--purge` no se borra nada. Una sola operación de paquetes a la vez (`apps.lock`) |
 | `maxor profile list --json` | `[{id, title, description, enabled}]` |
 | `maxor hardware detect` | el contenido de `hardware.json` ([HARDWARE.md](HARDWARE.md)) |
 

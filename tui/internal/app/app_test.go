@@ -918,3 +918,70 @@ func TestDoctorDiferenciaArreglarDeSoloMirar(t *testing.T) {
 		t.Fatal("el primer Intro de un arreglo solo lo prepara")
 	}
 }
+
+func TestUnaAppSeInstalaUnaSolaVez(t *testing.T) {
+	m, f := setup(t, Options{Screen: "store"})
+	send(m, key("/"))
+	typeText(m, "brave")
+	send(m, key("enter"))
+	_, first := m.Update(key("enter")) // empieza a instalar, sin dejar que termine
+	if first == nil {
+		t.Fatal("el primer Intro instala")
+	}
+	if out := view(m); !has(out, "installing…") {
+		t.Fatalf("la fila dice que se está instalando:\n%s", out)
+	}
+	_, second := m.Update(key("enter"))
+	if second != nil {
+		run(m, second)
+	}
+	if !has(view(m), "already being installed") {
+		t.Fatalf("el segundo Intro avisa en vez de repetir:\n%s", view(m))
+	}
+	_, rm := m.Update(key("r"))
+	_ = rm
+	run(m, first)
+	if n := f.n("install --nix brave --json"); n != 1 {
+		t.Fatalf("debe instalar una sola vez, instaló %d", n)
+	}
+}
+
+func TestQuitarPreguntaPorLosDatosYSePuedeBorrarOConservar(t *testing.T) {
+	f := newCLI()
+	f.resp["remove vscode --json"] = `[{"id":"vscode","source":"nix","ok":true,"purged":false,"leftovers":[{"path":"/home/b/.config/vscode","bytes":5242880}]}]`
+	f.resp["remove vscode --purge --json"] = `[{"id":"vscode","source":"nix","ok":true,"purged":true,"leftovers":[]}]`
+	m, _ := setupWith(t, f, Options{Screen: "store"})
+	send(m, key("r"), key("r"))
+	out := view(m)
+	if !has(out, "Its data is still here") || !strings.Contains(out, "/home/b/.config/vscode") || !strings.Contains(out, "5.0 MiB") || !strings.Contains(out, "Delete data  y") {
+		t.Fatalf("tras quitar ofrece borrar los datos:\n%s", out)
+	}
+	if f.called("remove vscode --purge") {
+		t.Fatal("sin decir que sí no se borra nada")
+	}
+	send(m, key("y"))
+	if !f.called("remove vscode --purge --json") {
+		t.Fatalf("y borra los datos con --purge: %v", f.calls)
+	}
+	if has(view(m), "Its data is still here") {
+		t.Fatal("la pregunta desaparece al contestar")
+	}
+	// n los conserva y dice cómo borrarlos más tarde
+	f2 := newCLI()
+	f2.resp["remove vscode --json"] = f.resp["remove vscode --json"]
+	m2, _ := setupWith(t, f2, Options{Screen: "store"})
+	send(m2, key("r"), key("r"), key("n"))
+	if f2.called("remove vscode --purge") || has(view(m2), "Its data is still here") {
+		t.Fatal("n conserva los datos")
+	}
+}
+
+func TestQuitarSinDatosNoPregunta(t *testing.T) {
+	f := newCLI()
+	f.resp["remove vscode --json"] = `[{"id":"vscode","source":"nix","ok":true,"purged":false,"leftovers":[]}]`
+	m, _ := setupWith(t, f, Options{Screen: "store"})
+	send(m, key("r"), key("r"))
+	if has(view(m), "Its data is still here") {
+		t.Fatal("sin carpetas sobrantes no hay pregunta")
+	}
+}

@@ -213,6 +213,7 @@ cmd_install() {
     esac
   done
   [ "${#ids[@]}" -gt 0 ] || usage_error install
+  app_lock
 
   local id s m rc=0 results="[]"
   for id in "${ids[@]}"; do
@@ -253,18 +254,76 @@ app_installed_source() {
   fi
 }
 
+# Una sola operación de paquetes a la vez (dos `nix profile` o `flatpak` juntos fallan o
+# se pisan): si otra maxor está instalando o quitando, esta espera su turno.
+app_lock() {
+  command -v flock > /dev/null 2>&1 || return 0
+  mkdir -p "$state" 2> /dev/null || return 0
+  exec 9> "$state/apps.lock"
+  flock -w 600 9 || true
+}
+
+# Tamaño legible de un número de bytes.
+app_human() {
+  local b="$1"
+  if [ "$b" -ge 1073741824 ]; then printf '%d.%d GiB' $((b / 1073741824)) $((b % 1073741824 * 10 / 1073741824))
+  elif [ "$b" -ge 1048576 ]; then printf '%d.%d MiB' $((b / 1048576)) $((b % 1048576 * 10 / 1048576))
+  else printf '%d KiB' $(((b + 1023) / 1024)); fi
+}
+
+# Carpetas que una app deja en tu casa: solo las que se llaman exactamente como la
+# app (sin distinguir mayúsculas), p. ej. ~/.local/share/ATLauncher para «atlauncher».
+# Imprime «ruta» y «bytes» separados por tabulador, una por línea.
+app_leftovers() {
+  local id="$1" name base root p
+  name="${id,,}"
+  [ "${#name}" -ge 3 ] || return 0
+  case "$name" in ssh | gnupg | gpg | nix | local | config | cache | share | state | var | bin | home) return 0 ;; esac
+  for root in "$HOME/.config" "$HOME/.local/share" "$HOME/.cache" "$HOME/.local/state" "$HOME/.var/app" "$HOME"; do
+    [ -d "$root" ] || continue
+    for p in "$root"/* "$root"/.[!.]*; do
+      [ -e "$p" ] || [ -L "$p" ] || continue
+      base="${p##*/}"
+      base="${base,,}"
+      if [ "$root" = "$HOME" ]; then
+        [ "$base" = ".$name" ] || continue
+      else
+        [ "$base" = "$name" ] || continue
+      fi
+      printf '%s\t%s\n' "$p" "$(du -sb -- "$p" 2> /dev/null | cut -f1 || echo 0)"
+    done
+  done
+}
+
+# Borra las carpetas de app_leftovers; nunca sale de tu casa ni toca las raíces.
+app_purge() {
+  local id="$1" p b n=0
+  while IFS=$'\t' read -r p b; do
+    [ -n "$p" ] || continue
+    case "$p" in "$HOME"/?*) ;; *) continue ;; esac
+    rm -rf -- "$p" && n=$((n + 1))
+  done < <(app_leftovers "$id")
+  echo "$n"
+}
+
+app_leftovers_json() {
+  app_leftovers "$1" | jq -R -s -c 'split("\n") | map(select(length > 0) | split("\t") | {path: .[0], bytes: (.[1] | tonumber? // 0)})'
+}
+
 cmd_remove() {
-  local json=0 ids=() a
+  local json=0 purge=0 ids=() a
   for a in "$@"; do
     case "$a" in
       --json) json=1 ;;
+      --purge) purge=1 ;;
       -*) die_code "$EX_USAGE" @err.unknown_option "$a" ;;
       *) ids+=("$a") ;;
     esac
   done
   [ "${#ids[@]}" -gt 0 ] || usage_error remove
+  app_lock
 
-  local id s m rc=0 results="[]"
+  local id s m rc=0 results="[]" left total count purged
   for id in "${ids[@]}"; do
     s="$(app_installed_source "$id")"
     local ok=true
@@ -273,12 +332,35 @@ cmd_remove() {
       nix) app_step "$json" "$m" nix profile remove "$id" || ok=false ;;
       flatpak) app_step "$json" "$m" flatpak uninstall --user -y --noninteractive "$id" || ok=false ;;
       *)
-        [ "$json" = 1 ] || ui_say warn @apps.not_installed "$id"
-        ok=false
+        # con --purge se puede limpiar lo que dejó una app que ya no está
+        if [ "$purge" = 0 ] || [ -z "$(app_leftovers "$id")" ]; then
+          [ "$json" = 1 ] || ui_say warn @apps.not_installed "$id"
+          ok=false
+        fi
         ;;
     esac
+    left="$(app_leftovers_json "$id")"
+    count="$(jq 'length' <<< "$left")"
+    total="$(jq '[.[].bytes] | add // 0' <<< "$left")"
+    purged=false
+    if [ "$ok" = true ] && [ "$count" -gt 0 ]; then
+      if [ "$purge" = 1 ]; then
+        app_purge "$id" > /dev/null
+        purged=true
+        [ "$json" = 1 ] || ui_say ok @apps.purged "$(app_human "$total")"
+      elif [ "$json" = 0 ]; then
+        if [ -t 0 ] && ui_confirm @apps.purge_confirm "$(app_human "$total")" "$count"; then
+          app_purge "$id" > /dev/null
+          purged=true
+          ui_say ok @apps.purged "$(app_human "$total")"
+        else
+          ui_say info @apps.kept "$(app_human "$total")" "$id"
+        fi
+      fi
+    fi
     [ "$ok" = true ] || rc=1
-    results="$(jq -c --arg id "$id" --arg s "$s" --argjson ok "$ok" '. + [{id: $id, source: $s, ok: $ok}]' <<< "$results")"
+    results="$(jq -c --arg id "$id" --arg s "$s" --argjson ok "$ok" --argjson left "$left" --argjson purged "$purged" \
+      '. + [{id: $id, source: $s, ok: $ok, purged: $purged, leftovers: (if $purged then [] else $left end)}]' <<< "$results")"
   done
   [ "$json" = 1 ] && printf '%s\n' "$results"
   return "$rc"

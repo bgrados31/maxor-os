@@ -165,9 +165,17 @@ type Result struct {
 	Description string `json:"description"`
 }
 type Outcome struct {
-	ID     string `json:"id"`
-	Source string `json:"source"`
-	OK     bool   `json:"ok"`
+	ID        string     `json:"id"`
+	Source    string     `json:"source"`
+	OK        bool       `json:"ok"`
+	Purged    bool       `json:"purged"`
+	Leftovers []Leftover `json:"leftovers"`
+}
+
+// Leftover es una carpeta que una app dejó en tu casa.
+type Leftover struct {
+	Path  string `json:"path"`
+	Bytes int64  `json:"bytes"`
 }
 
 type GPU struct {
@@ -276,18 +284,18 @@ func (c *Client) Search(ctx context.Context, query string) (r []Result, err erro
 	return
 }
 
-func (c *Client) outcomes(ctx context.Context, args ...string) error {
+func (c *Client) outcomes(ctx context.Context, args ...string) ([]Outcome, error) {
 	var res []Outcome
 	err := c.getJSON(ctx, &res, true, args...)
 	if err != nil {
-		return err
+		return res, err
 	}
 	for _, o := range res {
 		if !o.OK {
-			return fmt.Errorf("no se pudo completar %s", o.ID)
+			return res, fmt.Errorf("no se pudo completar %s", o.ID)
 		}
 	}
-	return nil
+	return res, nil
 }
 
 // Install instala con el origen indicado (nix o flatpak).
@@ -296,11 +304,23 @@ func (c *Client) Install(ctx context.Context, source, id string) error {
 	if source == "flatpak" {
 		flag = "--flatpak"
 	}
-	return c.outcomes(ctx, "install", flag, id, "--json")
+	_, err := c.outcomes(ctx, "install", flag, id, "--json")
+	return err
 }
 
-func (c *Client) Remove(ctx context.Context, id string) error {
-	return c.outcomes(ctx, "remove", id, "--json")
+// Remove quita la app y devuelve las carpetas que dejó en tu casa (no las borra).
+func (c *Client) Remove(ctx context.Context, id string) ([]Leftover, error) {
+	res, err := c.outcomes(ctx, "remove", id, "--json")
+	if len(res) == 0 {
+		return nil, err
+	}
+	return res[0].Leftovers, err
+}
+
+// Purge borra las carpetas que dejó la app (también si ya no está instalada).
+func (c *Client) Purge(ctx context.Context, id string) error {
+	_, err := c.outcomes(ctx, "remove", id, "--purge", "--json")
+	return err
 }
 
 func (c *Client) Hardware(ctx context.Context) (h Hardware, err error) {

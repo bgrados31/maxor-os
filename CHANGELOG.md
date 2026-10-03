@@ -18,6 +18,8 @@ no usa versiones numeradas.
 
 ### Añadido
 
+- **Quitar una app ya no deja su carpeta olvidada**: `maxor remove` avisa de lo que dejó en tu casa (por ejemplo `~/.local/share/ATLauncher`) y `--purge` lo borra, también cuando la app ya no está instalada. En la Tienda, tras quitar una app con datos aparece la pregunta «Delete data  y / Keep  n» con las rutas y el tamaño.
+- **Sin instalaciones repetidas**: una app que se está instalando, está en cola o se está quitando no se puede volver a lanzar (la fila dice `installing…`), y `maxor install` y `remove` esperan su turno si hay otra en marcha.
 - **Profiles sustituye a la pestaña Setup**: marcas o desmarcas perfiles y los aplicas con `a`. El asistente sigue existiendo, pero solo con `maxor setup` (para estrenar el equipo).
 - **La Tienda se maneja entera con flechas**: `↑` `↓` pasan de la caja de búsqueda a las pestañas y a la lista; con el foco en la caja todo lo que escribes es texto; `←` `→` cambian entre Results, Installed y un filtro por origen (All, nixpkgs, flathub).
 - **Doctor distingue «fix» de «look»**: lo que arregla algo pide confirmación; lo que solo enseña información (`git status`, `systemctl --failed`) se abre con un `⏎`. `doctor --json` suma `kind`.

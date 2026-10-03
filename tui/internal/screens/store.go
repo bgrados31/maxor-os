@@ -3,6 +3,7 @@ package screens
 import (
 	"context"
 	"fmt"
+	"os"
 	"strings"
 
 	tea "github.com/charmbracelet/bubbletea"
@@ -31,6 +32,20 @@ type Store struct {
 	queue    []item
 	armed    string
 	rows     int // apps que caben en pantalla
+	busy     map[string]string // app → «queued», «installing» o «removing»: no se puede repetir
+	ask      *purgeAsk         // pregunta pendiente: ¿borrar también sus datos?
+}
+
+// purgeAsk es la pregunta tras quitar una app que dejó carpetas en tu casa.
+type purgeAsk struct {
+	ID, Name string
+	Left     []maxor.Leftover
+}
+
+// removed es el resultado de quitar una app.
+type removed struct {
+	it   item
+	left []maxor.Leftover
 }
 
 // Zonas del foco: se recorren con ↑ y ↓.
@@ -60,7 +75,7 @@ const (
 )
 
 func NewStore() *Store {
-	s := &Store{marks: map[string]bool{}, zone: zList}
+	s := &Store{marks: map[string]bool{}, zone: zList, busy: map[string]string{}}
 	s.in.Placeholder = "Search apps in nixpkgs and Flathub…"
 	return s
 }
@@ -172,11 +187,13 @@ func (s *Store) search(env *core.Env) tea.Cmd {
 }
 
 func (s *Store) startNext(env *core.Env) tea.Cmd {
-	if len(s.queue) == 0 || env.Tasks.Running("store.install") {
+	// una sola operación de paquetes a la vez: nix y flatpak no admiten dos juntas
+	if len(s.queue) == 0 || env.Tasks.Running("store.install") || env.Tasks.Running("store.remove") || env.Tasks.Running("store.purge") {
 		return nil
 	}
 	it := s.queue[0]
 	s.queue = s.queue[1:]
+	s.busy[it.key()] = "installing"
 	return env.Tasks.Start(task.Task{ID: "store.install", Label: "Installing " + it.Name, Run: func(ctx context.Context) (any, error) {
 		return it, env.Client.Install(ctx, it.Source, it.ID)
 	}})
@@ -206,17 +223,32 @@ func (s *Store) Update(env *core.Env, msg tea.Msg) (core.Screen, tea.Cmd) {
 			return s, nil
 		case "store.install":
 			it, _ := m.Value.(item)
+			delete(s.busy, it.key())
 			if m.Err != nil {
 				return s, tea.Batch(core.Toast("bad", "Could not install "+it.Name+": "+oneLine(m.Err.Error())), s.startNext(env))
 			}
 			delete(s.marks, it.key())
 			return s, tea.Batch(core.Toast("ok", "Installed "+it.Name), core.Note("ok", "Installed "+it.Name), LoadApps(env, true), s.startNext(env))
 		case "store.remove":
-			it, _ := m.Value.(item)
+			r, _ := m.Value.(removed)
+			delete(s.busy, r.it.key())
 			if m.Err != nil {
-				return s, core.Toast("bad", "Could not remove "+it.Name+": "+oneLine(m.Err.Error()))
+				return s, tea.Batch(core.Toast("bad", "Could not remove "+r.it.Name+": "+oneLine(m.Err.Error())), s.startNext(env))
 			}
-			return s, tea.Batch(core.Toast("ok", "Removed "+it.Name), core.Note("ok", "Removed "+it.Name), LoadApps(env, true))
+			cmds := []tea.Cmd{core.Note("ok", "Removed "+r.it.Name), LoadApps(env, true), s.startNext(env)}
+			if len(r.left) > 0 {
+				s.ask = &purgeAsk{ID: r.it.ID, Name: r.it.Name, Left: r.left}
+				cmds = append(cmds, core.Toast("warn", fmt.Sprintf("Removed %s. Its data stays (%s): y deletes it, n keeps it", r.it.Name, humanBytes(sumBytes(r.left)))))
+			} else {
+				cmds = append(cmds, core.Toast("ok", "Removed "+r.it.Name))
+			}
+			return s, tea.Batch(cmds...)
+		case "store.purge":
+			name, _ := m.Value.(string)
+			if m.Err != nil {
+				return s, core.Toast("bad", "Could not delete the data of "+name+": "+oneLine(m.Err.Error()))
+			}
+			return s, tea.Batch(core.Toast("ok", "Deleted the data of "+name), core.Note("ok", "Deleted the data of "+name), s.startNext(env))
 		}
 	case tea.KeyMsg:
 		return s.key(env, m)
@@ -225,6 +257,19 @@ func (s *Store) Update(env *core.Env, msg tea.Msg) (core.Screen, tea.Cmd) {
 }
 
 func (s *Store) key(env *core.Env, m tea.KeyMsg) (core.Screen, tea.Cmd) {
+	if s.ask != nil && s.zone != zSearch {
+		ask := s.ask
+		switch {
+		case isKey(m, "y"):
+			s.ask = nil
+			return s, env.Tasks.Start(task.Task{ID: "store.purge", Label: "Deleting the data of " + ask.Name, Run: func(ctx context.Context) (any, error) {
+				return ask.Name, env.Client.Purge(ctx, ask.ID)
+			}})
+		case isKey(m, "n", "esc"):
+			s.ask = nil
+			return s, core.Toast("info", "Kept the data of "+ask.Name+". Delete it later: maxor remove "+ask.ID+" --purge")
+		}
+	}
 	switch s.zone {
 	case zSearch:
 		switch {
@@ -326,19 +371,42 @@ func (s *Store) key(env *core.Env, m tea.KeyMsg) (core.Screen, tea.Cmd) {
 				return s, core.Toast("info", it.Name+" is already installed")
 			}
 		}
-		s.queue = append(s.queue, todo...)
-		return s, s.startNext(env)
+		// lo que ya se está instalando, está en cola o se está quitando no se repite
+		var fresh []item
+		var skipped string
+		for _, it := range todo {
+			if st := s.busy[it.key()]; st != "" {
+				skipped = it.Name + " is already " + map[string]string{"queued": "queued", "installing": "being installed", "removing": "being removed"}[st]
+				continue
+			}
+			s.busy[it.key()] = "queued"
+			fresh = append(fresh, it)
+		}
+		s.queue = append(s.queue, fresh...)
+		cmd := s.startNext(env)
+		if skipped != "" && len(fresh) == 0 {
+			return s, core.Toast("info", skipped)
+		}
+		return s, cmd
 	case isKey(m, "r"):
 		it, ok := cur()
 		if !ok || !it.Installed {
 			return s, nil
 		}
+		if st := s.busy[it.key()]; st != "" {
+			return s, core.Toast("info", it.Name+" is busy: wait until it finishes")
+		}
+		if env.Tasks.Running("store.install") || env.Tasks.Running("store.remove") || env.Tasks.Running("store.purge") {
+			return s, core.Toast("info", "Another change is running: wait until it finishes")
+		}
 		if armed != it.key() {
 			s.armed = it.key()
-			return s, core.Toast("warn", "Press r again to remove "+it.Name)
+			return s, core.Toast("warn", "Press r again to remove "+it.Name+" (its data is kept until you say)")
 		}
+		s.busy[it.key()] = "removing"
 		return s, env.Tasks.Start(task.Task{ID: "store.remove", Label: "Removing " + it.Name, Run: func(ctx context.Context) (any, error) {
-			return it, env.Client.Remove(ctx, it.ID)
+			left, err := env.Client.Remove(ctx, it.ID)
+			return removed{it: it, left: left}, err
 		}})
 	}
 	return s, nil
@@ -464,6 +532,10 @@ func (s *Store) Main(env *core.Env, w, h int) []ui.Line {
 		}
 		ver := shortVersion(it.Version)
 		right := []ui.Seg{ui.S(src, srcName(it.Source))}
+		if st := s.busy[it.key()]; st != "" {
+			mark = ui.S(p.Warn, ui.G.Off+"  ")
+			right = append([]ui.Seg{ui.S(p.Warn, map[string]string{"queued": "queued  ", "installing": "installing…  ", "removing": "removing…  "}[st])}, right...)
+		}
 		if ver != "" {
 			right = append(right, ui.S(p.Mu, "  "+ver))
 		}
@@ -490,6 +562,19 @@ func shortVersion(v string) string {
 
 func (s *Store) Side(env *core.Env, w, h int) []ui.Line {
 	p := env.P
+	if s.ask != nil {
+		lines := []ui.Line{heading(env, "Its data is still here"), gap(), ui.T(p.Bold, s.ask.Name+" was removed"), gap()}
+		for _, l := range ui.Wrap("These folders were left in your home. They may hold saves and settings.", w) {
+			lines = append(lines, plain(env, l))
+		}
+		lines = append(lines, gap())
+		for _, lo := range s.ask.Left {
+			for _, l := range ui.Wrap(strings.Replace(lo.Path, os.Getenv("HOME"), "~", 1)+"  "+humanBytes(lo.Bytes), w) {
+				lines = append(lines, ui.T(p.Warn, l))
+			}
+		}
+		return append(lines, gap(), ui.Of(button(env, true, "Delete data  y"), space(1), button(env, false, "Keep  n")))
+	}
 	its := s.items(env)
 	if len(its) == 0 || s.list.sel >= len(its) {
 		return []ui.Line{heading(env, "Details"), gap(), muted(env, "Search with /"), gap(), muted(env, "Mark several with space"), muted(env, "and install them together.")}
@@ -508,6 +593,8 @@ func (s *Store) Side(env *core.Env, w, h int) []ui.Line {
 	}
 	lines = append(lines, gap())
 	switch {
+	case s.busy[it.key()] != "":
+		lines = append(lines, ui.Of(ui.S(p.Warn, ui.G.Warn+" "+s.busy[it.key()]+"… please wait")))
 	case it.Installed:
 		lines = append(lines, ui.Of(ui.S(p.Ok, ui.G.Tick+" installed  "), button(env, false, "Remove  r")))
 	case s.marks[it.key()]:
@@ -522,6 +609,9 @@ func (s *Store) Side(env *core.Env, w, h int) []ui.Line {
 }
 
 func (s *Store) Hints(env *core.Env) []ui.Hint {
+	if s.ask != nil && s.zone != zSearch {
+		return []ui.Hint{{Key: "y", Action: "delete its data"}, {Key: "n", Action: "keep it"}}
+	}
 	switch s.zone {
 	case zSearch:
 		return []ui.Hint{{Key: "⏎", Action: "search"}, {Key: "↓", Action: "results"}, {Key: "esc", Action: "leave"}}
@@ -561,4 +651,22 @@ func (s *Store) Wheel(env *core.Env, dy int) tea.Cmd {
 // Zone dice dónde está el foco: «search», «chips» o «list» (para las pruebas).
 func (s *Store) Zone() string {
 	return [...]string{"search", "chips", "list"}[s.zone]
+}
+
+func sumBytes(l []maxor.Leftover) (n int64) {
+	for _, x := range l {
+		n += x.Bytes
+	}
+	return
+}
+
+// humanBytes escribe un tamaño con unidades legibles.
+func humanBytes(b int64) string {
+	switch {
+	case b >= 1<<30:
+		return fmt.Sprintf("%.1f GiB", float64(b)/(1<<30))
+	case b >= 1<<20:
+		return fmt.Sprintf("%.1f MiB", float64(b)/(1<<20))
+	}
+	return fmt.Sprintf("%d KiB", (b+1023)/1024)
 }

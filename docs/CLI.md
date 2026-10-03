@@ -20,7 +20,7 @@ maxor theme list | current | apply <n> | undo | install <ruta> | export <n>
 APPS
 maxor search [texto]              buscar en nixpkgs y Flathub (selector interactivo)
 maxor install <app…>              instalar sin sudo ni rebuild
-maxor remove <app…>               quitar
+maxor remove <app…> [--purge]     quitar (con --purge, también sus carpetas en tu casa)
 maxor apps [list | update]        lo instalado con maxor
 
 SISTEMA

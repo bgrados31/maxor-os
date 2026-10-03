@@ -237,3 +237,27 @@ setup() {
   run "$MAXOR_BIN" update --cached
   echo "$output" | jq -e '.checked_at == 1790000000 and .up_to_date == true'
 }
+
+@test "remove --json lista lo que la app dejó en casa y no borra nada sin --purge" {
+  mkdir -p "$HOME/.local/share/Fooapp" "$HOME/.config/otraCosa"
+  echo x > "$HOME/.local/share/Fooapp/save.dat"
+  run "$MAXOR_BIN" remove fooapp --json
+  echo "$output" | jq -e '.[0].leftovers | length == 1 and (.[0].path | endswith("/.local/share/Fooapp")) and .[0].bytes > 0'
+  [ -f "$HOME/.local/share/Fooapp/save.dat" ]
+  [ -d "$HOME/.config/otraCosa" ]
+}
+
+@test "remove --purge borra solo las carpetas que se llaman como la app" {
+  mkdir -p "$HOME/.local/share/Fooapp" "$HOME/.cache/fooapp" "$HOME/.config/fooapp-extra" "$HOME/.fooapp"
+  run "$MAXOR_BIN" remove fooapp --purge --json
+  echo "$output" | jq -e '.[0].ok == true and .[0].purged == true and .[0].leftovers == []'
+  [ ! -e "$HOME/.local/share/Fooapp" ] && [ ! -e "$HOME/.cache/fooapp" ] && [ ! -e "$HOME/.fooapp" ]
+  [ -d "$HOME/.config/fooapp-extra" ]
+}
+
+@test "remove --purge no toca nombres peligrosos ni demasiado cortos" {
+  mkdir -p "$HOME/.ssh" "$HOME/.config/ab"
+  run "$MAXOR_BIN" remove ssh --purge --json
+  run "$MAXOR_BIN" remove ab --purge --json
+  [ -d "$HOME/.ssh" ] && [ -d "$HOME/.config/ab" ]
+}
