@@ -37,8 +37,8 @@ instalador propios. Hoy el proyecto está entre las **fases 2 y 3 de 7** (ver [h
 
 | Capa | Componentes |
 |---|---|
-| **Sesión** | Hyprland 0.55 con configuración en Lua, portales `xdg-desktop-portal-hyprland` y `-gtk`, SDDM en Wayland |
-| **Shell** | [DankMaterialShell](https://github.com/AvengeMedia/DankMaterialShell): barra, launcher, notificaciones, centro de control |
+| **Sesión** | Hyprland 0.55 con configuración en Lua, portales `xdg-desktop-portal-hyprland` y `-gtk`, login con greetd |
+| **Shell** | **Maxor Shell** ([DankMaterialShell](https://github.com/AvengeMedia/DankMaterialShell) con la identidad de Maxor): barra, launcher, notificaciones, centro de control y pantalla de login |
 | **Bloqueo** | hyprlock con diseño propio e inactividad con hypridle; la paleta sale del tema activo |
 | **Motor de temas** | CLI `maxor theme`: diez temas (cinco claros y cinco oscuros), instalar y exportar, sin `rebuild` ni `sudo` |
 | **Terminal** | kitty, fish, starship, zoxide, eza, bat, btop, fastfetch |
@@ -62,7 +62,7 @@ cd ~/nixos-config
 sudo nixos-rebuild switch --flake .#nitro
 ```
 
-Después de reiniciar, el login (SDDM) entra directo a Hyprland. Si algo falla, elige una
+Después de reiniciar, el login de Maxor entra directo a Hyprland. Si algo falla, elige una
 generación anterior en el menú de arranque o, desde una TTY (`Ctrl+Alt+F3`):
 
 ```sh
@@ -116,7 +116,9 @@ Referencia completa en [docs/CLI.md](docs/CLI.md).
 flake.nix                      entradas: nixpkgs 26.05, home-manager, DMS
 hosts/nitro/                   lo propio de la máquina: arranque, NVIDIA, región, usuario
 modules/core.nix               Nix, red, audio, Bluetooth, paquetes base
-modules/desktop.nix            Hyprland, login, PAM, servicios del escritorio
+modules/desktop.nix            Hyprland, PAM, servicios del escritorio
+modules/greeter.nix            login: greetd y greeter de Maxor Shell
+packages/                      Maxor Shell, generador del logo, fuentes
 modules/branding.nix           nombre del sistema, Plymouth, arranque silencioso
 modules/fonts.nix              Figtree, Red Hat Mono, Krona One
 home/bryan.nix                 usuario: kitty, fish, GTK/Qt, apps
@@ -134,6 +136,7 @@ docs/                          documentación
 
 - [Instalación y adaptación a otro equipo](docs/INSTALL.md)
 - [Arquitectura](docs/ARCHITECTURE.md)
+- [Maxor Shell y el login](docs/SHELL.md)
 - [Herramienta `maxor`](docs/CLI.md)
 - [Motor de temas](docs/THEMING.md)
 - [Identidad visual](docs/IDENTITY.md)

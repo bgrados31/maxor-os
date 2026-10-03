@@ -13,7 +13,8 @@ ISO, verifica la licencia vigente en el repositorio de cada proyecto.
 | [home-manager](https://github.com/nix-community/home-manager) | Configuración de usuario | MIT |
 | [Hyprland](https://github.com/hyprwm/Hyprland) | Compositor | BSD-3-Clause |
 | [hyprlock](https://github.com/hyprwm/hyprlock) / [hypridle](https://github.com/hyprwm/hypridle) | Bloqueo e inactividad | BSD-3-Clause |
-| [DankMaterialShell](https://github.com/AvengeMedia/DankMaterialShell) | Shell (barra, launcher, notificaciones) | MIT |
+| [DankMaterialShell](https://github.com/AvengeMedia/DankMaterialShell) | Base de Maxor Shell (barra, launcher, notificaciones, login). Se usa sin copiar su código: Maxor Shell lo extiende con parches de marca | MIT |
+| [greetd](https://git.sr.ht/~kennylevinsen/greetd) | Gestor de login | GPL-3.0 |
 | [Quickshell](https://github.com/quickshell-mirror/quickshell) | Base de DMS | LGPL-3.0 |
 | [kitty](https://github.com/kovidgoyal/kitty) | Terminal | GPL-3.0 |
 | [fish](https://github.com/fish-shell/fish-shell) | Shell de línea de comandos | GPL-2.0 |

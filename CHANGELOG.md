@@ -7,6 +7,9 @@ no usa versiones numeradas.
 
 ### Añadido
 
+- **Maxor Shell**: DankMaterialShell con la identidad de Maxor OS, como capa de parches (logo «M» generado desde Krona One, nombre y textos propios) que sigue recibiendo las mejoras de upstream.
+- **Login propio**: greetd con el greeter de Maxor Shell, que hereda el tema, los colores y el wallpaper del usuario. Reemplaza a SDDM.
+
 - **Forma de los temas** (`style.json`): cada tema define esquinas, espacios, bordes, desenfoque, opacidad de ventanas sin foco y velocidad de animaciones. Solo números validados; `maxor` genera el Lua de Hyprland y recarga. Los diez temas oficiales tienen su propia forma.
 
 - **Diez temas oficiales**: cinco oscuros (Sakura nocturna, Glaciar, Obsidiana, Brasa, Ultravioleta) y cinco claros (Alba, Escarcha, Papel frío, Brisa, Ámbar), todos con contraste AA. Los temas son carpetas en `themes/`.
@@ -33,7 +36,7 @@ no usa versiones numeradas.
 - Los wallpapers de los temas ya no llevan ruido (pasan de 20 MB a unos 2 MB).
 - La configuración del sistema se divide en `modules/core.nix` y `modules/desktop.nix`; `hosts/nitro` conserva solo lo propio del equipo.
 
-- Hyprland es la única sesión: se eliminaron Budgie y LightDM. El login pasa a SDDM en Wayland.
+- Hyprland es la única sesión: se eliminaron Budgie y LightDM.
 - Esquinas de 8 px y desenfoque moderado en Hyprland.
 
 ## Historial previo

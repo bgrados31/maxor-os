@@ -17,7 +17,9 @@ home-manager como módulo de NixOS. La regla de diseño es separar cuatro cosas:
 | `hosts/nitro/configuration.nix` | Solo lo propio del equipo: arranque (systemd-boot + XBOOTLDR), región y teclado, NVIDIA PRIME, usuario |
 | `hosts/nitro/hardware-configuration.nix` | Generado por `nixos-generate-config`; propio de este equipo |
 | `modules/core.nix` | Ajustes de Nix, red, zram, audio (PipeWire), Bluetooth, impresión, paquetes base |
-| `modules/desktop.nix` | Hyprland, SDDM, PAM de hyprlock, variables de sesión, servicios del escritorio |
+| `modules/desktop.nix` | Hyprland, PAM de hyprlock, variables de sesión, servicios del escritorio |
+| `modules/greeter.nix` | Login: greetd con el greeter de DMS y el paquete Maxor Shell |
+| `packages/` | `maxor-shell.nix` (DMS con la identidad de Maxor), `make-mark.py` (genera el logo) y `fonts.nix` |
 | `modules/branding.nix` | `system.nixos.distroName`, tema Plymouth, parámetros de arranque silencioso, `/etc/issue` |
 | `modules/fonts.nix` | Fuentes del sistema y la que usa Plymouth |
 | `home/bryan.nix` | kitty, fish, starship, GTK/Qt, cursor, paquetes de usuario, `gh` |
@@ -59,8 +61,8 @@ CLI rellena con la paleta.
 
 ## Sesión de escritorio
 
-- **Login:** SDDM en Wayland con `defaultSession = "hyprland"`. Es provisional: el plan es
-  reemplazarlo por un greeter propio (greetd).
+- **Login:** greetd con el greeter de DMS (paquete Maxor Shell) dentro de Hyprland; ver
+  [SHELL.md](SHELL.md). Hereda del usuario el tema, los colores y el wallpaper.
 - **Hyprland:** instalado por `programs.hyprland` (NixOS). home-manager solo escribe la
   configuración (`configType = "lua"`, `package = null`).
 - **DMS:** arranca como servicio de usuario de systemd (`programs.dank-material-shell.systemd`).
@@ -71,7 +73,7 @@ CLI rellena con la paleta.
 ## Arranque
 
 ```
-UEFI → systemd-boot (ESP, /efi) → kernel + initrd (XBOOTLDR, /boot) → Plymouth → SDDM → Hyprland
+UEFI → systemd-boot (ESP, /efi) → kernel + initrd (XBOOTLDR, /boot) → Plymouth → greetd (greeter) → Hyprland
 ```
 
 La ESP de 100 MB se comparte con Windows (arranque dual). Los kernels e initrd viven en una

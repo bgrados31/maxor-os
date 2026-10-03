@@ -12,7 +12,7 @@ propio e instalador propio. Referencias de experiencia: Ryoku OS, Omarchy y los 
 | 1 | Solo Hyprland, branding mínimo (`os-release`, Plymouth, fastfetch) | Hecha |
 | 2 | Repo ordenado y modular, CLI `maxor` v0 (update, rollback, doctor) | Casi hecha |
 | 3 | Motor de temas y temas oficiales | Casi hecha |
-| 4 | Shell Maxor y greeter propio | Pendiente |
+| 4 | Shell Maxor y greeter propio | En curso |
 | 5 | Maxor Store (apps Flatpak y temas) | Pendiente |
 | 6 | Menú de arranque (Limine), ISO live e instalador | Pendiente |
 | 7 | Theme Store web, comunidad, documentación y sitio | Pendiente |
@@ -45,12 +45,21 @@ propio e instalador propio. Referencias de experiencia: Ryoku OS, Omarchy y los 
 
 Dos caminos para el shell. Se empieza por el A y se migra al B cuando haya capacidad.
 
-- **A. Fork de DankMaterialShell:** renombrar, cambiar logo y tipografía, pantalla de ajustes y
-  widgets propios, manteniendo upstream como remoto. DMS se distribuye bajo MIT.
+- **A. Capa de parches sobre DankMaterialShell:** Maxor Shell cambia el logo, el nombre y unos
+  pocos textos sin copiar el código, y sigue recibiendo las mejoras de upstream
+  ([SHELL.md](SHELL.md)). DMS se distribuye bajo MIT.
 - **B. Shell propio en Quickshell (QML):** control total de barra, dock, launcher, centro de
   control, notificaciones, lockscreen y OSD.
 
-Además: greeter propio con greetd en lugar de SDDM y sesión por UWSM.
+- [x] Paquete `maxor-shell`: logo «M» generado desde Krona One, nombre y textos propios.
+- [x] Greeter propio: greetd con el greeter de DMS y el paquete Maxor Shell, con el tema y el
+      wallpaper del usuario. Reemplaza a SDDM.
+- [ ] Fuente Krona One y marca de Maxor dentro de la interfaz de DMS.
+- [ ] Pantalla de ajustes con la marca de Maxor.
+- [ ] Traducciones de las cadenas cambiadas.
+- [ ] Integrar el radio de esquinas del tema con DMS.
+- [ ] Sesión por UWSM.
+- [ ] Decidir si se pasa a un fork completo o al shell propio (camino B).
 
 ## Fase 5: tienda
 

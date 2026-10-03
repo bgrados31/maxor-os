@@ -38,6 +38,32 @@ Elige una generación anterior en el menú de arranque; NixOS conserva las últi
 sudo nixos-rebuild switch --rollback
 ```
 
+## El login no aparece o queda en negro
+
+El login es greetd con el greeter de DMS ([SHELL.md](SHELL.md#la-pantalla-de-login)).
+
+1. **Entra por una TTY:** `Ctrl+Alt+F3` e inicia sesión.
+2. **Mira el estado y el registro:**
+
+   ```sh
+   systemctl status greetd
+   journalctl -u greetd -b --no-pager | tail -n 40
+   ```
+
+3. **Guarda el registro del greeter** si hace falta más detalle: añade
+   `services.displayManager.dms-greeter.logs.save = true;` a la configuración, aplica y reinicia;
+   el registro queda en `/tmp/dms-greeter.log`.
+4. **Vuelve a lo que funcionaba:** reinicia y elige una generación anterior en el menú de
+   arranque, o `sudo nixos-rebuild switch --rollback` desde la TTY.
+
+Desde la TTY también puedes iniciar Hyprland a mano con `start-hyprland` mientras lo arreglas.
+
+## El login no tiene los colores de mi tema
+
+Greetd copia el tema, los colores y el wallpaper del usuario **al arrancar**. Después de
+`maxor theme apply` el login cambia en el siguiente arranque, no al instante. Reinicia
+`greetd` solo si estás en una TTY (cerraría tu sesión gráfica).
+
 ## El menú de arranque no muestra Windows
 
 Windows aparece porque systemd-boot detecta su gestor de arranque en la ESP. Comprueba que la ESP

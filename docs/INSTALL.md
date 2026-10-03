@@ -77,7 +77,7 @@ sudo nixos-rebuild switch --flake .#<tu-equipo>
 
 ## Después de instalar
 
-1. Reinicia. El login (SDDM) entra directo a Hyprland.
+1. Reinicia. El login de Maxor (greeter de DMS) entra directo a Hyprland.
 2. Abre los ajustes de DMS con `SUPER + ,` y configura la barra y el wallpaper.
 3. Aplica un tema: `maxor theme apply sakura`.
 4. Opcional: abre `qt6ct` una vez y elige el esquema de colores de DMS para las apps Qt.
