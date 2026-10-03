@@ -2,7 +2,7 @@
 maxor_cmd search apps ""
 maxor_cmd install apps ""
 maxor_cmd remove apps ""
-maxor_cmd apps apps "list update updates open"
+maxor_cmd apps apps "list update updates open repair"
 # Dos orígenes, ninguno pide root ni toca archivos .nix:
 #   nix      paquetes de nixpkgs en el perfil del usuario (nix profile)
 #   flatpak  apps de Flathub, instaladas para el usuario (flatpak --user)
@@ -236,6 +236,7 @@ cmd_install() {
       app_flatpak_remote
       msg m @apps.installing_flatpak "$id"
       app_step "$json" "$m" flatpak install --user -y --noninteractive flathub "$id" || ok=false
+      [ "$ok" = true ] && app_flatpak_expose "$id"
     fi
     [ "$ok" = true ] || rc=1
     results="$(jq -c --arg id "$id" --arg s "$s" --argjson ok "$ok" '. + [{id: $id, source: $s, ok: $ok}]' <<< "$results")"
@@ -264,12 +265,71 @@ app_lock() {
   flock -w 600 9 || true
 }
 
+# ── Flatpak visible en la sesión ─────────────────────────────────────
+# Flatpak deja las entradas de menú, los iconos y los comandos de cada app en
+# ~/.local/share/flatpak/exports. Una sesión solo los ve si arrancó con esa carpeta en
+# XDG_DATA_DIRS y PATH, y una sesión que empezó antes de que el sistema la añadiera
+# (o un lanzador que no la lee) no muestra nada: ni Super+Espacio ni la terminal.
+# Para que funcione siempre y sin volver a iniciar sesión, cada app se enlaza a las
+# carpetas del usuario, que todas las sesiones leen:
+#   entrada de menú  →  ~/.local/share/applications/<id>.desktop
+#   iconos           →  ~/.local/share/icons/…
+#   comando          →  ~/.local/bin/<nombre>  (nombre de la app en minúsculas)
+app_flatpak_data() { printf '%s' "${XDG_DATA_HOME:-$HOME/.local/share}"; }
+
+app_flatpak_expose() { # app_flatpak_expose id
+  local id="$1" data ex src f rel name slug
+  data="$(app_flatpak_data)"
+  ex="$data/flatpak/exports"
+  src="$ex/share/applications/$id.desktop"
+  [ -e "$src" ] || return 0
+  mkdir -p "$data/applications"
+  ln -sf "$src" "$data/applications/$id.desktop"
+  while IFS= read -r f; do
+    rel="${f#"$ex/share/icons/"}"
+    mkdir -p "$data/icons/$(dirname "$rel")"
+    ln -sf "$f" "$data/icons/$rel"
+  done < <(find "$ex/share/icons" \( -type f -o -type l \) -name "$id.*" 2> /dev/null)
+  name="$(grep -m1 '^Name=' "$src" | cut -d= -f2-)"
+  slug="$(tr '[:upper:]' '[:lower:]' <<< "$name" | tr -cd 'a-z0-9-')"
+  # un comando corto con el nombre de la app, salvo que ya haya otro con ese nombre
+  if [ -n "$slug" ] && { ! command -v "$slug" > /dev/null 2>&1 || grep -q "maxor flatpak shim: $id\$" "$HOME/.local/bin/$slug" 2> /dev/null; }; then
+    mkdir -p "$HOME/.local/bin"
+    printf '#!/bin/sh\n# maxor flatpak shim: %s\nexec flatpak run %s "$@"\n' "$id" "$id" > "$HOME/.local/bin/$slug"
+    chmod +x "$HOME/.local/bin/$slug"
+  fi
+}
+
+app_flatpak_unexpose() { # app_flatpak_unexpose id
+  local id="$1" data f
+  data="$(app_flatpak_data)"
+  rm -f "$data/applications/$id.desktop"
+  find "$data/icons" -type l -name "$id.*" -delete 2> /dev/null || true
+  for f in "$HOME"/.local/bin/*; do
+    [ -f "$f" ] && grep -q "maxor flatpak shim: $id\$" "$f" 2> /dev/null && rm -f "$f"
+  done
+  return 0
+}
+
+# Ids de las apps de flatpak instaladas que esta sesión no podría mostrar.
+app_flatpak_hidden() {
+  local data id
+  data="$(app_flatpak_data)"
+  case ":${XDG_DATA_DIRS:-}:" in *":$data/flatpak/exports/share:"*) return 0 ;; esac
+  while IFS= read -r id; do
+    [ -n "$id" ] || continue
+    [ -e "$data/applications/$id.desktop" ] || echo "$id"
+  done < <(flatpak list --user --app --columns=application 2> /dev/null)
+}
+
 # El lanzador de apps (Super+Espacio) se entera de las apps nuevas, pero no de las que
 # se quitan: el perfil de nix cambia de carpeta y su vigilancia sigue mirando la vieja.
 # Crear y borrar un archivo en la carpeta de aplicaciones del usuario le hace releer todo.
 app_refresh_launcher() {
   local d="${XDG_DATA_HOME:-$HOME/.local/share}/applications" f
   mkdir -p "$d" 2> /dev/null || return 0
+  find "$d" -maxdepth 1 -xtype l -delete 2> /dev/null || true # enlaces de apps ya quitadas
+  rm -f "$state/apps-updates.json" # cambió algo: las versiones nuevas hay que volver a mirarlas
   f="$d/.maxor-refresh"
   : > "$f" 2> /dev/null || return 0
   sleep 0.3
@@ -356,7 +416,10 @@ cmd_remove() {
     msg m @apps.removing "$id"
     case "$s" in
       nix) app_step "$json" "$m" nix profile remove "$id" || ok=false ;;
-      flatpak) app_step "$json" "$m" flatpak uninstall --user -y --noninteractive "$id" || ok=false ;;
+      flatpak)
+        app_step "$json" "$m" flatpak uninstall --user -y --noninteractive "$id" || ok=false
+        [ "$ok" = true ] && app_flatpak_unexpose "$id"
+        ;;
       *)
         # con --purge se puede limpiar lo que dejó una app que ya no está
         if [ "$purge" = 0 ] || [ -z "$(app_leftovers "$id")" ]; then
@@ -415,6 +478,25 @@ app_list_load() { # → APPS_ALL (con el cargador único; la línea de resultado
 
 # Apps con versión nueva. nix: lo que ofrece el nixpkgs de este sistema frente a lo instalado
 # (las versiones nuevas llegan con `maxor update`); flatpak: lo que anuncia Flathub.
+# Con caché: mirar versiones nuevas compara cada app con nixpkgs y pregunta a Flathub, y
+# tarda unos segundos. El resultado vale 10 minutos mientras no cambien las apps ni el
+# sistema; instalar, quitar o actualizar lo descarta. `apps updates --refresh` lo ignora.
+app_updates_cached() { # app_updates_cached [refresh]
+  local f="$state/apps-updates.json" key now at
+  key="$( (nix profile list --json 2> /dev/null || true; readlink /run/current-system || true; flatpak list --user --app --columns=application,active 2> /dev/null || true) | sha256sum | cut -c1-24)"
+  now="$(printf '%(%s)T' -1)"
+  if [ "${1:-}" != refresh ] && [ -s "$f" ] \
+    && [ "$(jq -r '.key' "$f" 2> /dev/null)" = "$key" ] \
+    && at="$(jq -r '.at' "$f" 2> /dev/null)" && [ $((now - at)) -lt 600 ]; then
+    jq -c '.data' "$f"
+    return 0
+  fi
+  local data
+  data="$(app_updates_json)"
+  mkdir -p "$state" 2> /dev/null && jq -cn --arg key "$key" --argjson at "$now" --argjson data "$data" '{key: $key, at: $at, data: $data}' > "$f" 2> /dev/null || true
+  printf '%s\n' "$data"
+}
+
 app_updates_json() {
   local out="[]" id name cur latest tmp
   tmp="$(mktemp -d)"
@@ -497,7 +579,20 @@ cmd_apps() {
       echo
       ;;
     updates)
-      app_updates_json
+      local fresh=""
+      for a in "$@"; do [ "$a" = "--refresh" ] && fresh=refresh; done
+      app_updates_cached "$fresh"
+      ;;
+    repair)
+      # Deja a la vista las apps de flatpak ya instaladas (menú, iconos y comando).
+      local rid rn=0
+      while IFS= read -r rid; do
+        [ -n "$rid" ] || continue
+        app_flatpak_expose "$rid"
+        rn=$((rn + 1))
+      done < <(flatpak list --user --app --columns=application 2> /dev/null)
+      app_refresh_launcher
+      if [ "$json" = 1 ]; then jq -cn --argjson n "$rn" '{repaired: $n}'; else ui_say ok @apps.repaired "$rn"; fi
       ;;
     open)
       local oid="${1:-}" ok=true

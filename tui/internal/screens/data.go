@@ -45,6 +45,11 @@ func LoadAppUpdates(env *core.Env, quiet bool) tea.Cmd {
 	return load(env, "appupdates", "Looking for new versions", quiet, func(ctx context.Context) (any, error) { return env.Client.AppUpdates(ctx) })
 }
 
+// LoadAppUpdatesFresh mira otra vez si hay versiones nuevas, ignorando lo guardado.
+func LoadAppUpdatesFresh(env *core.Env) tea.Cmd {
+	return load(env, "appupdates", "Checking for new versions", false, func(ctx context.Context) (any, error) { return env.Client.AppUpdatesFresh(ctx) })
+}
+
 // ApplyData guarda en env.Data el resultado de una carga. Devuelve false si el
 // mensaje no era de una carga compartida.
 func ApplyData(env *core.Env, d task.DoneMsg) bool {

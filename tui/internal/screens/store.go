@@ -41,6 +41,9 @@ type Store struct {
 	menu     *actionMenu       // menú de acciones sobre las apps elegidas
 }
 
+// OpenAppMsg pide abrir una app instalada (la paleta de comandos).
+type OpenAppMsg struct{ ID, Name string }
+
 // job es una operación de paquetes en la cola.
 type job struct {
 	it    item
@@ -492,6 +495,11 @@ func (s *Store) Update(env *core.Env, msg tea.Msg) (core.Screen, tea.Cmd) {
 		s.in.Set(m.Query)
 		s.zone = zList
 		return s, s.search(env)
+	case OpenAppMsg:
+		it := item{ID: m.ID, Name: m.Name}
+		return s, env.Tasks.Start(task.Task{ID: "store.open", Label: "Opening " + m.Name, Run: func(ctx context.Context) (any, error) {
+			return it, env.Client.OpenApp(ctx, it.ID)
+		}})
 	case task.DoneMsg:
 		if m.Owner() != "store" {
 			return s, nil
@@ -512,7 +520,7 @@ func (s *Store) Update(env *core.Env, msg tea.Msg) (core.Screen, tea.Cmd) {
 				return s, tea.Batch(core.Toast("bad", "Could not install "+it.Name+": "+oneLine(m.Err.Error())), s.startNext(env))
 			}
 			delete(s.marks, it.key())
-			return s, tea.Batch(core.Toast("ok", "Installed "+it.Name), core.Note("ok", "Installed "+it.Name), LoadApps(env, true), LoadAppUpdates(env, true), s.startNext(env))
+			return s, tea.Batch(core.Toast("ok", "Installed "+it.Name+". Find it in Super+Space, or press ⏎ here and choose Open"), core.Note("ok", "Installed "+it.Name), LoadApps(env, true), LoadAppUpdates(env, true), s.startNext(env))
 		case "store.remove":
 			r, _ := m.Value.(removed)
 			delete(s.busy, r.it.key())
@@ -721,6 +729,8 @@ func (s *Store) key(env *core.Env, m tea.KeyMsg) (core.Screen, tea.Cmd) {
 			return s, core.Toast("ok", "Nothing to update there: it is already up to date")
 		}
 		return s, s.enqueue(env, todo)
+	case isKey(m, "R"):
+		return s, tea.Batch(core.Toast("info", "Looking for new versions…"), LoadAppUpdatesFresh(env))
 	case isKey(m, "U"):
 		var todo []job
 		for _, it := range s.installedItems(env) {
@@ -1058,7 +1068,7 @@ func (s *Store) Side(env *core.Env, w, h int) []ui.Line {
 		if u, ok := s.updateFor(env, it); ok {
 			lines = append(lines, ui.T(p.Warn.Bold(true), ui.G.Up+" new version "+u.Latest), gap(), ui.Of(button(env, true, "Update  u"), space(1), button(env, false, "More…  ⏎")))
 		} else if env.Data.UpdatesKnown {
-			lines = append(lines, ui.T(p.Ok, ui.G.Tick+" up to date"), gap(), ui.Of(button(env, true, "Actions  ⏎")))
+			lines = append(lines, ui.T(p.Ok, ui.G.Tick+" up to date"), gap(), ui.Of(button(env, true, "Actions  ⏎"), space(1), button(env, false, "Check again  R")))
 		} else {
 			lines = append(lines, ui.Of(button(env, true, "Actions  ⏎")))
 		}

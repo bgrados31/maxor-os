@@ -379,6 +379,12 @@ func (c *Client) AppUpdates(ctx context.Context) (u []AppUpdate, err error) {
 	return
 }
 
+// AppUpdatesFresh vuelve a mirar las versiones nuevas, sin usar lo que la CLI guardó.
+func (c *Client) AppUpdatesFresh(ctx context.Context) (u []AppUpdate, err error) {
+	err = c.getJSON(ctx, &u, false, "apps", "updates", "--refresh")
+	return
+}
+
 // UpdateApp actualiza una sola app.
 func (c *Client) UpdateApp(ctx context.Context, id string) error {
 	_, err := c.outcomes(ctx, "apps", "update", id, "--json")

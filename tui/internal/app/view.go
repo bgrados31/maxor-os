@@ -62,6 +62,14 @@ func (m *Model) topBar(p ui.Painter, w int) string {
 			m.tabs = append(m.tabs, tabRect{x0: x, x1: x + wd})
 			x += wd + 1
 		}
+		// Salir: a la derecha de la última pestaña, para quien busca el botón con el ratón
+		glyph := "⏻"
+		if ui.G.BarOn == "#" {
+			glyph = "x"
+		}
+		label := " " + glyph + " Exit "
+		segs = append(segs, ui.S(p.Mu, "│ "), ui.S(p.Bad, label))
+		m.exit = tabRect{x0: x + 2, x1: x + 2 + ansi.StringWidth(label)}
 	}
 	return ui.Line{L: segs, R: m.indicator(p)}.Render(w, p.Ctx())
 }

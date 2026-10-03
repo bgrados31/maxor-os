@@ -80,7 +80,8 @@ estándar, sin colores ni mensajes.
 | `maxor search <texto> --json` | `[{source, id, name, version, description}]` en una sola lista por relevancia, nixpkgs y Flathub mezclados (máx. 14) |
 | `maxor apps --json` | `[{source, id, name, version}]` |
 | `maxor install <app…> --json` | `[{id, source, ok}]` |
-| `maxor apps updates` | `[{source, id, current, latest}]`: solo las apps con versión nueva (nix frente al nixpkgs del sistema; flatpak según Flathub) |
+| `maxor apps updates` | `[{source, id, current, latest}]`: solo las apps con versión nueva (nix frente al nixpkgs del sistema; flatpak según Flathub). Se guarda 10 minutos en `apps-updates.json`; `--refresh` lo ignora |
+| `maxor apps repair --json` | `{repaired: n}`: enlaza las apps de flatpak instaladas a las carpetas del usuario (menú, iconos y comando) |
 | `maxor apps update <app…> --json` | `[{id, source, ok}]` |
 | `maxor apps open <app> --json` | `[{id, ok}]`: la abre separada de la terminal |
 | `maxor remove <app> --list-data` | `[{path, bytes}]`: solo mira, no quita nada |

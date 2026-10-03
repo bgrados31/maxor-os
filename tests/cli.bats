@@ -298,3 +298,18 @@ setup() {
   [ -d "$HOME/.local/share/applications" ]
   [ ! -e "$HOME/.local/share/applications/.maxor-refresh" ]
 }
+
+@test "apps repair da un resumen JSON aunque no haya flatpak" {
+  run "$MAXOR_BIN" apps repair --json
+  [ "$status" = 0 ]
+  echo "$output" | jq -e '.repaired == 0'
+}
+
+@test "apps updates guarda su resultado y --refresh lo ignora" {
+  run "$MAXOR_BIN" apps updates
+  [ "$status" = 0 ]
+  [ -s "$XDG_STATE_HOME/maxor/apps-updates.json" ]
+  jq -e '.data | type == "array"' "$XDG_STATE_HOME/maxor/apps-updates.json"
+  run "$MAXOR_BIN" apps updates --refresh
+  [ "$status" = 0 ]
+}

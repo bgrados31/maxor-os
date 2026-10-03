@@ -58,6 +58,9 @@ func (h *Home) Init(env *core.Env) tea.Cmd {
 	if !env.Data.CacheLoaded {
 		cmds = append(cmds, LoadUpdateCache(env, true))
 	}
+	if !env.Data.UpdatesKnown {
+		cmds = append(cmds, LoadAppUpdates(env, true))
+	}
 	return tea.Batch(cmds...)
 }
 
@@ -168,7 +171,13 @@ func (h *Home) Main(env *core.Env, w, hh int) []ui.Line {
 				nix++
 			}
 		}
-		apps = h.tile(env, "APPS", false, []ui.Seg{ui.S(p.Ac.Bold(true), fmt.Sprintf("%d installed", len(d.Apps)))}, fmt.Sprintf("nix %d · flathub %d", nix, fp))
+		main := []ui.Seg{ui.S(p.Ac.Bold(true), fmt.Sprintf("%d installed", len(d.Apps)))}
+		sub := fmt.Sprintf("nix %d · flathub %d", nix, fp)
+		if n := len(d.AppUpdates); n > 0 {
+			main = append(main, ui.S(p.Warn.Bold(true), fmt.Sprintf("  %s%d", ui.G.Up, n)))
+			sub = plural(n, "update", "updates") + " available · " + sub
+		}
+		apps = h.tile(env, "APPS", false, main, sub)
 	} else {
 		apps = h.tile(env, "APPS", d.Err["apps"] == nil, []ui.Seg{ui.S(p.Bad, "could not load")}, "")
 	}

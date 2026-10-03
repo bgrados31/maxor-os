@@ -64,6 +64,7 @@ type Model struct {
 
 	// geometría para el ratón; la deja View
 	tabs       []tabRect
+	exit       tabRect // el botón de salir, a la derecha de las pestañas
 	bodyTop    int
 	mainX0     int
 	mainW      int
@@ -239,6 +240,8 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		add(m.toScreen(m.indexOf("update"), msg))
 	case screens.RunDoctorMsg:
 		add(m.toScreen(m.indexOf("doctor"), msg))
+	case screens.OpenAppMsg:
+		add(m.toScreen(m.indexOf("store"), msg))
 	case screens.FocusSearchMsg:
 		add(m.toScreen(m.indexOf("store"), msg))
 	case core.SearchMsg:
@@ -342,6 +345,9 @@ func (m *Model) mouse(msg tea.MouseMsg) tea.Cmd {
 				if msg.X >= r.x0 && msg.X < r.x1 {
 					return core.Go(m.screens[i].ID())
 				}
+			}
+			if !m.setupFocus && msg.X >= m.exit.x0 && msg.X < m.exit.x1 {
+				return core.Quit()
 			}
 			return nil
 		}

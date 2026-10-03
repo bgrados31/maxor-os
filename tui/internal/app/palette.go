@@ -46,7 +46,15 @@ func (m *Model) paletteItems() []paletteItem {
 			}}))
 		}})
 	}
-	items = append(items, paletteItem{Label: "quit", Hint: "back to your terminal", Run: func(m *Model) tea.Cmd { return tea.Quit }})
+	for _, a := range m.env.Data.Apps {
+		id, name := a.ID, a.Name
+		items = append(items, paletteItem{Label: "open " + strings.ToLower(name), Hint: "start " + name, Run: func(m *Model) tea.Cmd {
+			return core.GoThen("store", screens.OpenAppMsg{ID: id, Name: name})
+		}})
+	}
+	items = append(items,
+		paletteItem{Label: "exit", Hint: "back to your terminal", Run: func(m *Model) tea.Cmd { return core.Quit() }},
+		paletteItem{Label: "quit", Hint: "back to your terminal", Run: func(m *Model) tea.Cmd { return tea.Quit }})
 	return items
 }
 

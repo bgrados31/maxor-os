@@ -1199,3 +1199,68 @@ func TestClicEnLaCasillaMarcaLaApp(t *testing.T) {
 		t.Fatalf("un clic en la casilla marca la app:\n%s", view(m))
 	}
 }
+
+func TestBotonExitAlLadoDeLasPestanas(t *testing.T) {
+	m, _ := setup(t, Options{})
+	out := view(m)
+	if !strings.Contains(strings.Split(out, "\n")[0], "Exit") {
+		t.Fatal("Exit está en la barra de arriba")
+	}
+	_, cmd := m.Update(tea.MouseMsg{X: m.exit.x0 + 1, Y: 0, Button: tea.MouseButtonLeft, Action: tea.MouseActionPress})
+	if cmd == nil {
+		t.Fatal("un clic en Exit debe pedir salir")
+	}
+	if _, ok := cmd().(core.QuitMsg); !ok {
+		t.Fatalf("el clic en Exit devuelve QuitMsg, no %T", cmd())
+	}
+	// el asistente de primer arranque no tiene botón de salir
+	m2, _ := setup(t, Options{Screen: "setup"})
+	if strings.Contains(strings.Split(view(m2), "\n")[0], "Exit") {
+		t.Fatal("el asistente no lleva botón Exit")
+	}
+}
+
+func TestPaletaAbreAppsYSalir(t *testing.T) {
+	f := bulkCLI()
+	f.resp["apps open vscode --json"] = `[{"id":"vscode","ok":true}]`
+	m, _ := setupWith(t, f, Options{})
+	send(m, key(":"))
+	typeText(m, "open vsc")
+	if !has(view(m), "open vscode") {
+		t.Fatalf("la paleta ofrece abrir las apps instaladas:\n%s", view(m))
+	}
+	send(m, key("enter"))
+	if !f.called("apps open vscode --json") {
+		t.Fatalf("abre la app con la CLI: %v", f.calls)
+	}
+	send(m, key(":"))
+	typeText(m, "exit")
+	_, cmd := m.Update(key("enter"))
+	if cmd == nil {
+		t.Fatal("exit sale")
+	}
+}
+
+func TestRYElToastDeInstalarAyudanAEncontrarLaApp(t *testing.T) {
+	f := bulkCLI()
+	f.resp["install --flatpak com.brave.Browser --json"] = `[{"id":"com.brave.Browser","source":"flatpak","ok":true}]`
+	m, _ := setupWith(t, f, Options{Screen: "store"})
+	send(m, key("R"))
+	if !f.called("apps updates --refresh") {
+		t.Fatalf("R vuelve a mirar las versiones nuevas sin usar lo guardado: %v", f.calls)
+	}
+	send(m, key("/"))
+	typeText(m, "brave")
+	send(m, key("enter"), key("down"), key("enter"))
+	if !has(view(m), "Super+Space") {
+		t.Fatalf("al instalar, el aviso dice dónde encontrar la app:\n%s", view(m))
+	}
+}
+
+func TestInicioAvisaDeAppsConVersionNueva(t *testing.T) {
+	m, _ := setupWith(t, bulkCLI(), Options{})
+	out := view(m)
+	if !strings.Contains(out, "3 installed") || !strings.Contains(out, "↑2") || !has(out, "2 updates available") {
+		t.Fatalf("la tarjeta de apps avisa de las versiones nuevas:\n%s", out)
+	}
+}

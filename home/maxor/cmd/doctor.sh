@@ -13,6 +13,7 @@ doctor_fix() {
     git_dirty) printf "git -C '%s' status\t0\tinspect" "$flake_dir" ;;
     theme_none) printf 'maxor theme apply sakura\t0\tfix' ;;
     dms_warn) printf 'maxor theme apply %s\t0\tfix' "$(cat "$state/current" 2> /dev/null || echo sakura)" ;;
+    flatpak_env) printf 'maxor apps repair\t0\tfix' ;;
     sys_bad) printf 'systemctl --failed\t0\tinspect' ;;
     usr_bad) printf 'systemctl --user --failed\t0\tinspect' ;;
     unit_bad) printf 'systemctl --user status %s\t0\tinspect' "${1:-dms}" ;;
@@ -72,6 +73,9 @@ cmd_doctor() {
   for u in dms hypridle xdg-desktop-portal xdg-desktop-portal-hyprland; do
     if systemctl --user is-active --quiet "$u"; then ok @doctor.unit_ok "$u"; else bad @doctor.unit_bad "$u" "$u"; fi
   done
+  local hidden
+  hidden="$(app_flatpak_hidden | wc -l)"
+  if [ "$hidden" -gt 0 ]; then warn @doctor.flatpak_env "$hidden"; fi
   if [ -f /etc/pam.d/hyprlock ]; then
     ok @doctor.pam_ok
   else
