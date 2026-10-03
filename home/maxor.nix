@@ -4,12 +4,7 @@
 #
 # Los temas oficiales son las carpetas de ../themes (colors.json + theme.toml);
 # aquí se les genera el wallpaper y se instalan junto a los del usuario en
-# ~/.local/share/maxor/themes/. La CLI vive en ./maxor/ (scripts reales, con
-# shellcheck al compilar) y se ensambla en este orden:
-#
-#   lib/   núcleo, terminal, marco de ventana, cargadores y motor de formas
-#   cmd/   un archivo por grupo de comandos (theme, update, doctor, hardware…)
-#   main.sh  ayuda y despacho de comandos
+# ~/.local/share/maxor/themes/. La CLI es el paquete packages/maxor.nix.
 let
   themesDir = ../themes;
   themeIds = builtins.attrNames (lib.filterAttrs (_: kind: kind == "directory") (builtins.readDir themesDir));
@@ -29,26 +24,7 @@ let
 
   officialThemes = lib.genAttrs themeIds mkTheme;
 
-  maxor = pkgs.writeShellApplication {
-    name = "maxor";
-    runtimeInputs = with pkgs; [ jq coreutils gnused gnugrep gawk gnutar findutils procps ncurses ];
-    runtimeEnv.MAXOR_PROFILES = ../modules/profiles-catalog.json;
-    excludeShellChecks = [ "SC2001" "SC2155" "SC2086" "SC2012" "SC2015" "SC2016" ];
-    text = lib.concatMapStringsSep "\n" (f: builtins.readFile (./maxor + "/${f}")) [
-      "lib/core.sh"
-      "lib/term.sh"
-      "lib/frame.sh"
-      "lib/loaders.sh"
-      "lib/style.sh"
-      "cmd/theme.sh"
-      "cmd/update.sh"
-      "cmd/doctor.sh"
-      "cmd/hardware.sh"
-      "cmd/apps.sh"
-      "cmd/profile.sh"
-      "main.sh"
-    ];
-  };
+  maxor = pkgs.callPackage ../packages/maxor.nix { };
 in
 {
   home.packages = [ maxor ];

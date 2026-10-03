@@ -1,62 +1,75 @@
-# ── Comandos de actualización: update y rollback ─────────────────────
+# ── Actualización: update y rollback ─────────────────────────────────
+maxor_cmd update system ""
+maxor_cmd rollback system ""
+
+update_step_lock() { nix flake update --flake "$flake_dir"; }
+update_step_build() {
+  nix build --no-link --print-out-paths "$flake_dir#nixosConfigurations.$host.config.system.build.toplevel"
+}
+# Lee el resultado del paso de compilación (UI_OUTS[índice]) y lo compara.
+update_step_compare() {
+  nix store diff-closures /run/current-system "${UI_OUTS[$UPDATE_BUILD_IDX]}" 2> /dev/null || true
+}
+
 cmd_update() {
   local yes=0 lock=1 a
   for a in "$@"; do
     case "$a" in
       -y | --yes) yes=1 ;;
       --no-lock) lock=0 ;;
-      *) die "opción desconocida: $a" ;;
+      *) die_code "$EX_USAGE" @err.unknown_option "$a" ;;
     esac
   done
   need_flake
-  echo
+
+  local steps=() sb sc title out diff
+  msg sb @update.step_build "$host"
+  msg sc @update.step_compare
+  msg title @update.title "$host"
+  UPDATE_BUILD_IDX=0
   if [ "$lock" = 1 ]; then
-    ui_run "Actualizando las entradas del flake" nix flake update --flake "$flake_dir" || exit 1
+    steps+=(@update.step_lock update_step_lock)
+    UPDATE_BUILD_IDX=1
   fi
-  ui_run "Compilando $host (todavía no se aplica nada)" \
-    nix build --no-link --print-out-paths "$flake_dir#nixosConfigurations.$host.config.system.build.toplevel" || exit 1
-  local out="$UI_OUT"
+  steps+=("$sb" update_step_build "$sc" update_step_compare)
+
+  echo
+  ui_pipeline "$title" "${steps[@]}" || return $?
+  out="${UI_OUTS[$UPDATE_BUILD_IDX]}"
+  diff="${UI_OUTS[$((UPDATE_BUILD_IDX + 1))]}"
+
   if [ "$out" = "$(readlink -f /run/current-system)" ]; then
-    ui_say ok "El sistema ya está al día"
+    ui_say ok @update.up_to_date
     return 0
   fi
 
-  local diff n=0 line
-  diff="$(nix store diff-closures /run/current-system "$out" 2> /dev/null || true)"
   echo
-  ui_open "maxor · cambios"
+  ui_open @update.title_changes
   ui_line ""
   if [ -z "$diff" ]; then
-    ui_row info "Solo cambia la configuración, ningún paquete"
+    ui_row info @update.only_config
   else
-    local plain upd add del
-    plain="$(sed 's/\x1b\[[0-9;]*m//g' <<< "$diff")"
-    add="$(grep -c ': ∅ → ' <<< "$plain" || true)"
-    del="$(grep -c ' → ∅' <<< "$plain" || true)"
-    upd="$(grep -c '[0-9] → [0-9]' <<< "$plain" || true)"
-    ui_row ok "$upd actualizado(s) · $add nuevo(s) · $del eliminado(s)"
+    ui_diff "$diff"
     if [ "$(readlink -f "$out/kernel")" != "$(readlink -f /run/booted-system/kernel)" ]; then
-      ui_row warn "incluye un kernel nuevo: tendrás que reiniciar"
+      ui_line ""
+      ui_row warn @update.kernel_new
     fi
-    ui_line ""
-    while IFS= read -r line; do
-      n=$((n + 1))
-      if [ "$n" -le 18 ]; then ui_row info "$line"; fi
-    done <<< "$diff"
-    if [ "$n" -gt 18 ]; then ui_row info "… y $((n - 18)) más"; fi
   fi
   ui_line ""
   ui_close
   echo
-  if [ "$yes" = 0 ] && ! ui_confirm "¿Aplicar ahora?"; then
-    ui_say info "Cancelado. No se aplicó nada."
-    if [ "$lock" = 1 ]; then ui_say info "flake.lock sí se actualizó: revísalo con git diff flake.lock"; fi
+  if [ "$yes" = 0 ] && ! ui_confirm @update.confirm; then
+    ui_say info @update.cancelled
+    if [ "$lock" = 1 ]; then ui_say info @update.lock_changed; fi
     return 0
   fi
-  sudo nixos-rebuild switch --flake "$flake_dir#$host"
-  ui_say ok "Sistema actualizado"
+  if ! sudo nixos-rebuild switch --flake "$flake_dir#$host"; then
+    ui_error @update.switch_failed @update.switch_cause @update.switch_hint
+    return "$EX_FAIL"
+  fi
+  ui_say ok @update.done
   if [ "$(readlink -f /run/current-system/kernel)" != "$(readlink -f /run/booted-system/kernel)" ]; then
-    ui_say warn "Reinicia para usar el kernel nuevo"
+    ui_say warn @update.reboot
   fi
 }
 
@@ -64,17 +77,19 @@ cmd_rollback() {
   local yes=0 line
   if [ "${1:-}" = "-y" ]; then yes=1; fi
   echo
-  ui_open "maxor · generaciones"
+  ui_open @rollback.title
   ui_line ""
   while IFS= read -r line; do ui_row info "$line"; done < <(nixos-rebuild list-generations 2> /dev/null | head -n 6 || true)
   ui_line ""
   ui_close
   echo
-  if [ "$yes" = 0 ] && ! ui_confirm "¿Volver a la generación anterior?"; then
-    ui_say info "Cancelado."
+  if [ "$yes" = 0 ] && ! ui_confirm @rollback.confirm; then
+    ui_say info @err.cancelled
     return 0
   fi
-  sudo nixos-rebuild switch --rollback
-  ui_say ok "Vuelto a la generación anterior"
+  if ! sudo nixos-rebuild switch --rollback; then
+    ui_error @rollback.failed @update.switch_cause @update.switch_hint
+    return "$EX_FAIL"
+  fi
+  ui_say ok @rollback.done
 }
-

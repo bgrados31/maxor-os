@@ -35,10 +35,10 @@ Hay que estar en `development`, sin cambios pendientes, al día con `origin` y c
 «Sin publicar». El script entonces:
 
 1. comprueba el flake (`nix flake check --no-build` y la evaluación de `nitro`);
-2. mueve «Sin publicar» a la sección `## [0.1.0] - fecha` y la confirma;
+2. mueve «Sin publicar» a la sección `## [0.1.0] - fecha`, escribe `VERSION` (que `maxor --version` lee al compilar) y lo confirma;
 3. fusiona `development` en `main` (sin avance rápido, para que la versión quede marcada);
 4. crea la etiqueta anotada `v0.1.0` y sube `main` y la etiqueta;
-5. avanza `development` hasta `main` y la sube.
+5. avanza `development` hasta `main` y abre la siguiente versión menor (`VERSION` pasa a `0.2.0-dev`) en un commit propio.
 
 Al llegar la etiqueta, la CI (`.github/workflows/release.yml`) crea la **GitHub Release** con el
 texto de esa sección. Así los cambios de cada versión se leen en la pestaña de Releases.

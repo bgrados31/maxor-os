@@ -7,10 +7,20 @@ no usa versiones numeradas.
 
 ### Cambiado
 
+- **La CLI habla inglés** (por ahora). Todos los mensajes salen de un catálogo (`home/maxor/lib/lang/en.sh`) y el código solo usa claves, así que añadir español es crear un archivo. Los perfiles también describen sus paquetes en inglés.
+- **CLI reorganizada** en `lib/` (núcleo, mensajes, terminal, marco, cargadores, componentes) y `cmd/` (un archivo por grupo de comandos), con el paquete propio `packages/maxor.nix`. Las salidas existentes se conservan.
+- **`maxor update` usa la lista de pasos**: «paso 1 de 3», tiempo total y las últimas líneas de la compilación bajo el paso en curso. El diff muestra ↑ + − ~, oculta los archivos de configuración y avisa si hay un kernel nuevo.
 - **CLI mucho más rápida**: la interfaz de ventanas ya no lanza procesos por línea; el selector de `maxor search` no parpadea, no deja caracteres en pantalla y aguanta mantener una flecha. Ayuda 352 → 108 ms, `theme list` 1562 → 271 ms, `doctor` 3 s → 0,5 s. Ver [CLI.md](docs/CLI.md).
 
 ### Añadido
 
+- **Cargadores**: `ui_run_tail` (spinner con las últimas líneas de la salida), `ui_pipeline` (pasos en secuencia), `ui_progress_*` (barra con porcentaje) y `ui_skeleton_frame` (huecos que parpadean, usado en `maxor apps`).
+- **Componentes**: pestañas con subrayado, barra de estado, migas de pan, ayuda de teclas, `ui_diff` y `ui_error` (causa, qué probar y registro).
+- **Registro de comandos**: la pantalla principal, `maxor help <comando>` y el autocompletado salen del mismo registro. `maxor completions fish|bash|zsh`.
+- **Banderas globales** `--no-color`, `-q/--quiet`, `-v/--verbose` y `--lang`; **códigos de salida** distintos para uso, falta de algo, red, permisos y cancelación.
+- **`maxor logs`, `maxor debug` y `maxor version [--json]`**: registro con rotación, informe para adjuntar a un error y versión con el schema del contrato JSON.
+- **Pruebas de la CLI** (bats, 73) y `nix flake check` que las ejecuta en el sandbox; la CI las corre en cada push. Detectaron y corrigieron dos fallos: la CLI se caía sin `LANG` y sin `/etc/os-release`.
+- **`VERSION`** en la raíz: `maxor --version` la lee al compilar y `scripts/release.sh` la actualiza.
 - **Apps sin rebuild**: `maxor search` es un selector interactivo (barras de progreso por origen, lista con casillas, id visible); `install`, `remove` y `apps` instalan desde nixpkgs (perfil del usuario) y Flathub (Flatpak `--user`) sin sudo, con resultados por relevancia y salida `--json` para la futura Maxor Store. Ver [APPS.md](docs/APPS.md).
 - **Perfiles**: `maxor profile enable|disable` activa gaming, dev, creator u office; el equipo guarda lo activo en `hosts/<equipo>/maxor.json`.
 

@@ -1,0 +1,78 @@
+# ── Registro de comandos: ayuda, errores de uso y autocompletado ─────
+# Cada archivo de cmd/ declara sus comandos con
+#
+#   maxor_cmd nombre grupo "subcomando subcomando"
+#
+# y el resto sale de ahí: la lista de `maxor`, `maxor help <comando>` (texto
+# help.<nombre> del catálogo), el autocompletado y la despacho de main.sh.
+# El resumen de cada comando es la clave cmd.<nombre> del catálogo.
+declare -ga CMD_ORDER=()
+declare -gA CMD_GROUP=() CMD_SUBS=()
+CMD_GROUPS=(appearance apps system tools)
+
+maxor_cmd() { # maxor_cmd nombre grupo "subcomandos"
+  CMD_ORDER+=("$1")
+  CMD_GROUP["$1"]="$2"
+  CMD_SUBS["$1"]="${3:-}"
+}
+
+cmd_known() { local c; for c in "${CMD_ORDER[@]}"; do [ "$c" = "$1" ] && return 0; done; return 1; }
+
+# Texto de ayuda de un comando, dentro de una ventana.
+help_window() { # help_window comando
+  local body line
+  msg body "@help.$1"
+  echo
+  ui_open "maxor help $1"
+  ui_crumbs maxor help "$1"
+  ui_line ""
+  while IFS= read -r line; do ui_line " $line"; done <<< "$body"
+  ui_line ""
+  ui_close
+  echo
+}
+
+# Uso incorrecto: muestra la ayuda del comando y sale con EX_USAGE.
+usage_error() { # usage_error comando
+  help_window "$1" >&2
+  exit "$EX_USAGE"
+}
+
+cmd_help() {
+  local c="${1:-}"
+  if [ -n "$c" ]; then
+    if cmd_known "$c"; then help_window "$c"; else die_code "$EX_USAGE" @err.unknown_command "$c"; fi
+    return 0
+  fi
+  usage
+}
+
+# Pantalla principal: los comandos agrupados, con su resumen.
+usage() {
+  local g c title sum cur="-" pretty name pad
+  [ -f "$state/current" ] && cur="$(cat "$state/current")"
+  pretty="$(os_pretty)"
+  echo
+  ui_open maxor
+  ui_line ""
+  ui_line " ${E_BOLD}${E_AC}M A X O R   O S${E_FG}${E_NB}"
+  ui_line " ${E_MU}$pretty${E_FG}"
+  for g in "${CMD_GROUPS[@]}"; do
+    msg title "@group.$g"
+    ui_section "$title"
+    for c in "${CMD_ORDER[@]}"; do
+      [ "${CMD_GROUP[$c]}" = "$g" ] || continue
+      msg sum "@cmd.$c"
+      printf -v name '%-12s' "$c"
+      ui_truncv sum "$sum" $((ui_w - 20))
+      ui_line " ${E_AC}${name}${E_FG}${sum}"
+    done
+  done
+  ui_line ""
+  ui_status "$host" "theme $cur" "maxor $MAXOR_VERSION"
+  ui_line ""
+  msg sum @help.footer
+  ui_line " ${E_MU}${sum}${E_FG}"
+  ui_close
+  echo
+}

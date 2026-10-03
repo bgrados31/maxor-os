@@ -1,4 +1,8 @@
 # ── Apps: buscar, instalar, quitar y actualizar ──────────────────────
+maxor_cmd search apps ""
+maxor_cmd install apps ""
+maxor_cmd remove apps ""
+maxor_cmd apps apps "list update"
 # Dos orígenes, ninguno pide root ni toca archivos .nix:
 #   nix      paquetes de nixpkgs en el perfil del usuario (nix profile)
 #   flatpak  apps de Flathub, instaladas para el usuario (flatpak --user)
@@ -50,9 +54,11 @@ app_bar() { # app_bar paso terminado
 
 app_search_frame() { # consulta paso listo_nix listo_flatpak
   local q="$1" i="$2" d1="$3" d2="$4" st1 st2
-  if [ "$d1" = 1 ]; then st1="$(ui_c "$E_OK" "listo")"; else st1="$(ui_c "$E_MU" "buscando…")"; fi
-  if [ "$d2" = 1 ]; then st2="$(ui_c "$E_OK" "listo")"; else st2="$(ui_c "$E_MU" "buscando…")"; fi
-  ui_open "maxor · buscar"
+  local w_done w_busy
+  msg w_done @search.done; msg w_busy @search.searching
+  if [ "$d1" = 1 ]; then st1="${E_OK}${w_done}${E_FG}"; else st1="${E_MU}${w_busy}${E_FG}"; fi
+  if [ "$d2" = 1 ]; then st2="${E_OK}${w_done}${E_FG}"; else st2="${E_MU}${w_busy}${E_FG}"; fi
+  ui_open @search.title
   ui_line ""
   ui_line " $(ui_c "$E_AC" "⌕")  ${E_BOLD}${q}${E_NB}$(ui_c "$E_AC" "▏")"
   ui_line ""
@@ -60,19 +66,6 @@ app_search_frame() { # consulta paso listo_nix listo_flatpak
   ui_line " $(ui_c "$E_MU" "flathub")  $(app_bar "$i" "$d2")  $st2"
   ui_line ""
   ui_close
-}
-
-# Líneas de un marco (con el salto final), sin lanzar procesos: deja el valor en APP_LINES.
-app_count_lines() { local s="${1//[^$'\n']/}"; APP_LINES=$((${#s} + 1)); }
-
-# Repinta un marco en su sitio: sube tantas líneas como tenía el anterior y
-# sobrescribe cada una (borrando solo el resto de la línea), sin vaciar antes
-# la pantalla. En salida sincronizada (kitty y otros) no hay parpadeo.
-app_paint() { # app_paint "marco" líneas_previas
-  local out=""
-  [ "$2" -gt 0 ] && out=$'\e['"$2"'A'
-  out+="${1//$'\n'/$'\e[K\n'}"$'\e[K\n'
-  printf '\e[?2026h%s\e[J\e[?2026l' "$out"
 }
 
 # Busca en los dos orígenes a la vez. Deja en SEARCH_ALL un JSON ordenado por
@@ -96,8 +89,8 @@ app_search_fetch() { # app_search_fetch animar palabras…
       kill -0 "$p1" 2> /dev/null || d1=1
       kill -0 "$p2" 2> /dev/null || d2=1
       frame="$(app_search_frame "$*" "$i" "$d1" "$d2")"
-      app_paint "$frame" "$prev"
-      app_count_lines "$frame"; prev=$APP_LINES
+      ui_paint "$frame" "$prev"
+      ui_count_lines "$frame"; prev=$UI_LINES
       i=$((i + 1))
       sleep 0.08
     done
@@ -154,12 +147,13 @@ app_pick_frame() {
   up=$from
   down=$((n - to))
 
-  ui_open "maxor · buscar"
+  ui_open @search.title
   ui_line ""
-  info="$n resultados"
-  [ "$inter" = 1 ] && [ "$marked" -gt 0 ] && info="$n resultados · $marked marcada(s)"
+  msg info @search.results "$n"
+  if [ "$inter" = 1 ] && [ "$marked" -gt 0 ]; then msg info @search.results_marked "$n" "$marked"; fi
   ui_split " ${E_AC}⌕${E_FG}  ${E_BOLD}${q}${E_NB}" "${E_MU}${info}${E_FG} "
-  if [ "$inter" = 1 ] && [ "$up" -gt 0 ]; then ui_line " ${E_MU}   ↑ $up más arriba${E_FG}"; else ui_line ""; fi
+  local nn
+  if [ "$inter" = 1 ] && [ "$up" -gt 0 ]; then msg nn @search.up "$up"; ui_line " ${E_MU}   ${nn}${E_FG}"; else ui_line ""; fi
 
   local tag mark box name idp desc room
   for ((k = from; k < to; k++)); do
@@ -191,11 +185,12 @@ app_pick_frame() {
     ui_line "      ${E_MU}id${E_FG} ${E_AC}${idp}${E_FG}  ${E_MU}${desc}${E_FG}"
   done
 
-  if [ "$inter" = 1 ] && [ "$down" -gt 0 ]; then ui_line " ${E_MU}   ↓ $down más abajo${E_FG}"; else ui_line ""; fi
+  if [ "$inter" = 1 ] && [ "$down" -gt 0 ]; then msg nn @search.down "$down"; ui_line " ${E_MU}   ${nn}${E_FG}"; else ui_line ""; fi
   if [ "$inter" = 1 ]; then
-    ui_line " ${E_AC}↑↓${E_FG} mover   ${E_AC}espacio${E_FG} marcar   ${E_AC}⏎${E_FG} instalar   ${E_AC}q${E_FG} salir"
+    ui_hints "↑↓:@search.k_move" "space:@search.k_mark" "⏎:@search.k_install" "q:@search.k_quit"
   else
-    ui_line " ${E_MU}Instalar con el id:${E_FG} ${E_AC}maxor install <id>${E_FG}"
+    msg nn @search.install_hint
+    ui_line " ${E_MU}${nn}${E_FG} ${E_AC}maxor install <id>${E_FG}"
   fi
   ui_close
 }
@@ -238,8 +233,8 @@ app_pick() { # app_pick consulta
   trap 'app_pick_restore; exit 130' INT TERM
   while [ "$done_" = 0 ]; do
     frame="$(app_pick_frame "$q" "$PK_CUR" "$PK_FROM" "$PK_VIEW" 1)"
-    app_paint "$frame" "$prev"
-    app_count_lines "$frame"; prev=$APP_LINES
+    ui_paint "$frame" "$prev"
+    ui_count_lines "$frame"; prev=$UI_LINES
     IFS= read -rsn1 -d '' keys || break
     while IFS= read -rsn1 -d '' -t 0.002 k; do keys+="$k"; done
     idx=0
@@ -288,7 +283,7 @@ app_pick() { # app_pick consulta
   [ "${#PICKED[@]}" = 0 ] && P_SEL=()
   # deja la lista a la vista, ya sin cursor ni atajos
   frame="$(app_pick_frame "$q" -1 "$PK_FROM" "$PK_VIEW" 0)"
-  app_paint "$frame" "$prev"
+  ui_paint "$frame" "$prev"
 }
 
 cmd_search() {
@@ -297,14 +292,16 @@ cmd_search() {
     case "$a" in
       --json) json=1 ;;
       --list) plain=1 ;;
-      -*) die "opción desconocida: $a" ;;
+      -*) die_code "$EX_USAGE" @err.unknown_option "$a" ;;
       *) q+=("$a") ;;
     esac
   done
   if [ "${#q[@]}" = 0 ]; then
-    { [ "$json" = 0 ] && [ -t 0 ] && [ -t 1 ]; } || die "uso: maxor search <texto> [--json] [--list]"
+    { [ "$json" = 0 ] && [ -t 0 ] && [ -t 1 ]; } || usage_error search
     local ans
-    printf '\n %s⌕%s  %s¿Qué app buscas?%s ' "$E_AC" "$E_RST" "$E_BOLD" "$E_RST"
+    local pr
+    msg pr @search.prompt
+    printf '\n %s⌕%s  %s%s%s ' "$E_AC" "$E_RST" "$E_BOLD" "$pr" "$E_RST"
     read -r ans
     [ -n "$ans" ] || return 0
     read -r -a q <<< "$ans"
@@ -339,7 +336,7 @@ cmd_search() {
 
   if [ "$k" = 0 ]; then
     echo
-    ui_say warn "Nada coincide con «${q[*]}». Prueba con otra palabra, o con menos letras."
+    ui_say warn @search.none "${q[*]}"
     return 0
   fi
 
@@ -352,7 +349,7 @@ cmd_search() {
 
   app_pick "${q[*]}"
   if [ "${#PICKED[@]}" = 0 ]; then
-    ui_say info "No se instaló nada."
+    ui_say info @search.nothing_installed
     return 0
   fi
   echo
@@ -361,7 +358,7 @@ cmd_search() {
     cmd_install "--${p%%:*}" "${p#*:}" || rc=1
   done
   echo
-  if [ "$rc" = 0 ]; then ui_say ok "Listo: ${#PICKED[@]} app(s) instalada(s)"; else ui_say warn "Algunas apps no se pudieron instalar"; fi
+  if [ "$rc" = 0 ]; then ui_say ok @search.done_n "${#PICKED[@]}"; else ui_say warn @search.some_failed; fi
   return "$rc"
 }
 
@@ -374,13 +371,13 @@ cmd_install() {
       --json) json=1 ;;
       --nix) src=nix ;;
       --flatpak) src=flatpak ;;
-      -*) die "opción desconocida: $a" ;;
+      -*) die_code "$EX_USAGE" @err.unknown_option "$a" ;;
       *) ids+=("$a") ;;
     esac
   done
-  [ "${#ids[@]}" -gt 0 ] || die "uso: maxor install <paquete…> [--nix|--flatpak] [--json]"
+  [ "${#ids[@]}" -gt 0 ] || usage_error install
 
-  local id s rc=0 results="[]"
+  local id s m rc=0 results="[]"
   for id in "${ids[@]}"; do
     s="$src"
     if [ -z "$s" ]; then
@@ -388,16 +385,19 @@ cmd_install() {
     fi
     local ok=true
     if [ "$s" = nix ]; then
-      app_step "$json" "Comprobando $id en nixpkgs" app_nix eval --raw "nixpkgs#$id.meta.name" || {
-        [ "$json" = 1 ] || ui_say info "Prueba: maxor search $id"
+      msg m @apps.checking "$id"
+      app_step "$json" "$m" app_nix eval --raw "nixpkgs#$id.meta.name" || {
+        [ "$json" = 1 ] || ui_say info @apps.try_search "$id"
         ok=false
       }
       if [ "$ok" = true ]; then
-        app_step "$json" "Instalando $id (nixpkgs)" app_nix profile add "nixpkgs#$id" || ok=false
+        msg m @apps.installing_nix "$id"
+        app_step "$json" "$m" app_nix profile add "nixpkgs#$id" || ok=false
       fi
     else
       app_flatpak_remote
-      app_step "$json" "Instalando $id (Flathub)" flatpak install --user -y --noninteractive flathub "$id" || ok=false
+      msg m @apps.installing_flatpak "$id"
+      app_step "$json" "$m" flatpak install --user -y --noninteractive flathub "$id" || ok=false
     fi
     [ "$ok" = true ] || rc=1
     results="$(jq -c --arg id "$id" --arg s "$s" --argjson ok "$ok" '. + [{id: $id, source: $s, ok: $ok}]' <<< "$results")"
@@ -421,21 +421,22 @@ cmd_remove() {
   for a in "$@"; do
     case "$a" in
       --json) json=1 ;;
-      -*) die "opción desconocida: $a" ;;
+      -*) die_code "$EX_USAGE" @err.unknown_option "$a" ;;
       *) ids+=("$a") ;;
     esac
   done
-  [ "${#ids[@]}" -gt 0 ] || die "uso: maxor remove <paquete…> [--json]"
+  [ "${#ids[@]}" -gt 0 ] || usage_error remove
 
-  local id s rc=0 results="[]"
+  local id s m rc=0 results="[]"
   for id in "${ids[@]}"; do
     s="$(app_installed_source "$id")"
     local ok=true
+    msg m @apps.removing "$id"
     case "$s" in
-      nix) app_step "$json" "Quitando $id" nix profile remove "$id" || ok=false ;;
-      flatpak) app_step "$json" "Quitando $id" flatpak uninstall --user -y --noninteractive "$id" || ok=false ;;
+      nix) app_step "$json" "$m" nix profile remove "$id" || ok=false ;;
+      flatpak) app_step "$json" "$m" flatpak uninstall --user -y --noninteractive "$id" || ok=false ;;
       *)
-        [ "$json" = 1 ] || ui_say warn "$id no está instalado con maxor (mira: maxor apps)"
+        [ "$json" = 1 ] || ui_say warn @apps.not_installed "$id"
         ok=false
         ;;
     esac
@@ -459,6 +460,29 @@ app_list_json() {
   jq -c -n --argjson a "$nix_l" --argjson b "$fp_l" '$a + $b'
 }
 
+# Carga la lista de apps; en una terminal con color muestra un esqueleto
+# parpadeando mientras llega, y la lista lo sustituye sin que la pantalla salte.
+app_list_load() { # → APPS_ALL
+  if ! ui_anim; then APPS_ALL="$(app_list_json)"; return 0; fi
+  local tmp pid i=0 frame prev=0
+  tmp="$(mktemp)"
+  app_list_json > "$tmp" &
+  pid=$!
+  printf '\e[?25l'
+  while kill -0 "$pid" 2> /dev/null; do
+    frame="$(ui_skeleton_frame @apps.title 3 "$i")"
+    ui_paint "$frame" "$prev"
+    ui_count_lines "$frame"; prev=$UI_LINES
+    i=$((i + 1))
+    sleep 0.1
+  done
+  wait "$pid" || true
+  if [ "$prev" -gt 0 ]; then printf '\e[%dA\e[J' "$prev"; fi
+  printf '\e[?25h'
+  APPS_ALL="$(cat "$tmp")"
+  rm -f "$tmp"
+}
+
 cmd_apps() {
   local sub="${1:-list}" json=0 a
   shift || true
@@ -466,21 +490,22 @@ cmd_apps() {
   case "$sub" in
     list | --json)
       [ "$sub" = "--json" ] && json=1
-      local all src id ver
-      all="$(app_list_json)"
+      local all src id ver vtxt
       if [ "$json" = 1 ]; then
-        printf '%s\n' "$all"
+        app_list_json
         return 0
       fi
+      app_list_load
+      all="$APPS_ALL"
       echo
-      ui_open "maxor · apps instaladas"
+      ui_open @apps.title
       ui_line ""
       if [ "$(jq 'length' <<< "$all")" = 0 ]; then
-        ui_row info "nada instalado con maxor todavía"
+        ui_row info @apps.empty
       else
         while IFS=$'\t' read -r src id ver; do
           ui_split " $(ui_c "$E_MU" "·")  $id" "$(ui_c "$E_AC2" "$src") "
-          [ -n "$ver" ] && ui_line "      $(ui_c "$E_MU" "versión $ver")"
+          if [ -n "$ver" ]; then msg vtxt @apps.version "$ver"; ui_line "      ${E_MU}${vtxt}${E_FG}"; fi
         done < <(jq -r '.[] | [.source, .id, .version] | @tsv' <<< "$all")
       fi
       ui_line ""
@@ -488,12 +513,12 @@ cmd_apps() {
       echo
       ;;
     update)
-      [ "$json" = 1 ] && die "update no admite --json"
+      [ "$json" = 1 ] && die_code "$EX_USAGE" @apps.no_json
       echo
-      ui_run "Actualizando paquetes de nixpkgs" app_nix profile upgrade --all || true
-      ui_run "Actualizando apps de Flatpak" flatpak update --user -y --noninteractive || true
-      ui_say ok "Apps al día"
+      ui_run @apps.upd_nix app_nix profile upgrade --all || true
+      ui_run @apps.upd_flatpak flatpak update --user -y --noninteractive || true
+      ui_say ok @apps.up_to_date
       ;;
-    *) die "uso: maxor apps [list [--json] | update]" ;;
+    *) usage_error apps ;;
   esac
 }

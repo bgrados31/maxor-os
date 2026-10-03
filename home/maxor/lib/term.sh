@@ -63,3 +63,23 @@ ui_truncv() { # ui_truncv variable texto máximo
   printf -v "$1" '%s' "$_t"
 }
 ui_trunc() { local _o; ui_truncv _o "$1" "$2"; printf '%s' "$_o"; } # ui_trunc texto máximo
+
+# ── Repintado en el sitio ────────────────────────────────────────────
+# Para animar un bloque de varias líneas (selector, pasos, esqueleto): se sube
+# tantas líneas como tenía el marco anterior y se sobrescribe cada una,
+# borrando solo el resto de la línea. En salida sincronizada (kitty y otros)
+# no hay parpadeo.
+ui_count_lines() { local s="${1//[^$'\n']/}"; UI_LINES=$((${#s} + 1)); } # sin procesos: deja el valor en UI_LINES
+ui_paint() { # ui_paint "marco" líneas_previas
+  local out=""
+  if [ "$2" -gt 0 ]; then out=$'\e['"$2"'A'; fi
+  out+="${1//$'\n'/$'\e[K\n'}"$'\e[K\n'
+  printf '\e[?2026h%s\e[J\e[?2026l' "$out"
+}
+
+# Apaga colores y animaciones (--no-color).
+ui_disable() {
+  ui_on=0
+  E_RST="" E_BOLD="" E_NB="" E_FG="" E_MU="" E_AC="" E_AC2="" E_BG="" E_BG2=""
+  E_OK="" E_WARN="" E_BAD="" E_BGOK="" E_BGWARN="" E_BGBAD="" E_INK=""
+}

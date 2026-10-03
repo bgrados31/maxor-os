@@ -47,6 +47,7 @@ nix eval --raw .#nixosConfigurations.nitro.config.system.build.toplevel.drvPath 
 date="$(date +%F)"
 sed -i "s/^## \[Sin publicar\]$/## [Sin publicar]\n\n## [$ver] - $date/" CHANGELOG.md
 scripts/release-notes.sh "$ver" > /dev/null || die "la sección [$ver] quedó vacía"
+printf '%s\n' "$ver" > VERSION # `maxor --version` la lee al compilar
 git commit -q -am "chore(release): v$ver"
 
 git checkout -q main
@@ -55,6 +56,13 @@ git tag -a "$tag" -m "Maxor OS $ver"
 git push -q origin main "$tag"
 git checkout -q development
 git merge -q --ff-only main
+
+# development sigue con la próxima versión menor, marcada como en desarrollo.
+IFS=. read -r major minor _ <<< "$ver"
+next="$major.$((minor + 1)).0-dev"
+printf '%s\n' "$next" > VERSION
+git commit -q -am "chore: abrir $next"
 git push -q origin development
 
 say "Listo: $tag publicada. La CI crea la Release con las notas del CHANGELOG."
+say "development sigue en $next."

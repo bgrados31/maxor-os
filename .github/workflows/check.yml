@@ -22,3 +22,5 @@ jobs:
         run: nix flake check --no-build
       - name: Evaluar el sistema nitro
         run: nix eval --raw .#nixosConfigurations.nitro.config.system.build.toplevel.drvPath
+      - name: Pruebas de la CLI (bats, shellcheck, catálogo de mensajes)
+        run: nix build .#checks.x86_64-linux.cli-tests --print-build-logs
