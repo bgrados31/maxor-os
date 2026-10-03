@@ -9,11 +9,9 @@ flathub_url="https://dl.flathub.org/repo/flathub.flatpakrepo"
 # Los paquetes con licencia no libre (Steam, Spotify…) exigen esto en nix.
 app_nix() { NIXPKGS_ALLOW_UNFREE=1 nix "$@" --impure; }
 
-# Relevancia de un resultado: 0 exacto, 1 empieza por, 2 contiene, 3 solo en la descripción.
-app_rank='def rank($q): ($q | ascii_downcase) as $x | (.id | split(".") | last | ascii_downcase) as $i | ((.name // "") | ascii_downcase) as $n | if $i == $x or $n == $x then 0 elif ($i | startswith($x)) or ($n | startswith($x)) then 1 elif ($i | contains($x)) or ($n | contains($x)) then 2 else 3 end; '
-
+# Flatpak imprime avisos (p. ej. XDG_DATA_DIRS) que aquí solo estorban.
 app_flatpak_remote() {
-  flatpak remote-add --user --if-not-exists flathub "$flathub_url"
+  flatpak remote-add --user --if-not-exists flathub "$flathub_url" > /dev/null 2>&1 || true
 }
 
 # ID de Flatpak = dominio inverso con al menos tres partes (org.mozilla.firefox).
@@ -30,61 +28,298 @@ app_step() {
   fi
 }
 
-cmd_search() {
-  local json=0 q=() a
-  for a in "$@"; do
-    case "$a" in
-      --json) json=1 ;;
-      -*) die "opción desconocida: $a" ;;
-      *) q+=("$a") ;;
-    esac
-  done
-  [ "${#q[@]}" -gt 0 ] || die "uso: maxor search <texto> [--json]"
+# ── Búsqueda ─────────────────────────────────────────────────────────
 
-  local nix_res="[]" fp_res="[]"
-  if app_step "$json" "Buscando en nixpkgs" nix search nixpkgs --json "${q[@]}"; then
-    local nix_in="${UI_OUT:-}"
-    [ -n "$nix_in" ] || nix_in="{}"
-    nix_res="$(jq -c "$app_rank"'[to_entries[] | {
+# Relevancia de un resultado: 0 exacto, 1 empieza por, 2 contiene, 3 solo en la descripción.
+app_rank='def rank($q): ($q | ascii_downcase) as $x | (.id | split(".") | last | ascii_downcase) as $i | ((.name // "") | ascii_downcase) as $n | if $i == $x or $n == $x then 0 elif ($i | startswith($x)) or ($n | startswith($x)) then 1 elif ($i | contains($x)) or ($n | contains($x)) then 2 else 3 end; '
+
+# Barra de progreso: indeterminada (un pulso que corre) o llena si ya terminó.
+app_bar() { # app_bar paso terminado
+  local i="$1" done_="$2" w=18 k out=""
+  for ((k = 0; k < w; k++)); do
+    if [ "$done_" = 1 ]; then
+      out+="$E_OK▰"
+    elif (((k - i % (w + 4) + w + 4) % (w + 4) < 4)); then
+      out+="$E_AC▰"
+    else
+      out+="$E_MU▱"
+    fi
+  done
+  printf '%s%s' "$out" "$E_FG"
+}
+
+app_search_frame() { # consulta paso listo_nix listo_flatpak
+  local q="$1" i="$2" d1="$3" d2="$4" st1 st2
+  if [ "$d1" = 1 ]; then st1="$(ui_c "$E_OK" "listo")"; else st1="$(ui_c "$E_MU" "buscando…")"; fi
+  if [ "$d2" = 1 ]; then st2="$(ui_c "$E_OK" "listo")"; else st2="$(ui_c "$E_MU" "buscando…")"; fi
+  ui_open "maxor · buscar"
+  ui_line ""
+  ui_line " $(ui_c "$E_AC" "⌕")  ${E_BOLD}${q}${E_NB}$(ui_c "$E_AC" "▏")"
+  ui_line ""
+  ui_line " $(ui_c "$E_MU" "nixpkgs")  $(app_bar "$i" "$d1")  $st1"
+  ui_line " $(ui_c "$E_MU" "flathub")  $(app_bar "$i" "$d2")  $st2"
+  ui_line ""
+  ui_close
+}
+
+# Repinta un marco en su sitio: sube tantas líneas como tenía el anterior.
+app_paint() { # app_paint "marco" líneas_previas
+  if [ "$2" -gt 0 ]; then printf '\e[%dA\e[J' "$2"; fi
+  printf '%s\n' "$1"
+}
+
+# Busca en los dos orígenes a la vez. Deja en SEARCH_ALL un JSON ordenado por
+# relevancia (con "score" para quien lo necesite).
+app_search_fetch() { # app_search_fetch animar palabras…
+  local anim="$1"
+  shift
+  local t p1 p2 i=0 d1 d2 frame prev=0
+  t="$(mktemp -d)"
+  (nix search nixpkgs --json "$@" > "$t/nix" 2> /dev/null) &
+  p1=$!
+  (
+    app_flatpak_remote
+    flatpak search --columns=application,name,description "$*" > "$t/fp" 2> /dev/null
+  ) &
+  p2=$!
+  if [ "$anim" = 1 ]; then
+    printf '\e[?25l'
+    while kill -0 "$p1" 2> /dev/null || kill -0 "$p2" 2> /dev/null; do
+      d1=0; d2=0
+      kill -0 "$p1" 2> /dev/null || d1=1
+      kill -0 "$p2" 2> /dev/null || d2=1
+      frame="$(app_search_frame "$*" "$i" "$d1" "$d2")"
+      app_paint "$frame" "$prev"
+      prev=$(($(wc -l <<< "$frame") + 1))
+      i=$((i + 1))
+      sleep 0.08
+    done
+    # borra la barra: la lista de resultados ocupa su lugar
+    printf '\e[%dA\e[J\e[?25h' "$prev"
+  fi
+  wait "$p1" "$p2" 2> /dev/null || true
+
+  local nix_res="[]" fp_res="[]" q="$*"
+  if [ -s "$t/nix" ]; then
+    # Solo paquetes de primer nivel: tests.*, haskellPackages.*, python3xxPackages.*
+    # son bibliotecas y piezas internas, no apps que alguien quiera instalar.
+    nix_res="$(jq -c "$app_rank"'[to_entries[] | select((.key | sub("^legacyPackages\\.[^.]+\\."; "")) | contains(".") | not) | {
         source: "nix",
         id: (.key | sub("^legacyPackages\\.[^.]+\\."; "")),
         name: .value.pname,
         version: .value.version,
         description: (.value.description // "")
-      }] | map(. + {score: rank($q)}) | sort_by(.score) | map(del(.score)) | .[:20]' --arg q "${q[*]}" <<< "$nix_in" 2> /dev/null || echo '[]')"
+      }] | map(. + {score: rank($q)})' --arg q "$q" "$t/nix" 2> /dev/null || echo '[]')"
   fi
-  app_flatpak_remote 2> /dev/null || true
-  if app_step "$json" "Buscando en Flathub" flatpak search --columns=application,name,description "${q[*]}"; then
+  if [ -s "$t/fp" ]; then
     fp_res="$(jq -R -s -c "$app_rank"'[split("\n")[] | select(length > 0) | split("\t") | select(length >= 2) | {
         source: "flatpak",
         id: .[0],
         name: .[1],
         version: "",
         description: (.[2] // "")
-      }] | unique_by(.id) | map(. + {score: rank($q)}) | sort_by(.score) | map(del(.score)) | .[:20]' --arg q "${q[*]}" <<< "$UI_OUT" 2> /dev/null || echo '[]')"
+      }] | unique_by(.id) | map(. + {score: rank($q)})' --arg q "$q" "$t/fp" 2> /dev/null || echo '[]')"
+  fi
+  rm -rf "$t"
+  # Una sola lista por relevancia. Lo que solo coincide en la descripción se
+  # queda fuera salvo que haya muy pocos resultados mejores.
+  SEARCH_ALL="$(jq -c -n --argjson a "$nix_res" --argjson b "$fp_res" '
+    ($a + $b) | sort_by(.score, (if .source == "nix" then 0 else 1 end)) as $all
+    | ($all | map(select(.score < 3))) as $g
+    | ($all | map(select(.score >= 3))) as $r
+    | ($g + $r[:([3 - ($g | length), 0] | max)]) | .[:14]')"
+}
+
+# Ids ya instalados con maxor, uno por línea ("nix:btop", "flatpak:com.x.Y").
+app_installed_ids() {
+  app_list_json | jq -r '.[] | .source + ":" + .id'
+}
+
+# Marco de la lista de resultados.
+#   app_pick_frame consulta cursor desde por_vista interactivo
+app_pick_frame() {
+  local q="$1" cur="$2" from="$3" view="$4" inter="$5"
+  local n="${#P_ID[@]}" marked=0 k to up down
+  for k in "${!P_SEL[@]}"; do [ "${P_SEL[k]}" = 1 ] && marked=$((marked + 1)); done
+  to=$((from + view))
+  [ "$to" -gt "$n" ] && to="$n"
+  up=$from
+  down=$((n - to))
+
+  ui_open "maxor · buscar"
+  ui_line ""
+  local info="$n resultados"
+  [ "$inter" = 1 ] && [ "$marked" -gt 0 ] && info="$n resultados · $marked marcada(s)"
+  ui_split " $(ui_c "$E_AC" "⌕")  ${E_BOLD}${q}${E_NB}" "$(ui_c "$E_MU" "$info") "
+  if [ "$inter" = 1 ] && [ "$up" -gt 0 ]; then ui_line " $(ui_c "$E_MU" "   ↑ $up más arriba")"; else ui_line ""; fi
+
+  local tag mark box name idp desc room
+  for ((k = from; k < to; k++)); do
+    # cursor y casilla
+    if [ "$inter" = 1 ] && [ "$k" = "$cur" ]; then mark="$(ui_c "$E_AC" "❯")"; else mark=" "; fi
+    if [ "${P_INST[k]}" = 1 ]; then
+      box="$(ui_c "$E_OK" "✓")"
+    elif [ "${P_SEL[k]}" = 1 ]; then
+      box="$(ui_c "$E_AC" "◼")"
+    elif [ "$inter" = 1 ]; then
+      box="$(ui_c "$E_MU" "◻")"
+    else
+      box="$(ui_c "$E_MU" "·")"
+    fi
+    # origen a la derecha
+    if [ "${P_INST[k]}" = 1 ]; then
+      tag="$(ui_c "$E_OK" "instalada")"
+    elif [ "${P_SRC[k]}" = nix ]; then
+      tag="$(ui_c "$E_AC2" "nixpkgs")"
+    else
+      tag="$(ui_c "$E_AC" "flathub")"
+    fi
+    name="$(ui_trunc "${P_NAME[k]}" $((ui_w - 24)))"
+    if [ "$inter" = 1 ] && [ "$k" = "$cur" ]; then name="${E_BOLD}${name}${E_NB}"; fi
+    ui_split " $mark $box  $name" "$tag "
+    # segunda línea: el id, bien visible, y la descripción
+    idp="$(ui_trunc "${P_ID[k]}" 38)"
+    room=$((ui_w - 15 - ${#idp}))
+    [ "$room" -lt 0 ] && room=0
+    desc="$(ui_trunc "${P_DESC[k]}" "$room")"
+    ui_line "      $(ui_c "$E_MU" "id") $(ui_c "$E_AC" "$idp")  $(ui_c "$E_MU" "$desc")"
+  done
+
+  if [ "$inter" = 1 ] && [ "$down" -gt 0 ]; then ui_line " $(ui_c "$E_MU" "   ↓ $down más abajo")"; else ui_line ""; fi
+  if [ "$inter" = 1 ]; then
+    ui_line " $(ui_c "$E_AC" "↑↓") mover   $(ui_c "$E_AC" "espacio") marcar   $(ui_c "$E_AC" "⏎") instalar   $(ui_c "$E_AC" "q") salir"
+  else
+    ui_line " $(ui_c "$E_MU" "Instalar con el id:") $(ui_c "$E_AC" "maxor install <id>")"
+  fi
+  ui_close
+}
+
+# Lista interactiva: flechas, espacio para marcar, Intro para instalar.
+# Deja en PICKED los elementos elegidos como "origen:id".
+app_pick() { # app_pick consulta
+  local q="$1" n="${#P_ID[@]}" cur=0 from=0 view lines frame prev=0 key k2 i any
+  lines="$(tput lines 2> /dev/null || echo 24)"
+  view=$(((lines - 10) / 2))
+  [ "$view" -lt 3 ] && view=3
+  [ "$view" -gt 7 ] && view=7
+  [ "$view" -gt "$n" ] && view="$n"
+  PICKED=()
+
+  printf '\e[?25l'
+  trap 'printf "\e[?25h"; exit 130' INT
+  while :; do
+    frame="$(app_pick_frame "$q" "$cur" "$from" "$view" 1)"
+    app_paint "$frame" "$prev"
+    prev=$(($(wc -l <<< "$frame") + 1))
+    IFS= read -rsn1 key || break
+    case "$key" in
+      $'\e')
+        k2=""
+        read -rsn2 -t 0.05 k2 || true
+        case "$k2" in
+          '[A') [ "$cur" -gt 0 ] && cur=$((cur - 1)) ;;
+          '[B') [ "$cur" -lt $((n - 1)) ] && cur=$((cur + 1)) ;;
+          "") break ;; # Esc solo
+        esac
+        ;;
+      k) [ "$cur" -gt 0 ] && cur=$((cur - 1)) ;;
+      j) [ "$cur" -lt $((n - 1)) ] && cur=$((cur + 1)) ;;
+      ' ')
+        if [ "${P_INST[cur]}" != 1 ]; then
+          if [ "${P_SEL[cur]}" = 1 ]; then P_SEL[cur]=0; else P_SEL[cur]=1; fi
+        fi
+        ;;
+      "")
+        # Intro: instala lo marcado; si no hay nada marcado, lo resaltado.
+        any=0
+        for i in "${!P_SEL[@]}"; do [ "${P_SEL[i]}" = 1 ] && any=1; done
+        if [ "$any" = 0 ] && [ "${P_INST[cur]}" != 1 ]; then P_SEL[cur]=1; fi
+        for i in "${!P_SEL[@]}"; do
+          [ "${P_SEL[i]}" = 1 ] && PICKED+=("${P_SRC[i]}:${P_ID[i]}")
+        done
+        break
+        ;;
+      q | Q) break ;;
+    esac
+    [ "$cur" -lt "$from" ] && from=$cur
+    [ "$cur" -ge $((from + view)) ] && from=$((cur - view + 1))
+  done
+  printf '\e[?25h'
+  trap - INT
+  [ "${#PICKED[@]}" = 0 ] && P_SEL=()
+  # deja la lista a la vista, ya sin cursor ni atajos
+  frame="$(app_pick_frame "$q" -1 "$from" "$view" 0)"
+  app_paint "$frame" "$prev"
+}
+
+cmd_search() {
+  local json=0 plain=0 q=() a
+  for a in "$@"; do
+    case "$a" in
+      --json) json=1 ;;
+      --list) plain=1 ;;
+      -*) die "opción desconocida: $a" ;;
+      *) q+=("$a") ;;
+    esac
+  done
+  if [ "${#q[@]}" = 0 ]; then
+    { [ "$json" = 0 ] && [ -t 0 ] && [ -t 1 ]; } || die "uso: maxor search <texto> [--json] [--list]"
+    local ans
+    printf '\n %s⌕%s  %s¿Qué app buscas?%s ' "$E_AC" "$E_RST" "$E_BOLD" "$E_RST"
+    read -r ans
+    [ -n "$ans" ] || return 0
+    read -r -a q <<< "$ans"
   fi
 
-  local all
-  all="$(jq -c -n --argjson a "$nix_res" --argjson b "$fp_res" '$a + $b')"
+  local anim=0
+  { [ "$json" = 0 ] && [ "$ui_on" = 1 ] && [ -t 1 ]; } && anim=1
+  [ "$anim" = 1 ] && echo
+  app_search_fetch "$anim" "${q[@]}"
+
   if [ "$json" = 1 ]; then
-    printf '%s\n' "$all"
+    jq -c 'map(del(.score))' <<< "$SEARCH_ALL"
+    return 0
+  fi
+
+  # Datos de la lista en arreglos de bash (más rápido de repintar).
+  P_SRC=() P_ID=() P_NAME=() P_DESC=() P_INST=() P_SEL=()
+  local installed src id name desc k=0
+  installed="$(app_installed_ids)"
+  while IFS=$'\t' read -r src id name desc; do
+    P_SRC[k]="$src"; P_ID[k]="$id"; P_NAME[k]="$name"; P_DESC[k]="$desc"; P_SEL[k]=0
+    if grep -qxF "$src:$id" <<< "$installed"; then P_INST[k]=1; else P_INST[k]=0; fi
+    k=$((k + 1))
+  done < <(jq -r '.[] | [.source, .id, .name, (.description | gsub("[\t\n]"; " "))] | @tsv' <<< "$SEARCH_ALL")
+
+  if [ "$k" = 0 ]; then
+    echo
+    ui_say warn "Nada coincide con «${q[*]}». Prueba con otra palabra, o con menos letras."
+    return 0
+  fi
+
+  if [ "$plain" = 1 ] || [ "$ui_on" = 0 ] || ! [ -t 0 ] || ! [ -t 1 ]; then
+    echo
+    app_pick_frame "${q[*]}" -1 0 "$k" 0
+    echo
+    return 0
+  fi
+
+  app_pick "${q[*]}"
+  if [ "${#PICKED[@]}" = 0 ]; then
+    ui_say info "No se instaló nada."
     return 0
   fi
   echo
-  ui_open "maxor · búsqueda · ${q[*]}"
-  ui_line ""
-  if [ "$(jq 'length' <<< "$all")" = 0 ]; then
-    ui_row warn "sin resultados"
-  else
-    jq -r '.[] | [.source, .id, .description] | @tsv' <<< "$all" | while IFS=$'\t' read -r src id desc; do
-      ui_row info "$(printf '%-8s %-28s' "$src" "$id") $desc"
-    done
-  fi
-  ui_line ""
-  ui_close
+  local p rc=0
+  for p in "${PICKED[@]}"; do
+    cmd_install "--${p%%:*}" "${p#*:}" || rc=1
+  done
   echo
-  ui_say info "Instalar: maxor install <id>   (ID con puntos = Flatpak, si no nixpkgs; fuerza con --nix o --flatpak)"
+  if [ "$rc" = 0 ]; then ui_say ok "Listo: ${#PICKED[@]} app(s) instalada(s)"; else ui_say warn "Algunas apps no se pudieron instalar"; fi
+  return "$rc"
 }
+
+# ── Instalar, quitar, listar ─────────────────────────────────────────
 
 cmd_install() {
   local json=0 src="" ids=() a
@@ -115,7 +350,7 @@ cmd_install() {
         app_step "$json" "Instalando $id (nixpkgs)" app_nix profile add "nixpkgs#$id" || ok=false
       fi
     else
-      app_flatpak_remote 2> /dev/null || true
+      app_flatpak_remote
       app_step "$json" "Instalando $id (Flathub)" flatpak install --user -y --noninteractive flathub "$id" || ok=false
     fi
     [ "$ok" = true ] || rc=1
@@ -185,7 +420,7 @@ cmd_apps() {
   case "$sub" in
     list | --json)
       [ "$sub" = "--json" ] && json=1
-      local all
+      local all src id ver
       all="$(app_list_json)"
       if [ "$json" = 1 ]; then
         printf '%s\n' "$all"
@@ -197,9 +432,10 @@ cmd_apps() {
       if [ "$(jq 'length' <<< "$all")" = 0 ]; then
         ui_row info "nada instalado con maxor todavía"
       else
-        jq -r '.[] | [.source, .id, .version] | @tsv' <<< "$all" | while IFS=$'\t' read -r src id ver; do
-          ui_row info "$(printf '%-8s %-30s' "$src" "$id") $ver"
-        done
+        while IFS=$'\t' read -r src id ver; do
+          ui_split " $(ui_c "$E_MU" "·")  $id" "$(ui_c "$E_AC2" "$src") "
+          [ -n "$ver" ] && ui_line "      $(ui_c "$E_MU" "versión $ver")"
+        done < <(jq -r '.[] | [.source, .id, .version] | @tsv' <<< "$all")
       fi
       ui_line ""
       ui_close

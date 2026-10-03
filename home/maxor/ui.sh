@@ -63,6 +63,15 @@ ui_line() { # ui_line "texto (puede llevar color)"
   [ "$pad" -lt 0 ] && pad=0
   printf '%s│%s%s%s %s%s %s%s│%s\n' "$E_AC" "$E_RST" "$E_BG" "$E_FG" "$1" "$(ui_rep "$pad" ' ')" "$E_RST" "$E_AC" "$E_RST"
 }
+ui_split() { # ui_split "izquierda" "derecha"  → la derecha queda pegada al borde
+  if [ "$ui_on" = 0 ]; then printf '  %s   %s\n' "$1" "$2"; return 0; fi
+  local l r pad
+  l="$(ui_vlen "$1")"
+  r="$(ui_vlen "$2")"
+  pad=$((ui_w - 4 - l - r))
+  [ "$pad" -lt 1 ] && pad=1
+  ui_line "$1$(ui_rep "$pad" ' ')$2"
+}
 ui_close() {
   if [ "$ui_on" = 0 ]; then return 0; fi
   printf '%s╰%s╯%s\n' "$E_AC" "$(ui_rep $((ui_w - 2)) '─')" "$E_RST"

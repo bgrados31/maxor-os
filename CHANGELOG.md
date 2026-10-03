@@ -7,7 +7,7 @@ no usa versiones numeradas.
 
 ### Añadido
 
-- **Apps sin rebuild**: `maxor search`, `install`, `remove` y `apps` instalan desde nixpkgs (perfil del usuario) y Flathub (Flatpak `--user`) sin sudo, con resultados por relevancia y salida `--json` para la futura Maxor Store. Ver [APPS.md](docs/APPS.md).
+- **Apps sin rebuild**: `maxor search` es un selector interactivo (barras de progreso por origen, lista con casillas, id visible); `install`, `remove` y `apps` instalan desde nixpkgs (perfil del usuario) y Flathub (Flatpak `--user`) sin sudo, con resultados por relevancia y salida `--json` para la futura Maxor Store. Ver [APPS.md](docs/APPS.md).
 - **Perfiles**: `maxor profile enable|disable` activa gaming, dev, creator u office; el equipo guarda lo activo en `hosts/<equipo>/maxor.json`.
 
 - **Base de apps y memoria**: Flatpak con Flathub añadido solo, AppImage ejecutable directamente y `earlyoom` contra congelamientos por falta de RAM. `maxor update` resume los cambios y avisa si hay que reiniciar por un kernel nuevo.
