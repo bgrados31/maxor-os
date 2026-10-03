@@ -41,6 +41,9 @@
     };
   };
 
+  # ── Login: el greeter hereda el tema y el wallpaper de este usuario ──
+  services.displayManager.dms-greeter.configHome = "/home/bryan";
+
   # ── Usuario ─────────────────────────────────────────────────────────
   users.users.bryan = {
     isNormalUser = true;

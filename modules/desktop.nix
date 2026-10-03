@@ -5,12 +5,7 @@
 {
   programs.hyprland.enable = true;
 
-  # SDDM en Wayland hace de login por ahora; se reemplazará por el greeter de
-  # Maxor. El respaldo ante un fallo son las generaciones del menú de arranque.
-  services.displayManager.sddm = {
-    enable = true;
-    wayland.enable = true;
-  };
+  # El login lo gestiona modules/greeter.nix (greetd + greeter de DMS).
   services.displayManager.defaultSession = "hyprland";
 
   # hyprlock necesita su servicio PAM; sin esto no podrías desbloquear.

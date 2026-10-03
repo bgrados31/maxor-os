@@ -16,6 +16,10 @@
   #    centro de control y temas generados desde tu wallpaper (matugen).
   #    Todo se configura desde su app de ajustes (SUPER + ,).
   programs.dank-material-shell = {
+    # Maxor Shell: DMS con el logo y el nombre de Maxor OS (ver packages/maxor-shell.nix)
+    package = pkgs.callPackage ../packages/maxor-shell.nix {
+      dmsShell = inputs.dms.packages.${pkgs.stdenv.hostPlatform.system}.dms-shell;
+    };
     enable = true;
     systemd.enable = true;
   };
