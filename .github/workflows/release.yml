@@ -9,12 +9,22 @@ name: Release
 #   2. the tag matches VERSION and has CHANGELOG notes
 #   3. the release carries manifest.json + manifest.json.sig, the signature
 #      verifies, and the manifest names exactly the commit the tag points at
+# It runs when a tag is pushed, and by hand (Actions > Release > Run workflow)
+# to re-verify an existing release without touching its tag.
 on:
   push:
     tags: ["v*"]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Tag to verify, for example v0.1.0"
+        required: true
 
 permissions:
   contents: read
+
+env:
+  TAG: ${{ inputs.tag || github.ref_name }}
 
 jobs:
   verify:
@@ -24,26 +34,34 @@ jobs:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
           fetch-depth: 0
+      - name: Fetch the tag object itself
+        # actions/checkout leaves a tag as a plain pointer to its commit; verifying
+        # a signature needs the signed tag object, so fetch it again by name.
+        run: |
+          [[ "$TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]] || { echo "not a release tag: $TAG"; exit 1; }
+          git fetch --force origin "refs/tags/$TAG:refs/tags/$TAG"
+          [ "$(git cat-file -t "refs/tags/$TAG")" = tag ] || { echo "$TAG is not an annotated, signed tag"; exit 1; }
+          git show "$TAG:keys/allowed_signers" > "$RUNNER_TEMP/allowed_signers"
       - name: The tag is signed by the release key
         run: |
-          git -c gpg.format=ssh -c gpg.ssh.allowedSignersFile=keys/allowed_signers verify-tag "$GITHUB_REF_NAME"
+          git -c gpg.format=ssh -c "gpg.ssh.allowedSignersFile=$RUNNER_TEMP/allowed_signers" verify-tag "$TAG"
       - name: The tag matches VERSION and the CHANGELOG
         run: |
-          ver="${GITHUB_REF_NAME#v}"
-          [ "$(git show "$GITHUB_REF_NAME:VERSION")" = "$ver" ] || { echo "VERSION in the tag is not $ver"; exit 1; }
-          scripts/release-notes.sh "$ver" > /dev/null
+          ver="${TAG#v}"
+          [ "$(git show "$TAG:VERSION")" = "$ver" ] || { echo "VERSION in the tag is not $ver"; exit 1; }
+          git show "$TAG:CHANGELOG.md" | grep -q "^## \[$ver\]" || { echo "no CHANGELOG section for $ver"; exit 1; }
       - name: The release has a signed manifest for this exact commit
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           # scripts/release.sh uploads the release right after the tag: wait for it.
           for i in $(seq 1 30); do
-            gh release view "$GITHUB_REF_NAME" --json assets --jq '.assets[].name' 2>/dev/null | grep -qx manifest.json.sig && break
+            gh release view "$TAG" --json assets --jq '.assets[].name' 2>/dev/null | grep -qx manifest.json.sig && break
             sleep 20
           done
           mkdir dl && cd dl
-          gh release download "$GITHUB_REF_NAME" -p manifest.json -p manifest.json.sig
-          ssh-keygen -Y verify -f ../keys/allowed_signers -I maxor-release -n maxor-release -s manifest.json.sig < manifest.json
-          [ "$(jq -r .tag manifest.json)" = "$GITHUB_REF_NAME" ] || { echo "manifest tag mismatch"; exit 1; }
-          [ "$(jq -r .commit manifest.json)" = "$(git rev-parse "$GITHUB_REF_NAME^{commit}")" ] || { echo "manifest commit does not match the tag"; exit 1; }
+          gh release download "$TAG" -p manifest.json -p manifest.json.sig
+          ssh-keygen -Y verify -f "$RUNNER_TEMP/allowed_signers" -I maxor-release -n maxor-release -s manifest.json.sig < manifest.json
+          [ "$(jq -r .tag manifest.json)" = "$TAG" ] || { echo "manifest tag mismatch"; exit 1; }
+          [ "$(jq -r .commit manifest.json)" = "$(git rev-parse "$TAG^{commit}")" ] || { echo "manifest commit does not match the tag"; exit 1; }
           echo "Manifest signature and commit verified."
