@@ -6,6 +6,7 @@ import (
 	"os/exec"
 	"sort"
 	"strings"
+	"unicode"
 )
 
 // Layout is a keyboard layout: how the desktop calls it (XKB), how the console calls it, and a friendly name.
@@ -216,4 +217,28 @@ func LocaleName(code string) string {
 		}
 	}
 	return code
+}
+
+// UserRune and HostRune say what a typed character becomes in the login and computer name fields: «A» → «a»,
+// «é» → «e», a space → «-». Whatever such a name cannot hold is dropped as it is typed, instead of refused later.
+func UserRune(r rune) (rune, bool) { return nameRune(r, "-_") }
+func HostRune(r rune) (rune, bool) { return nameRune(r, "-") }
+
+// DigitRune lets only digits through: for fields that take a number.
+func DigitRune(r rune) (rune, bool) { return r, r >= '0' && r <= '9' }
+
+func nameRune(r rune, extra string) (rune, bool) {
+	r = unicode.ToLower(r)
+	switch {
+	case r >= 'a' && r <= 'z', r >= '0' && r <= '9', strings.ContainsRune(extra, r):
+		return r, true
+	case r == ' ':
+		return '-', true
+	}
+	for base, marked := range map[rune]string{'a': "áàäâã", 'e': "éèëê", 'i': "íìïî", 'o': "óòöôõ", 'u': "úùüû", 'n': "ñ", 'c': "ç"} {
+		if strings.ContainsRune(marked, r) {
+			return base, true
+		}
+	}
+	return 0, false
 }

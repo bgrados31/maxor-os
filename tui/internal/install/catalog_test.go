@@ -207,3 +207,24 @@ func TestApplyKeyboardDoesNothingWithoutASession(t *testing.T) {
 	t.Setenv("HYPRLAND_INSTANCE_SIGNATURE", "")
 	applyKeyboard(Layout{XKB: "es"}) // must not panic or run anything
 }
+
+func TestNameFieldsTurnWhatIsTypedIntoAValidName(t *testing.T) {
+	typed := func(s string, f func(rune) (rune, bool)) string {
+		var b strings.Builder
+		for _, r := range s {
+			if c, ok := f(r); ok {
+				b.WriteRune(c)
+			}
+		}
+		return b.String()
+	}
+	if got := typed("Ana Pérez_1!", UserRune); got != "ana-perez_1" {
+		t.Fatalf("user: %q", got)
+	}
+	if got := typed("Ana_PC.local", HostRune); got != "anapclocal" {
+		t.Fatalf("host: %q", got)
+	}
+	if got := typed("1a6", DigitRune); got != "16" {
+		t.Fatalf("digits: %q", got)
+	}
+}

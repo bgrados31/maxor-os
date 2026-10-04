@@ -13,6 +13,9 @@ type Input struct {
 	Pos         int
 	Placeholder string
 	Mask        bool // dibuja puntos en vez del texto (contraseñas)
+	// Filter, si se da, decide qué es cada carácter tecleado o pegado: lo cambia (una mayúscula por su minúscula)
+	// o lo descarta (false). Así un campo no admite lo que luego rechazaría.
+	Filter func(rune) (rune, bool)
 }
 
 // Text devuelve el contenido.
@@ -81,9 +84,16 @@ func (in *Input) Key(msg tea.KeyMsg) (changed, handled bool) {
 func (in *Input) insert(r []rune) {
 	clean := make([]rune, 0, len(r))
 	for _, c := range r {
-		if c >= ' ' && c != 0x7f { // sin saltos de línea ni caracteres de control
-			clean = append(clean, c)
+		if c < ' ' || c == 0x7f { // sin saltos de línea ni caracteres de control
+			continue
 		}
+		if in.Filter != nil {
+			var ok bool
+			if c, ok = in.Filter(c); !ok {
+				continue
+			}
+		}
+		clean = append(clean, c)
 	}
 	in.Value = append(in.Value[:in.Pos], append(clean, in.Value[in.Pos:]...)...)
 	in.Pos += len(clean)

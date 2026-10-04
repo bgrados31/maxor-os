@@ -674,10 +674,7 @@ const diskRows = 3
 // diskBlock draws one disk of the list.
 func diskBlock(env *core.Env, d install.Disk, sel, ok bool, width int) []ui.Line {
 	p := env.P
-	name := d.Model
-	if name == "" {
-		name = d.Path
-	}
+	name := diskName(d)
 	nameSt := p.Text.Bold(true)
 	if !ok {
 		nameSt = p.Mu
@@ -702,6 +699,26 @@ func diskBlock(env *core.Env, d install.Disk, sel, ok bool, width int) []ui.Line
 		return append(lines, ui.Of(append([]ui.Seg{ui.S(p.Mu, "  ")}, diskBar(env, spans, width-4)...)...))
 	}
 	return append(lines, diskMap(env, spans, width-2, 2)...)
+}
+
+// diskName is what a disk is called in the list: its model, or what kind of disk it is when it does not say (a
+// virtual machine's disks have no model). The device path goes on the line below, never twice.
+func diskName(d install.Disk) string {
+	if m := strings.TrimSpace(d.Model); m != "" {
+		return m
+	}
+	dev := strings.TrimPrefix(d.Path, "/dev/")
+	switch {
+	case strings.HasPrefix(dev, "vd") || strings.HasPrefix(dev, "xvd"):
+		return "Virtual disk"
+	case strings.HasPrefix(dev, "nvme"):
+		return "NVMe disk"
+	case strings.HasPrefix(dev, "mmcblk"):
+		return "Memory card"
+	case d.Removable || d.Transport == "usb":
+		return "USB drive"
+	}
+	return "Disk"
 }
 
 // transportName is how a disk is connected, in the words on the box.
@@ -884,7 +901,7 @@ func (*storageStep) Intro() string { return "How Maxor OS sits on the disk. ↑ 
 func (s *storageStep) Enter(w *Installer, env *core.Env) tea.Cmd {
 	s.pass = ui.Input{Mask: true, Placeholder: "passphrase"}
 	s.confirm = ui.Input{Mask: true, Placeholder: "again"}
-	s.gib = ui.Input{Placeholder: "GiB"}
+	s.gib = ui.Input{Placeholder: "GiB", Filter: install.DigitRune}
 	s.gib.Set(fmt.Sprint(max(w.st.SwapGiB, 4)))
 	s.pass.Set(w.st.Passphrase)
 	s.confirm.Set(w.st.Passphrase)
@@ -1131,8 +1148,8 @@ func (*accountStep) Intro() string { return "Who will use this computer?" }
 
 func (s *accountStep) Enter(w *Installer, env *core.Env) tea.Cmd {
 	s.full = ui.Input{Placeholder: "your name"}
-	s.user = ui.Input{Placeholder: "login name"}
-	s.host = ui.Input{Placeholder: "computer name"}
+	s.user = ui.Input{Placeholder: "login name", Filter: install.UserRune}
+	s.host = ui.Input{Placeholder: "computer name", Filter: install.HostRune}
 	s.pass = ui.Input{Mask: true, Placeholder: "password"}
 	s.conf = ui.Input{Mask: true, Placeholder: "again"}
 	s.full.Set(w.st.Fullname)
@@ -1472,7 +1489,7 @@ func (s *hardwareStep) Lines(w *Installer, env *core.Env, width int) []ui.Line {
 		kind = "Laptop"
 	}
 	if hw.Virt != "" && hw.Virt != "none" {
-		kind = "Virtual machine (" + hw.Virt + ")"
+		kind = "Virtual machine (" + virtName(hw.Virt) + ")"
 	}
 	lines := []ui.Line{kv("Type", kind), kv("Processor", cpuName(hw.CPU.Model))}
 	if env.Install != nil && env.Install.Sys != nil {
@@ -1849,7 +1866,10 @@ func (s *installStep) Lines(w *Installer, env *core.Env, width int) []ui.Line {
 	state := map[string]string{}
 	var progress float64
 	for _, e := range events {
-		state[e.Stage] = e.State
+		// a stage that had nothing to do says skip and then, as every stage does, ok: it stays skipped
+		if !(e.State == "ok" && state[e.Stage] == "skip") {
+			state[e.Stage] = e.State
+		}
 		if e.Progress != nil {
 			progress = *e.Progress
 		}
@@ -1875,7 +1895,7 @@ func (s *installStep) Lines(w *Installer, env *core.Env, width int) []ui.Line {
 		}
 		lines = append(lines, ui.Of(mark, ui.S(txt, st.Title)))
 	}
-	bar := gradBar(env, ui.NewPainter(env.Theme, env.Theme.P.Bg), int(progress*100), 36, w.running)
+	bar := gradBar(env, env.P, int(progress*100), 36, w.running)
 	lines = append(lines, gap(), ui.Line{L: append(bar, ui.S(p.Mu, fmt.Sprintf("  %d%%", int(progress*100))))})
 	// what the programs are printing, as far as the window has room for: the newest rows, each line whole (an
 	// error is often a long line, and its end is the part that says what went wrong)
@@ -1982,4 +2002,13 @@ func (s *doneStep) Lines(w *Installer, env *core.Env, width int) []ui.Line {
 		lines = append(lines, radio(env, i == s.sel, i == s.sel, c.label, c.hint))
 	}
 	return lines
+}
+
+// virtName is the product a virtual machine runs on, as its makers write it.
+func virtName(v string) string {
+	if n, ok := map[string]string{"qemu": "QEMU", "kvm": "KVM", "vmware": "VMware", "oracle": "VirtualBox",
+		"virtualbox": "VirtualBox", "microsoft": "Hyper-V", "hyperv": "Hyper-V", "xen": "Xen", "parallels": "Parallels"}[v]; ok {
+		return n
+	}
+	return v
 }
