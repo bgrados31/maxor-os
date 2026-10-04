@@ -26,29 +26,43 @@ let
     done
   '';
 
-  # What cage runs. A system service starts with a minimal PATH, so the programs the installer calls (maxor-install,
-  # nmcli, sudo, timedatectl) are put on it here.
+  # sway is the whole session: one program, full screen, on a dark background, with no bar. It is used (instead of
+  # a plainer kiosk compositor) because it can change the keyboard layout while it runs, which is what lets the
+  # installer test the layout that is being chosen. When the installer ends, sway ends and greetd starts it again.
+  swayConfig = pkgs.writeText "maxor-installer-sway.conf" ''
+    output * bg #120b12 solid_color
+    default_border none
+    default_floating_border none
+    focus_follows_mouse no
+    seat * hide_cursor 2000
+    exec ${pkgs.kitty}/bin/kitty --start-as=fullscreen --title="Maxor OS installer" ${maxorTui}/bin/maxor-tui --screen install; ${pkgs.sway}/bin/swaymsg exit
+  '';
+
+  # A system service starts with a minimal PATH, so the programs the installer calls (maxor-install, nmcli, sudo,
+  # timedatectl, swaymsg) are put on it here.
   session = pkgs.writeShellScript "maxor-installer-session" ''
     export PATH=/run/wrappers/bin:/run/current-system/sw/bin:$PATH
-    exec ${pkgs.kitty}/bin/kitty --start-as=fullscreen --title='Maxor OS installer' \
-      ${maxorTui}/bin/maxor-tui --screen install
+    exec ${pkgs.sway}/bin/sway --config ${swayConfig}
   '';
 in
 {
   imports = [
     (modulesPath + "/installer/cd-dvd/installation-cd-base.nix")
     ../../modules/fonts.nix
+    ../../modules/branding.nix # the name, the quiet boot and the splash with the progress bar
   ];
 
   # ── The installer session ───────────────────────────────────────────
   # The base image already has the passwordless `nixos` user, who is also the owner of the installer.
-  services.cage = {
+  # greetd starts the session at boot, signed in, and brings it back if it ends. Ctrl+Alt+F2 reaches a text console:
+  # a way out if something goes wrong.
+  services.greetd = {
     enable = true;
-    user = "nixos";
-    program = "${session}";
-    # -s lets Ctrl+Alt+F2 reach a text console: a way out if something goes wrong.
-    extraArguments = [ "-s" ];
+    settings.initial_session = { command = "${session}"; user = "nixos"; };
+    settings.default_session = { command = "${session}"; user = "nixos"; };
   };
+  security.polkit.enable = true; # the session gets its seat (screen, keyboard) from logind
+  environment.sessionVariables.WLR_NO_HARDWARE_CURSORS = "1"; # virtual machines draw no cursor plane
   # Opening the installer must not need a login screen or a graphical target of its own.
   services.getty.autologinUser = lib.mkForce null;
 
@@ -76,7 +90,7 @@ in
   nix.settings.experimental-features = [ "nix-command" "flakes" ];
   security.sudo.wheelNeedsPassword = false;
 
-  environment.systemPackages = [ maxorInstall maxorTui maxor ];
+  environment.systemPackages = [ maxorInstall maxorTui maxor pkgs.sway ]; # sway: swaymsg changes the layout under test
   environment.etc."maxor-install/overrides".source = overrides;
   # Marks the installation medium: whatever only makes sense here asks for this file.
   environment.etc."maxor-live".text = "${version}\n";
@@ -88,9 +102,6 @@ in
   ];
 
   # ── Image and boot ──────────────────────────────────────────────────
-  # A quiet, dark boot: the installer is the first thing on screen.
-  boot.kernelParams = [ "quiet" "loglevel=3" "vt.global_cursor_default=0" ];
-  boot.consoleLogLevel = 3;
   # The menu waits longer than the installed system's: there must be time to choose.
   boot.loader.timeout = lib.mkForce 10;
   # File name: maxor-os-<version>-<architecture>.iso
@@ -98,10 +109,11 @@ in
   isoImage = {
     volumeID = "MAXOR_OS";
     edition = "maxor";
-    prependToMenuLabel = "Maxor OS · ";
     squashfsCompression = "zstd -Xcompression-level 15";
     makeEfiBootable = true;
     makeUsbBootable = true;
+    # the boot menu: dark, with the mark in Krona One and the entries in Red Hat Mono
+    grubTheme = pkgs.callPackage ./grub-theme.nix { };
   };
   # ZFS comes with the base image; it does not need to force-import the root (and it avoids a warning).
   boot.zfs.forceImportRoot = false;

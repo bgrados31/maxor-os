@@ -1,6 +1,7 @@
 package install
 
 import (
+	"os"
 	"strings"
 	"testing"
 )
@@ -182,4 +183,27 @@ func TestFilterIgnoresAccentsAndCase(t *testing.T) {
 	if got := Filter(items, "portugues brasil", func(s string) string { return s }); len(got) != 1 {
 		t.Fatalf("%v", got)
 	}
+}
+
+func TestApplyKeyboardTalksToSwayOnTheInstallationMedium(t *testing.T) {
+	dir := t.TempDir()
+	out := dir + "/args"
+	script := "#!/bin/sh\necho \"$@\" > " + out + "\n"
+	if err := os.WriteFile(dir+"/swaymsg", []byte(script), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	t.Setenv("PATH", dir+":"+os.Getenv("PATH"))
+	t.Setenv("SWAYSOCK", dir+"/sock")
+	t.Setenv("HYPRLAND_INSTANCE_SIGNATURE", "")
+	applyKeyboard(Layout{Name: "Spanish (Latin America)", XKB: "latam", Variant: "deadtilde"})
+	got, _ := os.ReadFile(out)
+	if strings.TrimSpace(string(got)) != "input type:keyboard xkb_layout latam xkb_variant deadtilde" {
+		t.Fatalf("swaymsg was called with %q", got)
+	}
+}
+
+func TestApplyKeyboardDoesNothingWithoutASession(t *testing.T) {
+	t.Setenv("SWAYSOCK", "")
+	t.Setenv("HYPRLAND_INSTANCE_SIGNATURE", "")
+	applyKeyboard(Layout{XKB: "es"}) // must not panic or run anything
 }

@@ -73,11 +73,15 @@ func realSys() SysInfo {
 
 // applyKeyboard tells the compositor about the layout. It is a convenience: if there is no Hyprland, nothing happens.
 func applyKeyboard(l Layout) {
-	if _, err := exec.LookPath("hyprctl"); err != nil {
-		return
+	switch {
+	case os.Getenv("SWAYSOCK") != "": // the installation medium: one sway session
+		if _, err := exec.LookPath("swaymsg"); err == nil {
+			_ = exec.Command("swaymsg", "input", "type:keyboard", "xkb_layout", l.XKB, "xkb_variant", l.Variant).Run()
+		}
+	case os.Getenv("HYPRLAND_INSTANCE_SIGNATURE") != "": // a Hyprland session (an installed system)
+		_ = exec.Command("hyprctl", "keyword", "input:kb_layout", l.XKB).Run()
+		_ = exec.Command("hyprctl", "keyword", "input:kb_variant", l.Variant).Run()
 	}
-	_ = exec.Command("hyprctl", "keyword", "input:kb_layout", l.XKB).Run()
-	_ = exec.Command("hyprctl", "keyword", "input:kb_variant", l.Variant).Run()
 }
 
 func reboot() error { return systemctl("reboot") }
