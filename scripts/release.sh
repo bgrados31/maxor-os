@@ -36,7 +36,8 @@ signers="$PWD/keys/allowed_signers"
 # ── La clave: sin ella no se publica nada ────────────────────────────
 for c in ssh-keygen gh jq; do command -v "$c" > /dev/null || die "falta el programa $c"; done
 [ -f "$key" ] || die "no existe la clave de release $key (créala con scripts/release-key.sh)"
-pub="$(ssh-keygen -y -f "$key" | cut -d' ' -f1,2)" || die "no se pudo leer la clave $key"
+[ -f "$key.pub" ] || die "falta $key.pub (la parte pública de la clave)"
+pub="$(cut -d' ' -f1,2 "$key.pub")"
 grep -qF "$pub" "$signers" || die "la clave $key no está en keys/allowed_signers: los equipos no confiarían en ella"
 gh auth status > /dev/null 2>&1 || die "gh no tiene sesión (gh auth login)"
 
