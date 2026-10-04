@@ -16,7 +16,55 @@
     };
   };
 
-  outputs = { self, nixpkgs, home-manager, ... }@inputs: {
+  outputs = { self, nixpkgs, home-manager, ... }@inputs:
+  let
+    pkgs = nixpkgs.legacyPackages.x86_64-linux;
+
+    # La máquina virtual de pruebas (hosts/vm): el mismo Maxor OS sobre QEMU.
+    # maxorVersion, si se da, es la versión que dice ser la CLI (ver vm-old).
+    mkVm = { maxorVersion ? null }: nixpkgs.lib.nixosSystem {
+      system = "x86_64-linux";
+      specialArgs = { inherit inputs; };
+      modules = [
+        self.nixosModules.default
+        ./hosts/vm/configuration.nix
+        home-manager.nixosModules.home-manager
+        {
+          home-manager.useGlobalPkgs = true;
+          home-manager.useUserPackages = true;
+          home-manager.backupFileExtension = "hm-backup";
+          home-manager.extraSpecialArgs = { inherit inputs maxorVersion; };
+          home-manager.users.bryan = import ./home/bryan.nix;
+        }
+      ];
+    };
+
+    # El lanzador: una ventana de QEMU con aceleración 3D y su disco en ~/.local/state/maxor-vm/.
+    # MAXOR_VM_HEADLESS=1 arranca sin ventana (para pruebas automáticas, con monitor en un socket).
+    mkVmRunner = name: cfg: pkgs.writeShellScriptBin name ''
+      dir="''${XDG_STATE_HOME:-$HOME/.local/state}/maxor-vm"
+      mkdir -p "$dir"
+      export NIX_DISK_IMAGE="$dir/${name}.qcow2"
+      if [ -z "''${QEMU_OPTS:-}" ]; then
+        if [ -n "''${MAXOR_VM_HEADLESS:-}" ]; then
+          export QEMU_OPTS="-display none -vga none -device virtio-vga -monitor unix:''${XDG_RUNTIME_DIR:-/tmp}/${name}.monitor,server,nowait"
+        else
+          export QEMU_OPTS="-vga none -device virtio-vga-gl -display gtk,gl=on"
+        fi
+      fi
+      echo "Maxor OS VM (${name}): usuario bryan, contraseña maxor. Disco: $NIX_DISK_IMAGE" >&2
+      exec ${cfg.config.system.build.vm}/bin/run-${cfg.config.networking.hostName}-vm "$@"
+    '';
+  in {
+    # La VM de pruebas: `nix run .#vm` (esta versión) y `nix run .#vm-old` (se hace pasar por
+    # la 0.0.1: la release publicada aparece como actualización disponible).
+    nixosConfigurations.maxor-vm = mkVm { };
+    nixosConfigurations.maxor-vm-old = mkVm { maxorVersion = "0.0.1"; };
+    packages.x86_64-linux.vm = mkVmRunner "maxor-vm" self.nixosConfigurations.maxor-vm;
+    packages.x86_64-linux.vm-old = mkVmRunner "maxor-vm-old" self.nixosConfigurations.maxor-vm-old;
+    apps.x86_64-linux.vm = { type = "app"; program = "${self.packages.x86_64-linux.vm}/bin/maxor-vm"; meta.description = "Maxor OS en una máquina virtual de pruebas"; };
+    apps.x86_64-linux.vm-old = { type = "app"; program = "${self.packages.x86_64-linux.vm-old}/bin/maxor-vm-old"; meta.description = "La VM de pruebas, haciéndose pasar por la 0.0.1 para ver una actualización"; };
+
     # La CLI como paquete propio, para construirla y probarla sin el sistema entero.
     packages.x86_64-linux.maxor = nixpkgs.legacyPackages.x86_64-linux.callPackage ./packages/maxor.nix { };
     packages.x86_64-linux.maxor-tui = nixpkgs.legacyPackages.x86_64-linux.callPackage ./packages/maxor-tui.nix { };
@@ -70,7 +118,7 @@
           home-manager.useGlobalPkgs = true;
           home-manager.useUserPackages = true;
           home-manager.backupFileExtension = "hm-backup";
-          home-manager.extraSpecialArgs = { inherit inputs; };
+          home-manager.extraSpecialArgs = { inherit inputs; maxorVersion = null; };
           home-manager.users.bryan = import ./home/bryan.nix;
         }
       ];

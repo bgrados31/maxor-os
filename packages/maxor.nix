@@ -3,7 +3,9 @@
   # Las claves en las que confía y el canal que consulta. Los valores por defecto son los de
   # producción; solo las pruebas (tests/vm) los cambian, para firmar con una clave de prueba.
 , releaseKeys ? ../keys/allowed_signers
-, releaseUrl ? null }:
+, releaseUrl ? null
+  # La versión que dice ser. Por defecto, VERSION; la VM «vm-old» se hace pasar por una vieja.
+, maxorVersion ? lib.removeSuffix "\n" (builtins.readFile ../VERSION) }:
 
 # La CLI `maxor`. Los scripts reales viven en home/maxor/ (lib/ y cmd/) y se
 # ensamblan en este orden; shellcheck revisa el resultado al compilar.
@@ -48,7 +50,7 @@ writeShellApplication {
     MAXOR_PROFILES = ../modules/profiles-catalog.json;
     # Las claves de confianza van dentro del paquete: no se pueden cambiar sin cambiar el sistema.
     MAXOR_RELEASE_KEYS = releaseKeys;
-    MAXOR_VERSION = lib.removeSuffix "\n" (builtins.readFile ../VERSION);
+    MAXOR_VERSION = maxorVersion;
   };
   excludeShellChecks = [ "SC2034" "SC2001" "SC2155" "SC2086" "SC2012" "SC2015" "SC2016" ];
   text = lib.concatMapStringsSep "\n" (f: builtins.readFile (src + "/${f}")) files;

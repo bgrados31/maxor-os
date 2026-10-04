@@ -1,4 +1,4 @@
-{ config, pkgs, lib, ... }:
+{ config, pkgs, lib, maxorVersion ? null, ... }:
 
 # Motor de temas y CLI de Maxor OS.
 #
@@ -24,7 +24,7 @@ let
 
   officialThemes = lib.genAttrs themeIds mkTheme;
 
-  maxor = pkgs.callPackage ../packages/maxor.nix { };
+  maxor = pkgs.callPackage ../packages/maxor.nix (lib.optionalAttrs (maxorVersion != null) { inherit maxorVersion; });
   maxorTui = pkgs.callPackage ../packages/maxor-tui.nix { };
 in
 {

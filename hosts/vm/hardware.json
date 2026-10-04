@@ -1,0 +1,11 @@
+{
+  "version": 1,
+  "cpu": {
+    "vendor": "intel",
+    "model": "QEMU Virtual CPU"
+  },
+  "gpus": [],
+  "laptop": false,
+  "virt": "qemu",
+  "bluetooth": false
+}
