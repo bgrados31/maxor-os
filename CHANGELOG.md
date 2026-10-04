@@ -7,6 +7,8 @@ versions are numbered `0.N.0` until 1.0 (see [docs/RELEASING.md](docs/RELEASING.
 
 ### Added
 
+- **Edit from the review**: on the review screen the steps are numbered and `1`-`9` takes you back to that step; once it is done you land on the review again with the change. Skipped steps (the way to install, with a single disk layout) are neither listed nor counted, and a long value in the step list is shortened instead of hiding the name.
+- **Offline installs know their limits**: without a network the profiles (their packages are not on the medium) are explained and not offered. With a network the engine also uses the local store as a substituter, so what the medium carries is not downloaded again.
 - **Branded installation medium**: a GRUB menu with the Maxor mark (Krona One, Sakura gradient) and Red Hat Mono entries, the splash with the progress bar, and a one-program sway session instead of a plain kiosk compositor, so the keyboard layout under test changes live (`swaymsg`). A text console is one Ctrl+Alt+F2 away.
 - **Live log on the install screen**: the last lines the engine and the programs it runs print (nixos-install, nix) show under the stages, sized to the window and stripped of terminal escapes.
 - **GPU choice** in the installer, where there is a real one (an NVIDIA GPU next to an Intel or AMD one): hybrid (PRIME offload), NVIDIA only (PRIME sync on a laptop) or integrated only, with the recommendation for the machine marked. The module option is `maxor.hardware.gpu.mode`; `auto` keeps today's behaviour (the derivation of an existing hybrid laptop is unchanged) and a new check (`gpu-modes`) evaluates what each mode turns on.

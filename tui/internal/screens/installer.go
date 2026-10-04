@@ -28,6 +28,7 @@ type Installer struct {
 
 	changed int // the animation frame at which the current step started
 	bodyH   int // rows the card may use, as of the last frame
+	fromReview bool // a step is being edited from the review: the review comes back right after it
 
 	mu     sync.Mutex
 	events []install.Event
@@ -92,6 +93,13 @@ func (w *Installer) advance(env *core.Env) tea.Cmd {
 		w.notice = g
 		return nil
 	}
+	// coming back from the review to change something: once that step is done, the review is next
+	if w.fromReview {
+		if sum := w.indexOf("summary"); sum > w.idx {
+			w.fromReview = false
+			return w.goTo(env, sum)
+		}
+	}
 	// a step may be skipped when it does not apply (the strategy step when there is only one way)
 	next := w.idx + 1
 	for next < len(w.steps)-1 {
@@ -108,6 +116,7 @@ func (w *Installer) back(env *core.Env) tea.Cmd {
 	if w.running || w.idx == 0 {
 		return nil
 	}
+	w.fromReview = false
 	prev := w.idx - 1
 	for prev > 0 {
 		if s, ok := w.steps[prev].(interface{ Skip(*Installer) bool }); ok && s.Skip(w) {
@@ -320,4 +329,24 @@ func (p *picker) handle(k tea.KeyMsg, n, rows int) (changed bool) {
 		return ch
 	}
 	return false
+}
+
+// indexOf is the position of the step with this ID, or -1.
+func (w *Installer) indexOf(id string) int {
+	for i, s := range w.steps {
+		if s.ID() == id {
+			return i
+		}
+	}
+	return -1
+}
+
+// editStep takes the person from the review back to the n-th step of the list (1 is the first question).
+func (w *Installer) editStep(env *core.Env, n int) tea.Cmd {
+	vis := w.visible()
+	if n < 1 || n > len(vis) || vis[n-1] >= w.idx {
+		return nil
+	}
+	w.fromReview = true
+	return w.goTo(env, vis[n-1])
 }

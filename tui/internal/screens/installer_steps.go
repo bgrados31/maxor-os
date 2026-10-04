@@ -63,7 +63,7 @@ type welcomeStep struct {
 }
 
 func (*welcomeStep) ID() string    { return "welcome" }
-func (*welcomeStep) Title() string { return "Welcome" }
+func (*welcomeStep) Title() string { return "Language" }
 func (*welcomeStep) Intro() string {
 	return "A few questions, and nothing changes until the end."
 }
@@ -1141,6 +1141,10 @@ func (s *lookStep) Captures() bool { return true }
 
 func (s *lookStep) Key(w *Installer, env *core.Env, k tea.KeyMsg) (bool, tea.Cmd) {
 	profs := env.Data.Profiles
+	if w.st.Offline {
+		profs = nil // their packages are not on the medium: there is nothing to choose without a network
+		s.onProf = false
+	}
 	switch k.String() {
 	case "tab":
 		s.onProf = !s.onProf
@@ -1165,6 +1169,9 @@ func (s *lookStep) Key(w *Installer, env *core.Env, k tea.KeyMsg) (bool, tea.Cmd
 			w.st.Theme = id
 		}
 		w.st.Profiles = w.st.Profiles[:0]
+		if w.st.Offline {
+			return true, nil // no profiles without a network
+		}
 		for _, p := range profs {
 			if s.chosen[p.ID] {
 				w.st.Profiles = append(w.st.Profiles, p.ID)
@@ -1195,6 +1202,13 @@ func (s *lookStep) Lines(w *Installer, env *core.Env, width int) []ui.Line {
 		sel := i == s.themes.sel && !s.onProf
 		dot := p.Fill.Foreground(lipgloss.Color(t.Colors.Ac)).Bold(true)
 		lines = append(lines, ui.Line{L: []ui.Seg{ui.S(p.Ac, pad(i == s.themes.sel)), ui.S(dot, ui.G.Swatch+" "), ui.S(p.Text, t.Name)}, R: []ui.Seg{ui.S(p.Mu, t.Mode+" ")}, Sel: sel})
+	}
+	if w.st.Offline {
+		lines = append(lines, gap(), heading(env, "Tools for what you do"))
+		for _, l := range ui.Wrap("Gaming, development and the other profiles download their packages, so they need a network. Add them after installing with `maxor profile`.", width-3) {
+			lines = append(lines, muted(env, l))
+		}
+		return lines
 	}
 	lines = append(lines, gap(), heading(env, "What will you use it for?  (space to choose, tab to switch)"))
 	for i, pr := range env.Data.Profiles {
@@ -1445,6 +1459,9 @@ func (s *summaryStep) Done(w *Installer, env *core.Env, d task.DoneMsg) tea.Cmd 
 func (s *summaryStep) Captures() bool { return true }
 
 func (s *summaryStep) Key(w *Installer, env *core.Env, k tea.KeyMsg) (bool, tea.Cmd) {
+	if len(k.Runes) == 1 && k.Runes[0] >= '1' && k.Runes[0] <= '9' {
+		return false, w.editStep(env, int(k.Runes[0]-'0'))
+	}
 	switch k.String() {
 	case "enter":
 		return true, nil
@@ -1583,6 +1600,7 @@ func (s *summaryStep) Lines(w *Installer, env *core.Env, width int) []ui.Line {
 		lines = append(lines, ui.T(p.Warn, "Everything on the disk will be erased."))
 	}
 	lines = append(lines, field(env, "Type "+word, &s.confirm, true, width))
+	lines = append(lines, muted(env, "1-9 edits that step"))
 	if s.prep.planHash != "" {
 		lines = append(lines, muted(env, "plan "+s.prep.planHash[:12]))
 	}

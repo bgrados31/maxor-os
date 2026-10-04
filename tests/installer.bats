@@ -745,3 +745,16 @@ EOF
   [ "$status" = "$IN_EX_ANSWERS" ]
   [[ "$output" == *"answers.hardware.gpu"* ]]
 }
+
+@test "plan: sin red solo el almacén local; con red, el almacén local además de la caché" {
+  mk '.network.offline = true'
+  run main plan --answers "$W/a.json"
+  [[ "$output" == *"nixos-install"*"--option substituters 'auto?trusted=1'"* ]]
+  [[ "$output" == *"--option always-allow-substitutes true"* ]]
+  [[ "$output" != *"extra-substituters"* ]]
+  mk '.network.offline = false'
+  run main plan --answers "$W/a.json"
+  [[ "$output" == *"--option extra-substituters 'auto?trusted=1'"* ]]
+  [[ "$output" != *"--option substituters 'auto?trusted=1'"* ]]
+  [[ "$output" != *"always-allow-substitutes"* ]]
+}

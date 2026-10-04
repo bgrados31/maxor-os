@@ -62,6 +62,10 @@ func (w *Installer) visible() []int {
 		if i == len(w.steps)-1 || s.ID() == "install" || s.ID() == "intro" {
 			continue
 		}
+		// a step that does not apply (the way to install, when there is only one) is not counted either
+		if sk, ok := s.(interface{ Skip(*Installer) bool }); ok && i != w.idx && sk.Skip(w) {
+			continue
+		}
 		out = append(out, i)
 	}
 	return out
@@ -113,7 +117,7 @@ func (w *Installer) railLines(env *core.Env) []ui.Line {
 	lines := []ui.Line{ui.T(p.Mu, "install steps"), ui.Blank()}
 	for _, i := range w.visible() {
 		s := w.steps[i]
-		if sk, ok := s.(interface{ Skip(*Installer) bool }); ok && i != w.idx && i > w.idx && sk.Skip(w) {
+		if sk, ok := s.(interface{ Skip(*Installer) bool }); ok && i != w.idx && sk.Skip(w) {
 			continue
 		}
 		var mark ui.Seg
@@ -126,11 +130,25 @@ func (w *Installer) railLines(env *core.Env) []ui.Line {
 		default:
 			mark = ui.S(p.Mu, ui.G.Info+" ")
 		}
-		segs := []ui.Seg{mark, ui.S(name, s.Title())}
+		label := s.Title()
+		if w.cur().ID() == "summary" {
+			n := 0
+			for k, v := range w.visible() {
+				if v == i {
+					n = k + 1
+				}
+			}
+			if n >= 1 && n <= 9 {
+				label = fmt.Sprintf("%d  %s", n, label) // the review lets you edit a step by its number
+			}
+		}
+		segs := []ui.Seg{mark, ui.S(name, label)}
 		line := ui.Line{L: segs}
 		if i < w.idx {
-			if v := w.value(s.ID()); v != "" {
-				line.R = []ui.Seg{ui.S(p.Mu, v+" ")}
+			// the value gets what the name leaves; if that is too little, it is left out rather than eating the name
+			room := railWidth - 4 - 2 - ansi.StringWidth(label) - 2
+			if v := w.value(s.ID()); v != "" && room >= 4 {
+				line.R = []ui.Seg{ui.S(p.Mu, ansi.Truncate(v, room, "…")+" ")}
 			}
 		}
 		lines = append(lines, line)

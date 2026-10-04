@@ -169,7 +169,7 @@ func TestInstallerOpensWithoutTabsAtTheWelcome(t *testing.T) {
 		t.Fatal("the installer is a single screen with no tabs")
 	}
 	out := view(m)
-	for _, want := range []string{"M A X O R", "install", "Welcome", "UEFI firmware", "Connected to the internet", "System language", "English (United States)"} {
+	for _, want := range []string{"M A X O R", "install", "Language", "UEFI firmware", "Connected to the internet", "System language", "English (United States)"} {
 		if !has(out, want) {
 			t.Fatalf("missing %q:\n%s", want, out)
 		}
@@ -182,7 +182,7 @@ func TestWelcomeRefusesAMachineWithoutUEFI(t *testing.T) {
 	m := installModel(t, e)
 	send(m, key("enter"))
 	out := view(m)
-	if !has(out, "did not start in UEFI mode") || !has(out, "Welcome") {
+	if !has(out, "did not start in UEFI mode") || !has(out, "System language") {
 		t.Fatalf("it must stay on the welcome and say why:\n%s", out)
 	}
 }
@@ -710,5 +710,54 @@ func TestTheInstallScreenShowsWhatTheEnginePrinted(t *testing.T) {
 	}
 	if strings.Contains(out, "\x1b[31m") || strings.Contains(out, "[31m") {
 		t.Fatalf("terminal escapes from the programs must not reach the screen:\n%s", out)
+	}
+}
+
+func TestWithoutANetworkTheProfilesAreNotOfferedAndNoneIsSent(t *testing.T) {
+	e := newInstallEnv(emptyDisk())
+	e.net.status = install.NetStatus{}
+	m := installModel(t, e)
+	enter(m, 2)
+	send(m, key("enter")) // «Install without a network»
+	enter(m, 5)           // time zone, disk, the three storage rows
+	fillAccount(m, "Ana", "ana", "pc", "correct-horse-1")
+	send(m, key("enter")) // → look
+	out := view(m)
+	if !has(out, "they need a network") || has(out, "space to choose") {
+		t.Fatalf("offline, the profiles are explained and not offered:\n%s", out)
+	}
+	send(m, key("tab"), key("space"), key("enter")) // nothing can be chosen
+	enter(m, 1)
+	typeText(m, "ERASE")
+	send(m, key("enter"))
+	if !strings.Contains(string(e.eng.answers), `"profiles": []`) {
+		t.Fatalf("no profiles are sent when offline:\n%s", e.eng.answers)
+	}
+}
+
+func TestTheReviewEditsAStepByItsNumberAndComesBackToTheReview(t *testing.T) {
+	e := newInstallEnv(emptyDisk())
+	m := installModel(t, e)
+	walkToAccount(m)
+	fillAccount(m, "Ana", "ana", "pc", "correct-horse-1")
+	enter(m, 3) // look, hardware → review
+	out := view(m)
+	if !has(out, "1  Language") || !has(out, "4  Time zone") || !has(out, "1-9 edits that step") {
+		t.Fatalf("the review numbers the steps:\n%s", out)
+	}
+	send(m, key("4"))
+	if !has(view(m), "Where is this computer?") {
+		t.Fatalf("4 goes to the time zone step:\n%s", view(m))
+	}
+	typeText(m, "madrid")
+	send(m, key("enter"))
+	out = view(m)
+	if !has(out, "Type ERASE") || !has(out, "Europe/Madrid") {
+		t.Fatalf("after the change the review comes right back, with the change:\n%s", out)
+	}
+	typeText(m, "ERASE")
+	send(m, key("enter"))
+	if len(e.eng.runs) != 1 || !strings.Contains(string(e.eng.answers), `"timezone": "Europe/Madrid"`) {
+		t.Fatalf("the install carries the edited answer: %v\n%s", e.eng.runs, e.eng.answers)
 	}
 }

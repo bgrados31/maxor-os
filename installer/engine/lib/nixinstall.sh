@@ -12,6 +12,10 @@ stage_install() {
     # NixOS marca toplevel, etc, home-manager-path… con allowSubstitutes = false: Nix las reconstruye siempre, y
     # para eso hacen falta herramientas de compilación que no están en el disco. Con esto las toma ya hechas.
     args+=(--option always-allow-substitutes true)
+  else
+    # Con red, lo que ya trae el medio (los paquetes terminados de Maxor OS) se toma del almacén local en vez de
+    # bajarlo otra vez; lo demás viene de la caché de siempre.
+    args+=(--option extra-substituters "auto?trusted=1")
   fi
   # Opciones extra para nixos-install (instalaciones avanzadas y pruebas), por ejemplo --impure.
   if [ -n "${MAXOR_INSTALL_EXTRA_ARGS:-}" ]; then
