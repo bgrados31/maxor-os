@@ -817,3 +817,12 @@ EOF
   # lo que el mapa no conoce se queda como estaba
   [ "$(jq -r .nodes.otra.locked.type "$lock")" = path ]
 }
+
+@test "host: el menú de arranque se muestra solo si hay otro sistema en el equipo" {
+  # solo importa la estrategia: se leen las respuestas tal cual, sin la validación completa
+  IN_ANSWERS="$W/a.json"
+  mk '.disk.strategy = "alongside"'
+  host_boot_nix | grep -q 'boot.loader.timeout = 3;'
+  mk
+  ! host_boot_nix | grep -q 'boot.loader.timeout'
+}

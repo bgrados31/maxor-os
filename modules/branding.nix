@@ -76,8 +76,10 @@ in
   # initrd con systemd: el splash aparece antes y sin saltos de texto
   boot.initrd.systemd.enable = true;
 
-  # Menú de arranque: muestra el menú un par de segundos y renombra la entrada
-  boot.loader.timeout = 3;
+  # Menú de arranque: con un solo sistema arranca directo, sin esperar; el menú (generaciones anteriores,
+  # firmware) aparece manteniendo pulsada una tecla, p. ej. Espacio, al encender. Un equipo con otro
+  # sistema (Windows) lo muestra: el instalador escribe boot.loader.timeout en su host/boot.nix.
+  boot.loader.timeout = lib.mkDefault 0;
 
   # Mensaje de la TTY
   environment.etc."issue".text = ''

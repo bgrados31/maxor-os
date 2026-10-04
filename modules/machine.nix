@@ -99,10 +99,26 @@ in
 
     # El greeter de login hereda el tema y el wallpaper de este usuario.
     services.displayManager.dms-greeter.configHome = "/home/${cfg.user}";
-    # Y los copia al arrancar: espera a home-manager, que en el primer arranque los escribe (maxor firstrun).
+    # Y los copia al arrancar. En el PRIMER arranque esos archivos aún no existen: home-manager los escribe
+    # (maxor firstrun) y el login lo espera, para salir ya con el tema. Después ya están, y home-manager corre a
+    # la vez que el login en vez de retrasarlo (más de un segundo en cada arranque). Por eso la espera es un
+    # servicio aparte que solo se ejecuta mientras falta la marca de firstrun: si no, se salta al instante.
+    systemd.services.maxor-first-look = {
+      description = "Write the Maxor look before the first login";
+      before = [ "greetd.service" ];
+      unitConfig.ConditionPathExists = "!/home/${cfg.user}/.local/state/maxor/firstrun";
+      serviceConfig = {
+        Type = "oneshot";
+        ExecStart = "${config.systemd.package}/bin/systemctl start home-manager-${cfg.user}.service";
+      };
+    };
+    # home-manager se pone por defecto antes de cualquier inicio de sesión, y en cada arranque tarda un segundo y
+    # medio aunque no tenga nada que cambiar: los archivos ya están enlazados desde la última activación (la de
+    # `nixos-rebuild switch`). Se le quita esa espera; el primer arranque lo cubre maxor-first-look.
+    systemd.services."home-manager-${cfg.user}".before = lib.mkForce [ ];
     systemd.services.greetd = {
-      wants = [ "home-manager-${cfg.user}.service" ];
-      after = [ "home-manager-${cfg.user}.service" ];
+      wants = [ "maxor-first-look.service" ];
+      after = [ "maxor-first-look.service" ];
       # El login recuerda al último usuario que entró; en el primer arranque aún no hay ninguno y pediría
       # elegirlo de una lista: sale ya elegido. (/var/lib/dms-greeter es el cacheDir del módulo de nixpkgs.)
       preStart = lib.mkAfter ''

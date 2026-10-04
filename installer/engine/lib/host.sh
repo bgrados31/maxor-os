@@ -80,7 +80,13 @@ __END_LOCAL__
 }
 
 host_boot_nix() {
-  cat << '__END_BOOT__'
+  local menu=""
+  # Junto a otro sistema, el menú se queda a la vista para elegirlo; con Maxor OS solo, arranca directo (el menú
+  # sale manteniendo pulsada una tecla al encender, ver modules/branding.nix).
+  if [ "$(ans .disk.strategy)" = alongside ]; then
+    menu=$'\n  # Hay otro sistema en este equipo: el menú de arranque se muestra para poder elegirlo.\n  boot.loader.timeout = 3;\n'
+  fi
+  cat << __END_BOOT__
 { ... }:
 
 # El arranque de esta máquina. Los discos y, si hay cifrado, el desbloqueo de la raíz están en
@@ -89,7 +95,7 @@ host_boot_nix() {
   boot.loader.systemd-boot.enable = true;
   boot.loader.systemd-boot.configurationLimit = 10;
   boot.loader.efi.canTouchEfiVariables = true;
-
+${menu}
   system.stateVersion = "26.05"; # NO cambiar
 }
 __END_BOOT__

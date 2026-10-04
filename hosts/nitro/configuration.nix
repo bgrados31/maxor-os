@@ -13,6 +13,7 @@
   boot.loader.systemd-boot.xbootldrMountPoint = "/boot";
   boot.loader.systemd-boot.configurationLimit = 10;
   boot.loader.efi.canTouchEfiVariables = true;
+  boot.loader.timeout = 3; # arranque dual: el menú se muestra para poder elegir Windows
   boot.initrd.compressorArgs = [ "-19" "-T0" ];
 
   # ── Quién y dónde es esta máquina (ver modules/machine.nix) ─────────
