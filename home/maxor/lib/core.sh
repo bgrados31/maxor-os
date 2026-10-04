@@ -73,7 +73,7 @@ die() { die_code "$EX_FAIL" "$@"; } # die mensaje|@clave [args…]
 
 # ── Flake y equipo ───────────────────────────────────────────────────
 flake_dir="${MAXOR_FLAKE:-$HOME/nixos-config}"
-host="${MAXOR_HOST:-$(hostname)}"
+host="${MAXOR_HOST:-$(< /proc/sys/kernel/hostname)}"
 
 # sudo para lo que necesita root. La pantalla completa pide la contraseña en su propio
 # campo y la entrega por la entrada estándar (MAXOR_SUDO_STDIN=1), así no hay que ceder
