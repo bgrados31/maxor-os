@@ -111,9 +111,18 @@ func (e *env) deps() *install.Deps {
 	}
 }
 
-func installModel(t *testing.T, e *env) *Model {
+// introModel is the installer at its very first screen.
+func introModel(t *testing.T, e *env) *Model {
 	t.Helper()
 	m, _ := setupWith(t, newCLI(), Options{Screen: "install", Deps: e.deps()})
+	return m
+}
+
+// installModel is the installer past the introduction, at the first question.
+func installModel(t *testing.T, e *env) *Model {
+	t.Helper()
+	m := introModel(t, e)
+	send(m, key("enter"))
 	return m
 }
 
@@ -489,9 +498,13 @@ func TestBackGoesToThePreviousStepAndRemembersTheChoices(t *testing.T) {
 	if !has(out, "Keyboard") || !has(out, "Spanish (Latin America)") {
 		t.Fatalf("going back keeps what was chosen:\n%s", out)
 	}
+	send(m, key("esc"))
+	if !has(view(m), "System language") {
+		t.Fatalf("one step back is the language:\n%s", view(m))
+	}
 	send(m, key("esc"), key("esc"))
-	if !has(view(m), "Welcome") {
-		t.Fatal("esc on the first step stays put")
+	if !has(view(m), "Let's install Maxor OS") {
+		t.Fatal("the first step is the introduction, and esc there stays put")
 	}
 }
 
@@ -505,5 +518,71 @@ func TestEveryStepFitsInASmallWindow(t *testing.T) {
 			t.Fatalf("step %d: %d rows in a %d-row window", i, len(lines), m.h)
 		}
 		send(m, key("ctrl+n"))
+	}
+}
+
+func TestTheIntroSaysNothingIsWrittenUntilConfirmedAndHasNoStepList(t *testing.T) {
+	m := introModel(t, newInstallEnv(emptyDisk()))
+	out := view(m)
+	for _, want := range []string{"M A X O R", "Let's install Maxor OS", "no demo", "Nothing is written"} {
+		if !has(out, want) {
+			t.Fatalf("missing %q:\n%s", want, out)
+		}
+	}
+	if has(out, "install steps") {
+		t.Fatalf("the introduction has no list of steps:\n%s", out)
+	}
+	send(m, key("esc"))
+	if !has(view(m), "Let's install") {
+		t.Fatal("esc on the introduction stays put")
+	}
+	send(m, key("enter"))
+	if !has(view(m), "System language") {
+		t.Fatalf("Enter goes on to the first question:\n%s", view(m))
+	}
+}
+
+func TestTheStepListShowsWhatWasChosen(t *testing.T) {
+	m := installModel(t, newInstallEnv(emptyDisk()))
+	send(m, key("enter")) // language
+	typeText(m, "latin")
+	send(m, key("enter")) // keyboard
+	out := view(m)
+	for _, want := range []string{"install steps", "✓", "English", "Keyboard"} {
+		if !has(out, want) {
+			t.Fatalf("missing %q:\n%s", want, out)
+		}
+	}
+	if !has(out, "3/") {
+		t.Fatalf("the counter follows the step:\n%s", out)
+	}
+}
+
+func TestTheFinalOffersRestartPowerOffAndAConsole(t *testing.T) {
+	e := newInstallEnv(emptyDisk())
+	var off, shell bool
+	deps := e.deps()
+	deps.PowerOff = func() error { off = true; return nil }
+	deps.Shell = func() error { shell = true; return nil }
+	m, _ := setupWith(t, newCLI(), Options{Screen: "install", Deps: deps})
+	send(m, key("enter"))
+	walkToAccount(m)
+	fillAccount(m, "Ana", "ana", "pc", "correct-horse-1")
+	enter(m, 3)
+	typeText(m, "ERASE")
+	send(m, key("enter"))
+	out := view(m)
+	for _, want := range []string{"Restart now", "Power off", "Stay in a text console"} {
+		if !has(out, want) {
+			t.Fatalf("missing %q:\n%s", want, out)
+		}
+	}
+	send(m, key("down"), key("enter"))
+	if !off || e.rebooted {
+		t.Fatalf("the second choice powers off (off=%v rebooted=%v)", off, e.rebooted)
+	}
+	send(m, key("up"), key("down"), key("down"), key("enter"))
+	if !shell {
+		t.Fatal("the third choice opens a text console")
 	}
 }

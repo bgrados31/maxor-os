@@ -27,6 +27,9 @@ type Deps struct {
 	ApplyKeyboard func(Layout)
 	// Reboot restarts the machine (the last step).
 	Reboot func() error
+	// PowerOff turns the machine off; Shell leaves the installer for a text console.
+	PowerOff func() error
+	Shell    func() error
 }
 
 // RealDeps are the dependencies of a real machine.
@@ -38,6 +41,8 @@ func RealDeps() *Deps {
 		Zones:         Timezones,
 		ApplyKeyboard: applyKeyboard,
 		Reboot:        reboot,
+		PowerOff:      func() error { return systemctl("poweroff") },
+		Shell:         func() error { return asRoot("chvt", "2") },
 	}
 }
 
@@ -72,9 +77,14 @@ func applyKeyboard(l Layout) {
 	_ = exec.Command("hyprctl", "keyword", "input:kb_variant", l.Variant).Run()
 }
 
-func reboot() error {
+func reboot() error { return systemctl("reboot") }
+
+func systemctl(action string) error { return asRoot("systemctl", action) }
+
+// asRoot runs a command as root: directly if it already is, through sudo (without asking) if not.
+func asRoot(name string, args ...string) error {
 	if os.Geteuid() == 0 {
-		return exec.Command("systemctl", "reboot").Run()
+		return exec.Command(name, args...).Run()
 	}
-	return exec.Command("sudo", "-n", "systemctl", "reboot").Run()
+	return exec.Command("sudo", append([]string{"-n", name}, args...)...).Run()
 }

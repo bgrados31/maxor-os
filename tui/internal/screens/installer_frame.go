@@ -59,7 +59,7 @@ func (w *Installer) mark(env *core.Env, page ui.Painter) []ui.Seg {
 func (w *Installer) visible() []int {
 	var out []int
 	for i, s := range w.steps {
-		if i == len(w.steps)-1 || s.ID() == "install" {
+		if i == len(w.steps)-1 || s.ID() == "install" || s.ID() == "intro" {
 			continue
 		}
 		out = append(out, i)
@@ -164,11 +164,12 @@ func (w *Installer) Frame(env *core.Env, width, height int) []string {
 	page := ui.NewPainter(env.Theme, env.Theme.P.Bg)
 	pc := page.Ctx()
 	final := w.idx == len(w.steps)-1
+	intro := w.cur().ID() == "intro"
 	blank := ui.Blank().Render(width, pc)
 
 	rows := make([]string, 0, height)
 	rows = append(rows, blank, padSegs(w.mark(env, page), width, pc).Render(width, pc), blank)
-	if final {
+	if final || intro {
 		rows = append(rows, blank)
 	} else {
 		vis := w.visible()
@@ -189,7 +190,7 @@ func (w *Installer) Frame(env *core.Env, width, height int) []string {
 	rows = append(rows, blank)
 
 	bodyH := height - headerRows - footerRows
-	showRail := !w.running && !final && w.cur().ID() != "install" && width >= railWidth+minCard+6
+	showRail := !w.running && !final && !intro && w.cur().ID() != "install" && width >= railWidth+minCard+6
 	cw := min(cardWidth, width-2)
 	if showRail {
 		cw = min(cardWidth, width-railWidth-6) // the card gives way before the list of steps does

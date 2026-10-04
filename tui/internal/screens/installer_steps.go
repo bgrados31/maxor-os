@@ -1586,34 +1586,62 @@ func (s *installStep) Hints() []ui.Hint { return nil }
 
 type doneStep struct {
 	stepBase
-	restarting bool
+	sel     int
+	working string // what is being done: "restart", "power off", or ""
 }
 
 func (*doneStep) ID() string    { return "done" }
 func (*doneStep) Title() string { return "All done" }
-func (*doneStep) Intro() string { return "Maxor OS is installed." }
+func (*doneStep) Intro() string { return "" }
 
 func (s *doneStep) Captures() bool { return false }
 
+var doneChoices = []struct{ label, hint string }{
+	{"Restart now", "recommended"},
+	{"Power off", ""},
+	{"Stay in a text console", "look around first"},
+}
+
 func (s *doneStep) Enter(w *Installer, env *core.Env) tea.Cmd {
-	s.restarting = false
+	s.sel, s.working = 0, ""
 	return core.Note("ok", "Installed Maxor OS on "+w.st.Disk)
 }
 
 func (s *doneStep) Key(w *Installer, env *core.Env, k tea.KeyMsg) (bool, tea.Cmd) {
-	if k.String() == "enter" && !s.restarting {
-		s.restarting = true
-		return false, runTask(env, "done.reboot", "Restarting", false, func(ctx context.Context) (any, error) {
-			return nil, env.Install.Reboot()
-		})
+	if s.working != "" {
+		return false, nil
+	}
+	switch k.String() {
+	case "up", "k":
+		s.sel = max(0, s.sel-1)
+	case "down", "j":
+		s.sel = min(len(doneChoices)-1, s.sel+1)
+	case "enter":
+		var f func() error
+		switch s.sel {
+		case 0:
+			s.working, f = "Restarting", env.Install.Reboot
+		case 1:
+			s.working, f = "Turning the computer off", env.Install.PowerOff
+		default:
+			s.working, f = "Opening a text console", env.Install.Shell
+		}
+		if f == nil {
+			s.working = ""
+			return false, nil
+		}
+		return false, runTask(env, "done.action", s.working, false, func(ctx context.Context) (any, error) { return nil, f() })
 	}
 	return false, nil
 }
 
 func (s *doneStep) Done(w *Installer, env *core.Env, d task.DoneMsg) tea.Cmd {
-	if d.ID == "install.done.reboot" && d.Err != nil {
-		s.restarting = false
-		w.notice = "Could not restart: " + oneLine(d.Err.Error())
+	if d.ID == "install.done.action" {
+		failed := s.working
+		s.working = ""
+		if d.Err != nil {
+			w.notice = failed + " did not work: " + oneLine(d.Err.Error())
+		}
 	}
 	return nil
 }
@@ -1621,17 +1649,20 @@ func (s *doneStep) Done(w *Installer, env *core.Env, d task.DoneMsg) tea.Cmd {
 func (s *doneStep) Lines(w *Installer, env *core.Env, width int) []ui.Line {
 	p := env.P
 	lines := []ui.Line{
-		ui.Of(ui.S(p.Ok.Bold(true), ui.G.Tick+"  Installed on "+w.st.Disk)),
+		ui.Of(ui.S(p.Ok.Bold(true), ui.G.Tick+"  Maxor OS is installed on "+w.st.Disk)),
 		gap(),
-		plain(env, "1.  Remove the installation medium (the USB stick)."),
-		plain(env, "2.  Restart, and sign in as "+w.st.Username+"."),
+		plain(env, "Remove the installation medium (the USB stick), restart,"),
+		plain(env, "and sign in as "+w.st.Username+"."),
 		gap(),
-		muted(env, "Your configuration is in ~/nixos-config (a git repository): it is yours to change."),
-		muted(env, "The installation log is /var/log/maxor-install.log on the new system."),
+		muted(env, "Your configuration is in ~/nixos-config, a git repository:"),
+		muted(env, "it is yours to change. The log is /var/log/maxor-install.log."),
 		gap(),
 	}
-	if s.restarting {
-		return append(lines, ui.Of(ui.S(p.Ac, ui.Spin(env.Frame)+"  "), ui.S(p.Text, "Restarting…")))
+	if s.working != "" {
+		return append(lines, ui.Of(ui.S(p.Ac, ui.Spin(env.Frame)+"  "), ui.S(p.Text, s.working+"…")))
 	}
-	return append(lines, ui.Of(button(env, true, "Restart now  ⏎")), gap(), muted(env, "or press q to stay in this session"))
+	for i, c := range doneChoices {
+		lines = append(lines, radio(env, i == s.sel, i == s.sel, c.label, c.hint))
+	}
+	return lines
 }

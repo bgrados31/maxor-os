@@ -54,7 +54,7 @@ type wizStep interface {
 func NewInstaller() *Installer {
 	w := &Installer{st: install.Default()}
 	w.steps = []wizStep{
-		&welcomeStep{}, &keyboardStep{}, &networkStep{}, &regionStep{}, &diskStep{}, &strategyStep{},
+		&introStep{}, &welcomeStep{}, &keyboardStep{}, &networkStep{}, &regionStep{}, &diskStep{}, &strategyStep{},
 		&storageStep{}, &accountStep{}, &lookStep{}, &hardwareStep{}, &summaryStep{}, &installStep{}, &doneStep{},
 	}
 	return w
@@ -194,6 +194,9 @@ func (w *Installer) stepper(env *core.Env, width int) ui.Line {
 func (w *Installer) Hints(env *core.Env) []ui.Hint {
 	if w.running {
 		return []ui.Hint{{Key: "…", Action: "installing: please wait"}}
+	}
+	if w.idx == len(w.steps)-1 {
+		return []ui.Hint{{Key: "↑↓", Action: "choose"}, {Key: "⏎", Action: "confirm"}}
 	}
 	h := []ui.Hint{{Key: "⏎", Action: "continue"}}
 	if w.idx > 0 && w.idx < len(w.steps)-1 {
