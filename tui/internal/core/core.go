@@ -7,6 +7,7 @@ import (
 
 	tea "github.com/charmbracelet/bubbletea"
 
+	"github.com/bgrados31/maxor-os/tui/internal/install"
 	"github.com/bgrados31/maxor-os/tui/internal/maxor"
 	"github.com/bgrados31/maxor-os/tui/internal/task"
 	"github.com/bgrados31/maxor-os/tui/internal/theme"
@@ -24,6 +25,7 @@ type Env struct {
 	Data   *Data
 	Host   string
 	Setup  bool // arrancó como asistente (maxor setup): sin pestañas
+	Install *install.Deps // lo que necesita el instalador guiado (motor, red, equipo); nil fuera de él
 }
 
 // Toast es un aviso breve al pie. Kind: ok, warn, bad o info.

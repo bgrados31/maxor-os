@@ -48,7 +48,7 @@ func (m *Model) topBar(p ui.Painter, w int) string {
 	var segs []ui.Seg
 	m.tabs = m.tabs[:0]
 	if m.setupFocus {
-		segs = []ui.Seg{ui.S(p.Mu, " maxor "), ui.S(p.Ac, ui.G.Arrow+" "), ui.S(p.Bold, "setup")}
+		segs = []ui.Seg{ui.S(p.Mu, " maxor "), ui.S(p.Ac, ui.G.Arrow+" "), ui.S(p.Bold, strings.ToLower(m.screens[0].Title()))}
 	} else {
 		x := 1
 		segs = append(segs, ui.Seg{T: " "})

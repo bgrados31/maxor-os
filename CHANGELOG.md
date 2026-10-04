@@ -7,6 +7,7 @@ versions are numbered `0.N.0` until 1.0 (see [docs/RELEASING.md](docs/RELEASING.
 
 ### Added
 
+- **Installer wizard** (`maxor-tui --screen install`): thirteen steps (welcome checks, language, keyboard with live test box, network incl. Wi-Fi, time zone, disk, install method, storage and encryption, account, look and profiles, hardware, review, install, done). Erasing needs a typed `ERASE`, installing alongside a typed `INSTALL`; passwords are hashed by the engine, and a failed install can be resumed with `r`.
 - **Full-install test** (`installer-full`): two VMs share a disk; the engine installs a complete Maxor OS on the empty virtual disk, offline, and the installed system is then booted and checked (account, password outside the Nix store, the user's configuration repository, the CLI, boot entries).
 - **Offline installs and extension points** for the installer: `host/local.nix` is the user's own NixOS configuration, never overwritten; preseeded hardware (`MAXOR_INSTALL_HWJSON`, `MAXOR_INSTALL_HWCONFIG`), local copies of the flake inputs that keep their revision metadata (`installer/offline-overrides.nix`), and `maxor-install hashpw` so the password is hashed by the engine over standard input.
 - **Live ISO configuration** (`nix build .#iso`): Hyprland with Maxor Shell, the installer and the offline overrides. It evaluates; booting it comes next.

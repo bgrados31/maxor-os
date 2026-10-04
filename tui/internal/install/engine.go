@@ -48,8 +48,9 @@ type Engine interface {
 	Validate(ctx context.Context, answers []byte) error
 	// Plan prints what the installation would do, without doing it.
 	Plan(ctx context.Context, answers []byte) (string, error)
-	// Run installs. It calls onEvent for every progress event and returns the exit code of the engine.
-	Run(ctx context.Context, answers []byte, passphrase string, onEvent func(Event)) (int, error)
+	// Run installs. With resume it continues a previous run (finished stages are skipped). It calls onEvent for every
+	// progress event and returns the exit code of the engine.
+	Run(ctx context.Context, answers []byte, passphrase string, resume bool, onEvent func(Event)) (int, error)
 }
 
 // CLI is the real engine: it runs `maxor-install`, with sudo when the installer is not root.
@@ -219,7 +220,7 @@ func ParseEvents(r io.Reader, onEvent func(Event)) {
 
 // Run installs. The passphrase (if any) goes on standard input, and the progress is read from the events
 // file the engine writes.
-func (c *CLI) Run(ctx context.Context, answers []byte, passphrase string, onEvent func(Event)) (int, error) {
+func (c *CLI) Run(ctx context.Context, answers []byte, passphrase string, resume bool, onEvent func(Event)) (int, error) {
 	path, err := c.answersFile(answers)
 	if err != nil {
 		return 0, err
@@ -234,6 +235,9 @@ func (c *CLI) Run(ctx context.Context, answers []byte, passphrase string, onEven
 	defer os.Remove(evPath)
 
 	args := []string{"run", "--answers", path, "--events", evPath}
+	if resume {
+		args = append(args, "--resume")
+	}
 	if passphrase != "" {
 		args = append(args, "--secret-fd", "0")
 	}

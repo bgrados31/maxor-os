@@ -22,7 +22,7 @@ import (
 var version = "dev"
 
 func main() {
-	screen := flag.String("screen", "home", "pantalla inicial: home, store, themes, update, doctor o setup")
+	screen := flag.String("screen", "home", "pantalla inicial: home, store, themes, update, doctor, setup o install (el instalador, solo en la sesión viva)")
 	noMouse := flag.Bool("no-mouse", false, "sin soporte de ratón")
 	search := flag.String("search", "", "abre la Tienda con esta búsqueda ya lanzada")
 	showVersion := flag.Bool("version", false, "imprime la versión y sale")

@@ -9,6 +9,7 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 
 	"github.com/bgrados31/maxor-os/tui/internal/core"
+	"github.com/bgrados31/maxor-os/tui/internal/install"
 	"github.com/bgrados31/maxor-os/tui/internal/maxor"
 	"github.com/bgrados31/maxor-os/tui/internal/screens"
 	"github.com/bgrados31/maxor-os/tui/internal/task"
@@ -30,6 +31,7 @@ type Options struct {
 	NoMouse bool
 	Version string
 	Search  string // si no está vacía, abre la Tienda y lanza esta búsqueda
+	Deps    *install.Deps // dependencias del instalador (pruebas); nil usa las reales
 }
 
 type tickMsg struct{}
@@ -81,13 +83,19 @@ func New(opts Options, client *maxor.Client) *Model {
 		Tasks:  task.NewManager(),
 		Now:    time.Now,
 		Data:   &core.Data{},
-		Setup:  opts.Screen == "setup",
+		Setup:  opts.Screen == "setup" || opts.Screen == "install",
 	}
 	env.Host, _ = os.Hostname()
 	env.P = ui.NewPainter(t, t.P.S)
 
 	m := &Model{env: env, opts: opts, inited: map[string]bool{}, base: t, setupFocus: env.Setup, prefs: loadPrefs()}
-	if env.Setup {
+	if opts.Screen == "install" {
+		env.Install = opts.Deps
+		if env.Install == nil {
+			env.Install = install.RealDeps()
+		}
+		m.screens = []core.Screen{screens.NewInstaller()}
+	} else if env.Setup {
 		m.screens = []core.Screen{screens.NewSetup()}
 	} else {
 		m.screens = []core.Screen{

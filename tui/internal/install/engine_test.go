@@ -103,7 +103,7 @@ echo '{"stage":"done","state":"ok","message":"Maxor OS is installed","progress":
 exit 0`)
 	var mu sync.Mutex
 	var got []Event
-	code, err := c.Run(context.Background(), []byte(`{}`), "correct horse battery", func(e Event) {
+	code, err := c.Run(context.Background(), []byte(`{}`), "correct horse battery", false, func(e Event) {
 		mu.Lock()
 		got = append(got, e)
 		mu.Unlock()
@@ -125,7 +125,7 @@ exit 0`)
 func TestRunWithoutPassphraseDoesNotAskForTheSecretFd(t *testing.T) {
 	dir := t.TempDir()
 	c := fakeEngine(t, `echo "$@" > `+dir+`/args; exit 0`)
-	if _, err := c.Run(context.Background(), []byte(`{}`), "", func(Event) {}); err != nil {
+	if _, err := c.Run(context.Background(), []byte(`{}`), "", false, func(Event) {}); err != nil {
 		t.Fatal(err)
 	}
 	args, _ := os.ReadFile(dir + "/args")
@@ -136,7 +136,7 @@ func TestRunWithoutPassphraseDoesNotAskForTheSecretFd(t *testing.T) {
 
 func TestRunReturnsTheEnginesExitCodeOnFailure(t *testing.T) {
 	c := fakeEngine(t, `exit 4`)
-	code, err := c.Run(context.Background(), []byte(`{}`), "", func(Event) {})
+	code, err := c.Run(context.Background(), []byte(`{}`), "", false, func(Event) {})
 	if err != nil || code != 4 {
 		t.Fatalf("a failing engine is a code, not an error: %d %v", code, err)
 	}
@@ -146,7 +146,7 @@ func TestRunCleansUpItsTemporaryFiles(t *testing.T) {
 	dir := t.TempDir()
 	c := fakeEngine(t, `exit 0`)
 	c.Dir = dir
-	_, _ = c.Run(context.Background(), []byte(`{}`), "", func(Event) {})
+	_, _ = c.Run(context.Background(), []byte(`{}`), "", false, func(Event) {})
 	left, _ := os.ReadDir(dir)
 	for _, e := range left {
 		if strings.HasPrefix(e.Name(), "maxor-answers-") || strings.HasPrefix(e.Name(), "maxor-events-") {
@@ -160,5 +160,17 @@ func TestParseEventsIgnoresNoise(t *testing.T) {
 	ParseEvents(strings.NewReader("\nxxx\n{\"stage\":\"a\",\"state\":\"ok\"}\n{\"nope\":1}\n"), func(e Event) { got = append(got, e) })
 	if len(got) != 1 || got[0].Stage != "a" {
 		t.Fatalf("%+v", got)
+	}
+}
+
+func TestRunResumeAsksTheEngineToContinue(t *testing.T) {
+	dir := t.TempDir()
+	c := fakeEngine(t, `echo "$@" > `+dir+`/args; exit 0`)
+	if _, err := c.Run(context.Background(), []byte(`{}`), "", true, func(Event) {}); err != nil {
+		t.Fatal(err)
+	}
+	args, _ := os.ReadFile(dir + "/args")
+	if !strings.Contains(string(args), "--resume") {
+		t.Fatalf("resume must reach the engine: %s", args)
 	}
 }
