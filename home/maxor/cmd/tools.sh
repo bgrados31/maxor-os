@@ -115,3 +115,60 @@ cmd_completions() {
     *) usage_error completions ;;
   esac
 }
+
+# ── Primer arranque ──────────────────────────────────────────────────
+# Un usuario nuevo no tiene tema ni el logo de Maxor en la barra: el tema solo se aplica con
+# `maxor theme apply` y DMS no crea sus ajustes hasta que arranca. Un servicio de usuario lanza
+# esto en cada inicio de sesión hasta que consigue hacerlo una vez (marca en $state/firstrun):
+# espera a que DMS cree sus ajustes, pone el logo de Maxor en el botón del lanzador y aplica el
+# tema sakura. No pisa nada ya elegido: si hay un tema aplicado o el botón ya está ajustado, se queda.
+maxor_cmd firstrun system ""
+MAXOR_FIRSTRUN_WAIT="${MAXOR_FIRSTRUN_WAIT:-60}" # segundos que espera a los ajustes de DMS
+
+# Pone el logo de Maxor en el botón del lanzador, solo si sigue sin personalizar (texto plano).
+# Devuelve 0 si lo cambió y 1 si no hacía falta.
+firstrun_logo() {
+  local tmp="$dms_settings.maxor.tmp"
+  jq -e '[.barConfigs[]?.leftWidgets[]? | select(. == "launcherButton")] | length > 0' "$dms_settings" > /dev/null 2>&1 || return 1
+  jq '.barConfigs |= map(.leftWidgets |= map(if . == "launcherButton" then {id: "launcherButton", launcherLogoMode: "dank"} else . end))' \
+    "$dms_settings" > "$tmp" && mv -f "$tmp" "$dms_settings" || { rm -f "$tmp"; return 1; }
+}
+
+cmd_firstrun() {
+  local marker="$state/firstrun" waited=0 did=0 logo=0
+  [ "$#" = 0 ] || usage_error firstrun
+  if [ -f "$marker" ]; then
+    ui_say info @firstrun.already
+    return 0
+  fi
+  while [ ! -s "$dms_settings" ] && [ "$waited" -lt "$MAXOR_FIRSTRUN_WAIT" ]; do
+    sleep 1
+    waited=$((waited + 1))
+  done
+  if [ ! -s "$dms_settings" ]; then
+    # DMS aún no creó sus ajustes: no se marca como hecho, se reintenta en el próximo inicio
+    log WARN "firstrun: DMS no ha creado sus ajustes"
+    ui_say info @firstrun.waiting
+    return 0
+  fi
+  echo
+  ui_intro @firstrun.title
+  if firstrun_logo; then
+    ui_row ok @firstrun.logo
+    did=1
+    logo=1
+  fi
+  if [ ! -f "$state/current" ]; then
+    cmd_theme apply sakura || return $?
+    did=1
+  fi
+  mkdir -p "$state"
+  : > "$marker"
+  # DMS no recarga la configuración de la barra mientras corre: se reinicia (una vez) para
+  # que se vea el logo. Sin DMS en marcha (otra sesión, pruebas) no se toca nada.
+  if [ "$logo" = 1 ] && command -v systemctl > /dev/null && systemctl --user is-active --quiet dms.service 2> /dev/null; then
+    ui_row info @firstrun.restart
+    systemctl --user restart dms.service > /dev/null 2>&1 || true
+  fi
+  if [ "$did" = 1 ]; then ui_outro @firstrun.done; else ui_outro @firstrun.nothing; fi
+}

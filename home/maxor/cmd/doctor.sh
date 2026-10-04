@@ -103,7 +103,8 @@ cmd_doctor() {
       if [ "${use:-0}" -ge 90 ]; then bad @doctor.disk_full "$m" "$use"
       elif [ "${use:-0}" -ge 80 ]; then warn @doctor.disk_warn "$m" "$use"
       else ok @doctor.disk_ok "$m" "$use"; fi
-    elif [ "$m" = /boot ]; then
+    elif [ "$m" = /boot ] && [ -d /sys/firmware/efi ]; then
+      # solo un equipo UEFI necesita /boot montado; una VM con arranque directo no tiene
       bad @doctor.boot_unmounted
     fi
   done
