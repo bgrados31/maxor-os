@@ -31,6 +31,10 @@ dmsShell.overrideAttrs (old: {
       cp ${mark}/mark.svg "$shell/assets/$logo"
     done
     cp ${mark}/icon.svg $out/share/icons/hicolor/scalable/apps/com.danklinux.dms.svg
+    # El botón del launcher dibuja ese logo por defecto (DMS pone el icono de aplicaciones): así sale
+    # desde el primer arranque, sin tocar los ajustes ni reiniciar la barra.
+    substituteInPlace $shell/Common/settings/BarWidgetDefaults.js \
+      --replace-fail 'launcherLogoMode: "apps",' 'launcherLogoMode: "dank",'
 
     # Nombre en la interfaz
     substituteInPlace $shell/Modules/Settings/AboutTab.qml \

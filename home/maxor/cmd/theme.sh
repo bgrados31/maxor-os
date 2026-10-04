@@ -144,6 +144,8 @@ theme_apply() {
   else
     rm -f "$cfg/current/hyprland.lua"
   fi
+  # Fondo de Hyprland con el color del tema: es lo que se ve al entrar, antes de que DMS pinte el wallpaper.
+  printf 'hl.config({ misc = { background_color = "rgb(%s)" } })\n' "$(hex "$bg")" >> "$cfg/current/hyprland.lua"
   if [ -n "${HYPRLAND_INSTANCE_SIGNATURE:-}" ] && command -v hyprctl > /dev/null; then hyprctl reload > /dev/null 2>&1 || true; fi
 
   # 4) wallpaper del tema

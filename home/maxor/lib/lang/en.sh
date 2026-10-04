@@ -38,7 +38,7 @@ msgs_en() {
   MSG[cmd.profile]='usage profiles: gaming, dev, creator, office'
   MSG[cmd.ui]='open the full-screen app'
   MSG[cmd.setup]='first-run setup: look, profiles and apps'
-  MSG[cmd.firstrun]='apply the default Maxor look once (theme and logo); it runs by itself at first login'
+  MSG[cmd.firstrun]='write the default Maxor look once (theme and wallpaper); it runs by itself before the first login'
   MSG[cmd.backup]='save your setup (profiles, themes, apps) in one file'
   MSG[cmd.restore]='bring a backup back, on this or another computer'
   MSG[cmd.logs]='show the log of the last run or failure'
@@ -175,12 +175,9 @@ msgs_en() {
   MSG[release.applied]='Maxor OS %s is installed'
 
   # ── firstrun ──
-  MSG[help.firstrun]=$'Usage: maxor firstrun\n\n  Applies the default Maxor look once: the Maxor logo on the launcher button of the bar and the\n  sakura theme. It runs by itself at your first login; you only need it by hand to retry.\n  It never overrides a theme you already applied or a launcher button you already changed.\n\n  Examples:\n    maxor firstrun'
+  MSG[help.firstrun]=$'Usage: maxor firstrun\n\n  Writes the default Maxor look once: the sakura theme and its wallpaper. It runs by itself when\n  the computer starts, before the first login, so the login screen and your first session already\n  look like Maxor. It never overrides a theme, shell settings or a wallpaper you already chose.\n\n  Examples:\n    maxor firstrun'
   MSG[firstrun.title]='Welcome to Maxor OS'
   MSG[firstrun.already]='The default look was already applied'
-  MSG[firstrun.waiting]='The shell has not created its settings yet; this will be tried again at the next login'
-  MSG[firstrun.logo]='Maxor logo on the launcher button'
-  MSG[firstrun.restart]='Restarting the shell so the bar shows it'
   MSG[firstrun.done]='Default look applied. Change it any time with: maxor theme'
   MSG[firstrun.nothing]='Your look was already set up: nothing to change'
   MSG[rollback.title]='maxor · generations'

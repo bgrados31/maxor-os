@@ -115,8 +115,9 @@ apply:
 6. **install**: `nixos-install --flake` from the closure on the ISO, falling back to the binary cache
    for what is not there.
 7. **bootloader**: systemd-boot on the shared or a dedicated EFI partition, with the Windows entry kept.
-8. **finish**: carry the network configuration over, set the password, preseed `maxor firstrun`,
-   unmount, report.
+8. **finish**: carry the network configuration over, set the password, unmount, report. On the first boot,
+   before the login screen, `maxor firstrun` writes the default look (theme and wallpaper), so neither the
+   login nor the first session changes look while you watch.
 
 Events are JSON lines (`{"stage":"disk","state":"start|ok|fail|skip","message":…,"progress":0.42}`)
 written to the events channel and to `/var/log/maxor-install.log`; the screens draw progress from

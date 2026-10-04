@@ -187,17 +187,6 @@
     mpv
   ];
 
-  # El botón del launcher de la barra muestra por defecto el icono de aplicaciones;
-  # el logo de Maxor solo se dibuja en modo "dank". Se activa una vez, y solo si el
-  # widget sigue sin personalizar (texto plano): si ya lo ajustaste, no se toca.
-  home.activation.maxorLauncherLogo = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
-    f="${config.xdg.configHome}/DankMaterialShell/settings.json"
-    if [ -f "$f" ] && ${pkgs.jq}/bin/jq -e '[.barConfigs[]?.leftWidgets[]? | select(. == "launcherButton")] | length > 0' "$f" > /dev/null 2>&1; then
-      ${pkgs.jq}/bin/jq '.barConfigs |= map(.leftWidgets |= map(if . == "launcherButton" then {id: "launcherButton", launcherLogoMode: "dank"} else . end))' "$f" > "$f.maxor.tmp" \
-        && mv "$f.maxor.tmp" "$f"
-    fi
-  '';
-
   # Archivos que DMS sobreescribe en tiempo de ejecución: solo se crean
   # si no existen, para que DMS pueda editarlos libremente.
   home.activation.dmsStubs = lib.hm.dag.entryAfter [ "writeBoundary" ] ''

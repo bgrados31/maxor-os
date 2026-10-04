@@ -117,58 +117,40 @@ cmd_completions() {
 }
 
 # ── Primer arranque ──────────────────────────────────────────────────
-# Un usuario nuevo no tiene tema ni el logo de Maxor en la barra: el tema solo se aplica con
-# `maxor theme apply` y DMS no crea sus ajustes hasta que arranca. Un servicio de usuario lanza
-# esto en cada inicio de sesión hasta que consigue hacerlo una vez (marca en $state/firstrun):
-# espera a que DMS cree sus ajustes, pone el logo de Maxor en el botón del lanzador y aplica el
-# tema sakura. No pisa nada ya elegido: si hay un tema aplicado o el botón ya está ajustado, se queda.
+# Un usuario nuevo no tiene tema: el tema solo se aplica con `maxor theme apply`. La activación de
+# home-manager llama a esto al arrancar el equipo, ANTES del login, hasta que lo hace una vez (marca
+# en $state/firstrun): deja escritos los ajustes de DMS con el tema sakura y su wallpaper. Así el
+# login (que copia esos archivos al arrancar) y la primera sesión salen ya con el aspecto de Maxor,
+# sin recargas ni parpadeos. No pisa nada ya elegido: un tema aplicado o unos ajustes de DMS se quedan.
+# El logo de Maxor en el lanzador ya es el valor por defecto de Maxor Shell (packages/maxor-shell.nix).
 maxor_cmd firstrun system ""
-MAXOR_FIRSTRUN_WAIT="${MAXOR_FIRSTRUN_WAIT:-60}" # segundos que espera a los ajustes de DMS
-
-# Pone el logo de Maxor en el botón del lanzador, solo si sigue sin personalizar (texto plano).
-# Devuelve 0 si lo cambió y 1 si no hacía falta.
-firstrun_logo() {
-  local tmp="$dms_settings.maxor.tmp"
-  jq -e '[.barConfigs[]?.leftWidgets[]? | select(. == "launcherButton")] | length > 0' "$dms_settings" > /dev/null 2>&1 || return 1
-  jq '.barConfigs |= map(.leftWidgets |= map(if . == "launcherButton" then {id: "launcherButton", launcherLogoMode: "dank"} else . end))' \
-    "$dms_settings" > "$tmp" && mv -f "$tmp" "$dms_settings" || { rm -f "$tmp"; return 1; }
-}
+dms_session="${XDG_STATE_HOME:-$HOME/.local/state}/DankMaterialShell/session.json"
 
 cmd_firstrun() {
-  local marker="$state/firstrun" waited=0 did=0 logo=0
+  local marker="$state/firstrun" did=0 wall="$themes/sakura/wallpaper.png"
   [ "$#" = 0 ] || usage_error firstrun
   if [ -f "$marker" ]; then
     ui_say info @firstrun.already
     return 0
   fi
-  while [ ! -s "$dms_settings" ] && [ "$waited" -lt "$MAXOR_FIRSTRUN_WAIT" ]; do
-    sleep 1
-    waited=$((waited + 1))
-  done
-  if [ ! -s "$dms_settings" ]; then
-    # DMS aún no creó sus ajustes: no se marca como hecho, se reintenta en el próximo inicio
-    log WARN "firstrun: DMS no ha creado sus ajustes"
-    ui_say info @firstrun.waiting
-    return 0
-  fi
   echo
   ui_intro @firstrun.title
-  if firstrun_logo; then
-    ui_row ok @firstrun.logo
-    did=1
-    logo=1
+  # DMS completa lo que falte con sus valores por defecto; theme apply escribe aquí su tema.
+  if [ ! -s "$dms_settings" ]; then
+    mkdir -p "$(dirname "$dms_settings")"
+    printf '{}\n' > "$dms_settings"
   fi
   if [ ! -f "$state/current" ]; then
     cmd_theme apply sakura || return $?
     did=1
   fi
+  # Sin DMS en marcha `theme apply` no puede poner el wallpaper: se deja en los datos de sesión de DMS.
+  if [ ! -s "$dms_session" ] && [ -f "$wall" ]; then
+    mkdir -p "$(dirname "$dms_session")"
+    jq -n --arg w "$wall" '{wallpaperPath: $w}' > "$dms_session"
+    did=1
+  fi
   mkdir -p "$state"
   : > "$marker"
-  # DMS no recarga la configuración de la barra mientras corre: se reinicia (una vez) para
-  # que se vea el logo. Sin DMS en marcha (otra sesión, pruebas) no se toca nada.
-  if [ "$logo" = 1 ] && command -v systemctl > /dev/null && systemctl --user is-active --quiet dms.service 2> /dev/null; then
-    ui_row info @firstrun.restart
-    systemctl --user restart dms.service > /dev/null 2>&1 || true
-  fi
   if [ "$did" = 1 ]; then ui_outro @firstrun.done; else ui_outro @firstrun.nothing; fi
 }

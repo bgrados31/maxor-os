@@ -78,22 +78,12 @@ in
     Install.WantedBy = [ "timers.target" ];
   };
 
-  # Primer inicio de sesión: aplica el aspecto de Maxor (logo en la barra y tema sakura) una sola
-  # vez, cuando DMS ya creó sus ajustes. Si aún no los creó, no marca nada y reintenta en el
-  # siguiente inicio. No pisa un tema ya aplicado ni un botón ya personalizado.
-  systemd.user.services.maxor-first-run = {
-    Unit = {
-      Description = "Apply the default Maxor look on the first login";
-      After = [ "dms.service" ];
-    };
-    Service = {
-      Type = "oneshot";
-      ExecStart = "${maxor}/bin/maxor firstrun";
-    };
-    # Colgado de dms.service y no de graphical-session.target: DMS arranca después de ese target
-    # y un servicio «after dms» dentro de él forma un ciclo (systemd borra el trabajo).
-    Install.WantedBy = [ "dms.service" ];
-  };
+  # Aspecto de Maxor (tema sakura y su wallpaper) escrito una sola vez, al arrancar el equipo y antes
+  # del login (machine.nix hace esperar a greetd): el login y la primera sesión ya salen con él, sin
+  # recargas. No pisa un tema ya aplicado. Nunca rompe la activación.
+  home.activation.maxorFirstRun = lib.hm.dag.entryAfter [ "linkGeneration" ] ''
+    run ${maxor}/bin/maxor firstrun > /dev/null 2>&1 || true
+  '';
 
   # Temas oficiales: carpetas de solo lectura junto a los tuyos, y sus
   # wallpapers en ~/Pictures/Wallpapers para el selector de DMS.

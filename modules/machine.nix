@@ -99,6 +99,11 @@ in
 
     # El greeter de login hereda el tema y el wallpaper de este usuario.
     services.displayManager.dms-greeter.configHome = "/home/${cfg.user}";
+    # Y los copia al arrancar: espera a home-manager, que en el primer arranque los escribe (maxor firstrun).
+    systemd.services.greetd = {
+      wants = [ "home-manager-${cfg.user}.service" ];
+      after = [ "home-manager-${cfg.user}.service" ];
+    };
 
     home-manager = {
       useGlobalPkgs = true;
