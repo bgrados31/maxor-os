@@ -37,14 +37,17 @@ let
     default_floating_border none
     focus_follows_mouse no
     seat * hide_cursor 2000
-    exec ${pkgs.kitty}/bin/kitty --start-as=fullscreen --title="Maxor OS installer" ${maxorTui}/bin/maxor-tui --screen install; ${pkgs.sway}/bin/swaymsg exit
+    # in a shell: sway splits its own commands at «;», so `exec a; b` would run only a and try b as a sway command
+    exec ${pkgs.bash}/bin/sh -c '${pkgs.kitty}/bin/kitty --start-as=fullscreen --title="Maxor OS installer" ${maxorTui}/bin/maxor-tui --screen install; ${pkgs.sway}/bin/swaymsg exit'
   '';
 
   # A system service starts with a minimal PATH, so the programs the installer calls (maxor-install, nmcli, sudo,
   # timedatectl, swaymsg) are put on it here.
   session = pkgs.writeShellScript "maxor-installer-session" ''
     export PATH=/run/wrappers/bin:/run/current-system/sw/bin:$PATH
-    exec ${pkgs.sway}/bin/sway --config ${swayConfig}
+    # what sway and the programs in it print goes to the journal (journalctl -t maxor-installer), not to the console,
+    # where it would show as text when the medium shuts down
+    exec ${pkgs.systemd}/bin/systemd-cat -t maxor-installer ${pkgs.sway}/bin/sway --config ${swayConfig}
   '';
 in
 {
