@@ -21,7 +21,7 @@ func (e *Exit) ID() string    { return "exit" }
 func (e *Exit) Title() string { return "Exit" }
 
 func (e *Exit) Init(env *core.Env) tea.Cmd {
-	var cmds []tea.Cmd
+	cmds := ReleaseInit(env)
 	if !env.Data.UpdatesKnown {
 		cmds = append(cmds, LoadAppUpdates(env, true))
 	}
@@ -46,6 +46,9 @@ func (e *Exit) Main(env *core.Env, w, h int) []ui.Line {
 	}
 	if d := env.Data.Doctor; d != nil && (d.Warns > 0 || d.Fails > 0) {
 		pending = append(pending, ui.Of(ui.S(p.Warn, ui.G.Warn+" "), ui.S(p.Text, plural(d.Warns+d.Fails, "thing needs attention", "things need attention")), ui.S(p.Mu, "  (Doctor)")))
+	}
+	if releaseAvailable(env) {
+		pending = append(pending, ui.Of(ui.S(p.Warn, ui.G.Up+" "), ui.S(p.Text, "Maxor OS "+env.Data.Release.Latest+" is available"), ui.S(p.Mu, "  (Update)")))
 	}
 	if u := env.Data.Update; u != nil && !u.UpToDate {
 		pending = append(pending, ui.Of(ui.S(p.Warn, ui.G.Up+" "), ui.S(p.Text, "a system update is ready to apply"), ui.S(p.Mu, "  (Update)")))

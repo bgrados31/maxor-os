@@ -66,6 +66,7 @@ func (u *Update) Init(env *core.Env) tea.Cmd {
 	if !env.Data.CacheLoaded {
 		cmds = append(cmds, LoadUpdateCache(env, true))
 	}
+	cmds = append(cmds, ReleaseInit(env)...)
 	return tea.Batch(append(cmds, u.decide(env))...)
 }
 
@@ -122,6 +123,16 @@ func (u *Update) afterApply(env *core.Env, err error) tea.Cmd {
 	return tea.Batch(core.Toast("ok", "System updated"), core.Note("ok", "Updated the system"), LoadUpdateStatus(env, true), u.scan(env, false))
 }
 
+// afterRelease: lo que sigue a instalar una release de Maxor OS desde el panel.
+func (u *Update) afterRelease(env *core.Env, err error) tea.Cmd {
+	env.Data.Update = nil
+	if err != nil {
+		return tea.Batch(core.Toast("bad", "The release was not installed: maxor logs --last"), LoadReleaseCheck(env, true, true))
+	}
+	return tea.Batch(core.Toast("ok", "Maxor OS updated"), core.Note("ok", "Installed a new Maxor OS release"),
+		LoadUpdateStatus(env, true), LoadReleaseCheck(env, true, true), u.scan(env, false))
+}
+
 // afterRollback: lo que sigue a volver a una generación anterior.
 func (u *Update) afterRollback(env *core.Env, err error) tea.Cmd {
 	u.history = false
@@ -139,6 +150,8 @@ func (u *Update) Update(env *core.Env, msg tea.Msg) (core.Screen, tea.Cmd) {
 			var after tea.Cmd
 			if u.runKind == "rollback" {
 				after = u.afterRollback(env, runErr(u.run))
+			} else if u.runKind == "release" {
+				after = u.afterRelease(env, runErr(u.run))
 			} else {
 				after = u.afterApply(env, runErr(u.run))
 			}
@@ -148,7 +161,7 @@ func (u *Update) Update(env *core.Env, msg tea.Msg) (core.Screen, tea.Cmd) {
 	}
 	switch m := msg.(type) {
 	case CheckUpdateMsg:
-		return u, u.scan(env, true)
+		return u, tea.Batch(u.scan(env, true), LoadReleaseCheck(env, true, true))
 	case task.DoneMsg:
 		switch m.ID {
 		case "data.updatestatus", "data.updatecache":
@@ -214,9 +227,15 @@ func (u *Update) Update(env *core.Env, msg tea.Msg) (core.Screen, tea.Cmd) {
 		}
 		switch {
 		case isKey(m, "r"):
-			return u, u.scan(env, u.lock)
+			return u, tea.Batch(u.scan(env, u.lock), LoadReleaseCheck(env, true, true))
 		case isKey(m, "c"):
-			return u, u.scan(env, true)
+			return u, tea.Batch(u.scan(env, true), LoadReleaseCheck(env, true, true))
+		case isKey(m, "v"):
+			if !releaseAvailable(env) {
+				return u, core.Toast("info", "No new Maxor OS release is waiting")
+			}
+			u.runKind = "release"
+			return u, u.run.Begin(env, "Installing Maxor OS "+env.Data.Release.Latest, "release", "apply", "--yes")
 		case isKey(m, "a", "enter", "t"):
 			up := env.Data.Update
 			if up == nil {
@@ -325,7 +344,9 @@ func (u *Update) Main(env *core.Env, w, h int) []ui.Line {
 		return u.historyLines(env, w, h)
 	}
 	p := env.P
-	lines := u.configLines(env)
+	lines := releaseLines(env)
+	lines = append(lines, gap())
+	lines = append(lines, u.configLines(env)...)
 	lines = append(lines, gap(), heading(env, "Scan"))
 	u.rows = h - len(lines) - 6
 
@@ -401,6 +422,9 @@ func (u *Update) Side(env *core.Env, w, h int) []ui.Line {
 	lines := []ui.Line{heading(env, "Actions"), gap()}
 	up := env.Data.Update
 	canApply := up != nil && !up.UpToDate
+	if releaseAvailable(env) {
+		lines = append(lines, ui.Of(button(env, true, "Install Maxor OS "+env.Data.Release.Latest+"  v")), muted(env, "signed release, then rebuild"), gap())
+	}
 	if canApply {
 		lines = append(lines, ui.Of(button(env, true, "Apply  ⏎")), gap())
 	}
@@ -434,6 +458,9 @@ func (u *Update) Hints(env *core.Env) []ui.Hint {
 		return []ui.Hint{{Key: "↑↓", Action: "choose"}, {Key: "⏎", Action: "go back to it"}, {Key: "esc", Action: "close"}}
 	}
 	h := []ui.Hint{{Key: "r", Action: "rescan"}, {Key: "c", Action: "new versions"}, {Key: "g", Action: "go back"}}
+	if releaseAvailable(env) {
+		h = append([]ui.Hint{{Key: "v", Action: "install release"}}, h...)
+	}
 	if env.Data.Update != nil && !env.Data.Update.UpToDate {
 		h = append(h, ui.Hint{Key: "⏎", Action: "apply"}, ui.Hint{Key: "↑↓", Action: "scroll"})
 	}
@@ -474,8 +501,11 @@ func (u *Update) Brief(env *core.Env, w int) []ui.Line {
 	up := env.Data.Update
 	canApply := up != nil && !up.UpToDate
 	var row []ui.Seg
+	if releaseAvailable(env) {
+		row = append(row, button(env, true, "Install "+env.Data.Release.Latest+"  v"), space(1))
+	}
 	if canApply {
-		row = append(row, button(env, true, "Apply  ⏎"), space(1))
+		row = append(row, button(env, !releaseAvailable(env), "Apply  ⏎"), space(1))
 	}
 	row = append(row, button(env, !canApply, "Rescan  r"), space(1), button(env, false, "New versions  c"), space(1), button(env, false, "Go back  g"))
 	lines := []ui.Line{ui.Of(row...)}

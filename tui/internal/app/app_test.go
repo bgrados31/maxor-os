@@ -90,6 +90,12 @@ func scanJSON(lock bool) string {
 	return fmt.Sprintf(`{"up_to_date":false,"kernel":true,"counts":{"new":1,"updated":2,"removed":0,"changed":1,"config":3},"changes":[{"kind":"updated","name":"firefox","from":"149.0","to":"150.0","size":"+1 MiB"},{"kind":"updated","name":"mesa","from":"26.0.1","to":"26.0.2","size":""},{"kind":"new","name":"earlyoom","to":"1.9.0","size":"52 KiB"},{"kind":"changed","name":"maxor","size":"38 KiB"}],"checked_at":%d,"fingerprint":"fp1","lock":%v}`, testNow-100, lock)
 }
 
+// releaseJSON es el estado de las releases firmadas, verificado «hace 100 s» respecto al reloj de las pruebas.
+func releaseJSON(status, reason string, available bool) string {
+	return fmt.Sprintf(`{"installed":"0.1.0","status":%q,"reason":%q,"checked_at":%d,"ok_at":%d,"available":%v,"latest":"0.2.0","tag":"v0.2.0","commit":"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa","sequence":1000,"published":"2026-10-03T00:00:00Z","summary":"Signed releases and update notices","url":"https://example/x","stale":false}`,
+		status, reason, testNow-100, testNow-100, available)
+}
+
 // testNow es el reloj fijo de las pruebas.
 const testNow = 1790000600
 
@@ -104,6 +110,8 @@ func newCLI() *fakeCLI {
 		"profile list --json": `[{"id":"gaming","title":"Gaming","description":"Steam, Proton and GameMode. More.","includes":["Steam","Proton","GameMode","MangoHud"],"enabled":false},{"id":"office","title":"Office","description":"LibreOffice and Thunderbird.","includes":["LibreOffice","Thunderbird"],"enabled":false}]`,
 		"search brave --json": `[{"source":"nix","id":"brave","name":"brave","version":"1.96.59","description":"Privacy-oriented browser"},{"source":"flatpak","id":"com.brave.Browser","name":"Brave Browser","version":"","description":"Fast Internet, AI, Adblock"}]`,
 		"install --nix brave --json": `[{"id":"brave","source":"nix","ok":true}]`,
+		"release status --json":      releaseJSON("ok", "", false),
+		"release check --json":       releaseJSON("ok", "", false),
 		"update --json":              scanJSON(true),
 		"update --json --no-lock":    scanJSON(false),
 		"theme apply alba":           ``,
@@ -1670,5 +1678,115 @@ func TestInicioGuardaUnaCopiaDeSeguridad(t *testing.T) {
 	send(m, key("enter"))
 	if !f.called("backup --json") {
 		t.Fatalf("la paleta también lo hace: %v", f.calls)
+	}
+}
+
+// ── releases firmadas ────────────────────────────────────────────────
+
+func releaseCLI(status, reason string, available bool) *fakeCLI {
+	f := newCLI()
+	f.resp["release status --json"] = releaseJSON(status, reason, available)
+	f.resp["release check --json"] = releaseJSON(status, reason, available)
+	f.resp["release check --json --force"] = releaseJSON(status, reason, available)
+	f.resp["release apply --yes"] = "Maxor OS 0.2.0 is installed"
+	return f
+}
+
+func TestUpdateEnseñaUnaReleaseNuevaVerificadaYLaInstala(t *testing.T) {
+	f := releaseCLI("ok", "", true)
+	m, _ := setupWith(t, f, Options{Screen: "update"})
+	m.env.Client.SudoCheck = func(context.Context) bool { return true }
+	out := view(m)
+	for _, want := range []string{"Maxor OS release", "Maxor OS 0.2.0 is available", "you have 0.1.0", "Signed releases and update notices", "signed and verified", "Install Maxor OS 0.2.0"} {
+		if !has(out, want) {
+			t.Fatalf("falta %q:\n%s", want, out)
+		}
+	}
+	send(m, key("v"))
+	if len(f.stdins) != 1 || f.stdins[0] != "release apply --yes|" {
+		t.Fatalf("v instala la release con la CLI, sin pedir confirmación otra vez: %v", f.stdins)
+	}
+}
+
+func TestUpdateSinReleaseNuevaNoOfreceInstalar(t *testing.T) {
+	f := releaseCLI("ok", "", false)
+	m, _ := setupWith(t, f, Options{Screen: "update"})
+	out := view(m)
+	if !has(out, "Maxor OS 0.1.0 is the latest release") || has(out, "Install Maxor OS") {
+		t.Fatalf("al día no se ofrece instalar:\n%s", out)
+	}
+	send(m, key("v"))
+	if len(f.stdins) != 0 {
+		t.Fatalf("v sin release nueva no ejecuta nada: %v", f.stdins)
+	}
+}
+
+func TestUnaReleaseIgnoradaPorLaFirmaSeAvisaYNuncaSeOfrece(t *testing.T) {
+	f := releaseCLI("insecure", "bad_signature", false)
+	m, _ := setupWith(t, f, Options{Screen: "update"})
+	out := view(m)
+	for _, want := range []string{"A release was ignored", "its signature is not valid", "Do not trust this update"} {
+		if !has(out, want) {
+			t.Fatalf("falta %q:\n%s", want, out)
+		}
+	}
+	if has(out, "Install Maxor OS") || has(out, "is available") {
+		t.Fatalf("lo inseguro nunca se ofrece como actualización:\n%s", out)
+	}
+	send(m, key("v"))
+	if len(f.stdins) != 0 {
+		t.Fatalf("no se instala nada: %v", f.stdins)
+	}
+	send(m, core.GoMsg{ID: "home"})
+	if !has(view(m), "A release was ignored") {
+		t.Fatalf("el Inicio también lo avisa:\n%s", view(m))
+	}
+}
+
+func TestSinRedNoSeDiceQueEstaAlDia(t *testing.T) {
+	f := releaseCLI("unavailable", "network", false)
+	m, _ := setupWith(t, f, Options{Screen: "update"})
+	out := view(m)
+	if !has(out, "Could not reach the release channel") || !has(out, "last verified 2 min ago") {
+		t.Fatalf("sin red se dice, con la última vez que se verificó:\n%s", out)
+	}
+}
+
+func TestElInicioAvisaDeUnaReleaseYVAlaPestanaUpdate(t *testing.T) {
+	f := releaseCLI("ok", "", true)
+	m, _ := setupWith(t, f, Options{})
+	out := view(m)
+	if !has(out, "Maxor OS 0.2.0 is available") || !has(out, "you have 0.1.0") {
+		t.Fatalf("el Inicio muestra el aviso:\n%s", out)
+	}
+	send(m, key("v"))
+	if m.screens[m.active].ID() != "update" {
+		t.Fatalf("v lleva a Update, está en %s", m.screens[m.active].ID())
+	}
+}
+
+func TestSalirRecuerdaLaReleasePendiente(t *testing.T) {
+	f := releaseCLI("ok", "", true)
+	m, _ := setupWith(t, f, Options{Screen: "exit"})
+	if !has(view(m), "Maxor OS 0.2.0 is available") {
+		t.Fatalf("Exit la recuerda:\n%s", view(m))
+	}
+}
+
+func TestRescanVuelveAPreguntarPorLaRelease(t *testing.T) {
+	f := releaseCLI("ok", "", false)
+	m, _ := setupWith(t, f, Options{Screen: "update"})
+	send(m, key("r"))
+	if f.n("release check --json --force") != 1 {
+		t.Fatalf("r repite también la consulta de la release, con --force: %v", f.calls)
+	}
+}
+
+func TestLaReleaseSePideUnaSolaVezPorSesion(t *testing.T) {
+	f := releaseCLI("ok", "", false)
+	m, _ := setupWith(t, f, Options{})
+	send(m, core.GoMsg{ID: "update"}, core.GoMsg{ID: "exit"}, core.GoMsg{ID: "home"})
+	if f.n("release check --json") != 1 || f.n("release status --json") != 1 {
+		t.Fatalf("una sola consulta y una sola lectura por sesión: %v", f.calls)
 	}
 }

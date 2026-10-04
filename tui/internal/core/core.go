@@ -113,6 +113,8 @@ type Data struct {
 	Update       *maxor.UpdateCheck
 	UpdateStatus *maxor.UpdateStatus
 	CacheLoaded  bool // ya se leyó el escaneo guardado (haya o no)
+	Release      *maxor.Release
+	ReleaseAsked bool // ya se pidió el estado de las releases en esta sesión
 	Hardware     *maxor.Hardware
 	Profiles     []maxor.Profile
 	Err          map[string]error // último fallo de cada carga: apps, doctor, themes, hardware, profiles

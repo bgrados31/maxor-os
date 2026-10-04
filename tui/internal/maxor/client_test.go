@@ -242,3 +242,38 @@ func TestBackup(t *testing.T) {
 		t.Fatalf("copia: %+v %v", b, err)
 	}
 }
+
+func TestReleaseCheckSinRedEsUnResultadoNoUnFallo(t *testing.T) {
+	// la CLI sale con 4 (sin red) pero imprime el estado: la pantalla lo muestra
+	c, f := newFake(map[string]resp{"release check --json --force": {out: `{"installed":"0.1.0","status":"unavailable","reason":"network","available":false,"ok_at":0}`, code: 4}})
+	r, err := c.ReleaseCheck(context.Background(), true)
+	if err != nil || r.Status != "unavailable" || r.Reason != "network" || r.Available {
+		t.Fatalf("release: %+v %v", r, err)
+	}
+	if len(f.calls) != 1 || strings.Join(f.calls[0], " ") != "release check --json --force" {
+		t.Fatalf("force añade --force: %v", f.calls)
+	}
+}
+
+func TestReleaseCheckSinForceNoLoPasa(t *testing.T) {
+	c, f := newFake(map[string]resp{"release check --json": {out: `{"installed":"0.1.0","status":"ok","available":true,"latest":"0.2.0"}`}})
+	r, err := c.ReleaseCheck(context.Background(), false)
+	if err != nil || !r.Available || r.Latest != "0.2.0" || strings.Contains(strings.Join(f.calls[0], " "), "--force") {
+		t.Fatalf("release: %+v %v %v", r, err, f.calls)
+	}
+}
+
+func TestReleaseCheckSinSalidaEsUnError(t *testing.T) {
+	c, _ := newFake(map[string]resp{"release check --json": {err: "boom", code: 1}})
+	if _, err := c.ReleaseCheck(context.Background(), false); err == nil {
+		t.Fatal("sin JSON debe fallar")
+	}
+}
+
+func TestReleaseStatusLeeLoGuardado(t *testing.T) {
+	c, _ := newFake(map[string]resp{"release status --json": {out: `{"installed":"0.1.0","status":"insecure","reason":"bad_signature","available":false,"stale":true}`}})
+	r, err := c.ReleaseStatus(context.Background())
+	if err != nil || r.Status != "insecure" || r.Reason != "bad_signature" || !r.Stale {
+		t.Fatalf("status: %+v %v", r, err)
+	}
+}

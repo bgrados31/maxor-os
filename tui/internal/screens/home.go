@@ -69,6 +69,7 @@ func (h *Home) Init(env *core.Env) tea.Cmd {
 	if !env.Data.UpdatesKnown {
 		cmds = append(cmds, LoadAppUpdates(env, true))
 	}
+	cmds = append(cmds, ReleaseInit(env)...)
 	return tea.Batch(cmds...)
 }
 
@@ -111,6 +112,9 @@ func (h *Home) Update(env *core.Env, msg tea.Msg) (core.Screen, tea.Cmd) {
 			h.list.move(d, len(homeActions), len(homeActions))
 			return h, nil
 		}
+		if isKey(k, "v") && releaseAvailable(env) {
+			return h, core.Go("update")
+		}
 		if isKey(k, "enter") {
 			return h, h.run(env, h.list.sel)
 		}
@@ -152,6 +156,9 @@ func (h *Home) Main(env *core.Env, w, hh int) []ui.Line {
 	p := env.P
 	d := env.Data
 	lines := []ui.Line{ui.T(p.Bold, greeting(env)+" · "+env.Host), gap()}
+	if b := releaseBanner(env); len(b) > 0 {
+		lines = append(append(lines, b...), gap())
+	}
 
 	// Sistema
 	var sys [][]ui.Seg

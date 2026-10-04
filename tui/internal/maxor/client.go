@@ -256,6 +256,26 @@ type UpdateStatus struct {
 	Generation  int    `json:"generation"`
 }
 
+// Release es el estado de las releases firmadas de Maxor OS (`maxor release status --json`).
+// Status: ok (la firma verificó), unavailable (no se pudo mirar: NO es «al día»), insecure
+// (algo no pasó la verificación y se ignoró) o never (aún no se miró).
+type Release struct {
+	Installed string `json:"installed"`
+	Status    string `json:"status"`
+	Reason    string `json:"reason"`
+	CheckedAt int64  `json:"checked_at"` // el último intento, con o sin éxito
+	OkAt      int64  `json:"ok_at"`      // la última vez que se verificó bien
+	Available bool   `json:"available"`
+	Latest    string `json:"latest"`
+	Tag       string `json:"tag"`
+	Commit    string `json:"commit"`
+	Sequence  int64  `json:"sequence"`
+	Published string `json:"published"`
+	Summary   string `json:"summary"`
+	URL       string `json:"url"`
+	Stale     bool   `json:"stale"` // hace más de 3 días que no se verifica nada
+}
+
 type Version struct {
 	Version string `json:"version"`
 	Schema  int    `json:"schema"`
@@ -378,6 +398,24 @@ func (c *Client) UpdateStatus(ctx context.Context) (u UpdateStatus, err error) {
 // UpdateCached devuelve el último escaneo guardado, o nil si no hay.
 func (c *Client) UpdateCached(ctx context.Context) (u *UpdateCheck, err error) {
 	err = c.getJSON(ctx, &u, false, "update", "--cached")
+	return
+}
+
+// ReleaseStatus lee lo último que se supo de las releases, sin tocar la red.
+func (c *Client) ReleaseStatus(ctx context.Context) (r Release, err error) {
+	err = c.getJSON(ctx, &r, false, "release", "status", "--json")
+	return
+}
+
+// ReleaseCheck pregunta al canal de releases (la CLI verifica la firma y no vuelve a la red si
+// se miró hace pocos minutos, salvo con force). Sin red o con una firma mala la CLI sale con
+// error pero imprime el estado: es el resultado, no un fallo de la pantalla.
+func (c *Client) ReleaseCheck(ctx context.Context, force bool) (r Release, err error) {
+	args := []string{"release", "check", "--json"}
+	if force {
+		args = append(args, "--force")
+	}
+	err = c.getJSON(ctx, &r, true, args...)
 	return
 }
 

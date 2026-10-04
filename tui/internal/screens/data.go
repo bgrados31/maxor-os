@@ -41,6 +41,26 @@ func LoadUpdateCache(env *core.Env, quiet bool) tea.Cmd {
 	return load(env, "updatecache", "Reading the last scan", quiet, func(ctx context.Context) (any, error) { return env.Client.UpdateCached(ctx) })
 }
 
+// LoadReleaseStatus lee al instante lo último que se supo de las releases (sin red).
+func LoadReleaseStatus(env *core.Env) tea.Cmd {
+	return load(env, "releasecache", "Reading the release state", true, func(ctx context.Context) (any, error) { return env.Client.ReleaseStatus(ctx) })
+}
+
+// LoadReleaseCheck pregunta al canal de releases; la CLI verifica la firma.
+func LoadReleaseCheck(env *core.Env, force, quiet bool) tea.Cmd {
+	return load(env, "release", "Checking for a new Maxor OS release", quiet, func(ctx context.Context) (any, error) { return env.Client.ReleaseCheck(ctx, force) })
+}
+
+// ReleaseInit pide el estado de las releases una sola vez por sesión: primero lo guardado (al
+// instante) y a la vez la consulta, que la CLI limita a una cada pocos minutos.
+func ReleaseInit(env *core.Env) []tea.Cmd {
+	if env.Data.ReleaseAsked {
+		return nil
+	}
+	env.Data.ReleaseAsked = true
+	return []tea.Cmd{LoadReleaseStatus(env), LoadReleaseCheck(env, false, true)}
+}
+
 func LoadAppUpdates(env *core.Env, quiet bool) tea.Cmd {
 	return load(env, "appupdates", "Looking for new versions", quiet, func(ctx context.Context) (any, error) { return env.Client.AppUpdates(ctx) })
 }
@@ -79,6 +99,11 @@ func ApplyData(env *core.Env, d task.DoneMsg) bool {
 		env.Data.AppUpdates, env.Data.UpdatesKnown = v, true
 	case maxor.UpdateStatus:
 		env.Data.UpdateStatus = &v
+	case maxor.Release:
+		// lo guardado y la consulta llegan en cualquier orden: gana lo más reciente
+		if env.Data.Release == nil || v.CheckedAt >= env.Data.Release.CheckedAt {
+			env.Data.Release = &v
+		}
 	case *maxor.UpdateCheck:
 		env.Data.CacheLoaded = true
 		if v != nil && (env.Data.Update == nil || v.CheckedAt > env.Data.Update.CheckedAt) {
