@@ -1,5 +1,7 @@
-{ config, pkgs, lib, inputs, ... }:
+{ config, pkgs, lib, inputs, osConfig, ... }:
 
+# El escritorio de Maxor OS para el usuario de la máquina (maxor.machine.user): sin nombres
+# propios aquí. El usuario, su carpeta y la identidad de git vienen de modules/machine.nix.
 {
   imports = [
     inputs.dms.homeModules.dank-material-shell
@@ -8,8 +10,7 @@
     ./maxor.nix
   ];
 
-  home.username = "bryan";
-  home.homeDirectory = "/home/bryan";
+  # home.username y home.homeDirectory los fija home-manager a partir del usuario del sistema.
   home.stateVersion = "26.05";
 
   # ── DankMaterialShell: barra, launcher, notificaciones, lockscreen,
@@ -55,7 +56,9 @@
     shellInit = ''
       fish_add_path -m $HOME/.local/bin
     '';
-    interactiveShellInit = ''
+    # mkAfter: el saludo va al final, después de las integraciones (starship, zoxide, fzf), pase lo
+    # que pase con el orden en que se evalúen los módulos.
+    interactiveShellInit = lib.mkAfter ''
       set -g fish_greeting
       fastfetch
     '';
@@ -64,8 +67,8 @@
       ll = "eza -lah --icons --group-directories-first";
       tree = "eza --tree --icons";
       cat = "bat --paging=never";
-      rebuild = "sudo nixos-rebuild switch --flake ~/nixos-config#nitro";
-      update = "nix flake update --flake ~/nixos-config && sudo nixos-rebuild switch --flake ~/nixos-config#nitro";
+      rebuild = "sudo nixos-rebuild switch --flake ~/nixos-config#${osConfig.networking.hostName}";
+      update = "nix flake update --flake ~/nixos-config && sudo nixos-rebuild switch --flake ~/nixos-config#${osConfig.networking.hostName}";
     };
   };
 
@@ -116,9 +119,9 @@
 
   programs.git = {
     enable = true;
-    settings.user = {
-      name = "Bryan Grados";
-      email = "218035463+bgrados31@users.noreply.github.com";
+    # La identidad sale de maxor.machine.git; sin ella, git la pide la primera vez.
+    settings.user = lib.filterAttrs (_: v: v != null) {
+      inherit (osConfig.maxor.machine.git) name email;
     };
   };
 

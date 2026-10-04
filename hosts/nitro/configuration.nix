@@ -15,31 +15,28 @@
   boot.loader.efi.canTouchEfiVariables = true;
   boot.initrd.compressorArgs = [ "-19" "-T0" ];
 
-  # ── Identidad del equipo y región ───────────────────────────────────
-  networking.hostName = "nitro";
-  time.timeZone = "America/Lima";
-  i18n.defaultLocale = "en_US.UTF-8";
-  console.keyMap = "la-latin1";
-  services.xserver.xkb = {
-    layout = "latam";
-    variant = "";
+  # ── Quién y dónde es esta máquina (ver modules/machine.nix) ─────────
+  maxor.machine = {
+    hostname = "nitro";
+    user = "bryan";
+    fullname = "Bryan";
+    timezone = "America/Lima";
+    locale = "en_US.UTF-8";
+    keymap = "la-latin1";
+    xkb = {
+      layout = "latam";
+      variant = "";
+    };
+    git = {
+      name = "Bryan Grados";
+      email = "218035463+bgrados31@users.noreply.github.com";
+    };
   };
 
   # ── Hardware: drivers según lo detectado (Intel + NVIDIA RTX 4050) ──
   # Se regenera con `maxor hardware detect --write`; ver modules/hardware.nix.
   maxor.hardware.report = ./hardware.json;
   maxor.settings = ./maxor.json; # perfiles activos (maxor profile)
-
-  # ── Login: el greeter hereda el tema y el wallpaper de este usuario ──
-  services.displayManager.dms-greeter.configHome = "/home/bryan";
-
-  # ── Usuario ─────────────────────────────────────────────────────────
-  users.users.bryan = {
-    isNormalUser = true;
-    description = "Bryan";
-    extraGroups = [ "networkmanager" "wheel" "video" "audio" ];
-    shell = pkgs.fish;
-  };
 
   system.stateVersion = "26.05"; # NO cambiar
 }

@@ -20,23 +20,20 @@
   let
     pkgs = nixpkgs.legacyPackages.x86_64-linux;
 
-    # La máquina virtual de pruebas (hosts/vm): el mismo Maxor OS sobre QEMU.
-    # maxorVersion, si se da, es la versión que dice ser la CLI (ver vm-old).
-    mkVm = { maxorVersion ? null }: nixpkgs.lib.nixosSystem {
+    # El punto de entrada de la distribución: un sistema Maxor OS completo a partir de lo propio de
+    # la máquina (maxor.machine: nombre, usuario, región, teclado) y los módulos extra que quiera
+    # (arranque, discos). Lo usan los hosts de este repositorio y el flake que escribe el instalador:
+    #   mkSystem { machine = { hostname = "maxor"; user = "ana"; … }; modules = [ ./boot.nix ]; }
+    mkSystem = { machine ? { }, modules ? [ ] }: nixpkgs.lib.nixosSystem {
       system = "x86_64-linux";
       specialArgs = { inherit inputs; };
-      modules = [
-        self.nixosModules.default
-        ./hosts/vm/configuration.nix
-        home-manager.nixosModules.home-manager
-        {
-          home-manager.useGlobalPkgs = true;
-          home-manager.useUserPackages = true;
-          home-manager.backupFileExtension = "hm-backup";
-          home-manager.extraSpecialArgs = { inherit inputs maxorVersion; };
-          home-manager.users.bryan = import ./home/bryan.nix;
-        }
-      ];
+      modules = [ self.nixosModules.default { maxor.machine = machine; } ] ++ modules;
+    };
+
+    # La máquina virtual de pruebas (hosts/vm): el mismo Maxor OS sobre QEMU.
+    # cliVersion, si se da, es la versión que dice ser la CLI (ver vm-old).
+    mkVm = { cliVersion ? null }: mkSystem {
+      modules = [ ./hosts/vm/configuration.nix { maxor.machine.cliVersion = cliVersion; } ];
     };
 
     # El lanzador: una ventana de QEMU con aceleración 3D y su disco en ~/.local/state/maxor-vm/.
@@ -59,7 +56,7 @@
     # La VM de pruebas: `nix run .#vm` (esta versión) y `nix run .#vm-old` (se hace pasar por
     # la 0.0.1: la release publicada aparece como actualización disponible).
     nixosConfigurations.maxor-vm = mkVm { };
-    nixosConfigurations.maxor-vm-old = mkVm { maxorVersion = "0.0.1"; };
+    nixosConfigurations.maxor-vm-old = mkVm { cliVersion = "0.0.1"; };
     packages.x86_64-linux.vm = mkVmRunner "maxor-vm" self.nixosConfigurations.maxor-vm;
     packages.x86_64-linux.vm-old = mkVmRunner "maxor-vm-old" self.nixosConfigurations.maxor-vm-old;
     apps.x86_64-linux.vm = { type = "app"; program = "${self.packages.x86_64-linux.vm}/bin/maxor-vm"; meta.description = "Maxor OS en una máquina virtual de pruebas"; };
@@ -98,6 +95,7 @@
     nixosModules.default = {
       imports = [
         ./modules/core.nix
+        ./modules/machine.nix
         ./modules/hardware.nix
         ./modules/profiles.nix
         ./modules/desktop.nix
@@ -107,21 +105,32 @@
       ];
     };
 
-    nixosConfigurations.nitro = nixpkgs.lib.nixosSystem {
-      system = "x86_64-linux";
-      specialArgs = { inherit inputs; };
+    nixosConfigurations.nitro = mkSystem { modules = [ ./hosts/nitro/configuration.nix ]; };
+
+    # Una máquina de ejemplo con otro usuario, otro teclado y otra región, y sin identidad de git:
+    # la prueba de que la distribución no tiene ningún nombre escrito a mano. Se evalúa en la CI
+    # (`nix flake check`) pero no se construye. Es también la plantilla de lo que
+    # escribe el instalador.
+    nixosConfigurations.example = mkSystem {
+      machine = {
+        hostname = "example";
+        user = "ana";
+        fullname = "Ana Pérez";
+        timezone = "Europe/Madrid";
+        locale = "es_ES.UTF-8";
+        keymap = "es";
+        xkb.layout = "es";
+      };
       modules = [
-        self.nixosModules.default
-        ./hosts/nitro/configuration.nix
-        home-manager.nixosModules.home-manager
-        {
-          home-manager.useGlobalPkgs = true;
-          home-manager.useUserPackages = true;
-          home-manager.backupFileExtension = "hm-backup";
-          home-manager.extraSpecialArgs = { inherit inputs; maxorVersion = null; };
-          home-manager.users.bryan = import ./home/bryan.nix;
-        }
+        ({ ... }: {
+          boot.loader.systemd-boot.enable = true;
+          fileSystems."/" = { device = "/dev/disk/by-label/root"; fsType = "ext4"; };
+          system.stateVersion = "26.05";
+        })
       ];
     };
+
+    # Para quien arma su propia máquina: `maxor-os.lib.mkSystem { machine = …; modules = […]; }`.
+    lib.mkSystem = mkSystem;
   };
 }

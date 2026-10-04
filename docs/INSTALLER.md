@@ -189,7 +189,7 @@ dual-boots Windows.
 | | What | Done when |
 |---|---|---|
 | M0 | This plan | reviewed |
-| M1 | `lib.mkSystem`: the distribution stops hardcoding a user; hosts become data | `nitro` and the VM build from it, behavior unchanged |
+| M1 | `lib.mkSystem`: the distribution stops hardcoding a user; hosts become data | **done**: `nitro` and the VM build from it; 654 home files and all of `/etc` compared, only the intended file changed |
 | M2 | Engine: answers schema, plan, preflight, dry-run, stages, events | the unit matrix passes; a dry run prints a full plan |
 | M3 | Real install onto a virtual disk in a NixOS test | the installed system boots and passes `maxor doctor` |
 | M4 | ISO: branded boot, live session, closure baked in, boots in QEMU with UEFI | verified by screenshots |

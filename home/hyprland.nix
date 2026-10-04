@@ -1,7 +1,8 @@
-{ lib, config, ... }:
+{ lib, config, osConfig, ... }:
 
 # Hyprland en módulos Lua, cada uno con una sola responsabilidad:
 #
+#   machine.lua    lo propio de la máquina (teclado); lo genera Nix desde maxor.machine
 #   settings.lua   apariencia, entrada y animaciones
 #   rules.lua      reglas de ventana y de capa
 #   binds.lua      atajos
@@ -42,6 +43,14 @@
   };
 
   xdg.configFile = {
+    # El teclado sale de la misma opción que el del sistema, para que no haya dos fuentes.
+    "hypr/maxor/machine.lua".text = ''
+      -- Generado por Nix a partir de maxor.machine.xkb. No lo edites: usa user.lua.
+      return {
+        kb_layout = "${osConfig.maxor.machine.xkb.layout}",
+        kb_variant = "${osConfig.maxor.machine.xkb.variant}",
+      }
+    '';
     "hypr/maxor/settings.lua".source = ./hyprland/settings.lua;
     "hypr/maxor/rules.lua".source = ./hyprland/rules.lua;
     "hypr/maxor/binds.lua".source = ./hyprland/binds.lua;

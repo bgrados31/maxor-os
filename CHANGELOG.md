@@ -9,6 +9,7 @@ no usa versiones numeradas.
 
 ### Cambiado
 
+- **La distribución ya no tiene ningún usuario escrito a mano** (`maxor.machine`, `lib.mkSystem`): el nombre, el usuario, la región, el teclado y la identidad de git de cada máquina son opciones (`modules/machine.nix`) y `home/bryan.nix` pasó a ser `home/user.nix`, sin nombres propios. `nitro` y la VM las rellenan en su host, y `maxor-os.lib.mkSystem { machine = …; modules = […]; }` es el punto de entrada para cualquier otra máquina (la base del instalador). Una máquina de ejemplo con otro usuario, idioma y teclado se evalúa en la CI. El teclado de Hyprland sale de la misma opción que el del sistema. Comprobado: de 654 archivos de home y todo `/etc` de `nitro`, solo cambia `settings.lua` (a propósito) y aparece `machine.lua`.
 - **El doctor ya no exige `/boot` montado donde no hay UEFI** (por ejemplo, una máquina virtual con arranque directo).
 - **La CLI es lineal y cuelga de un riel** (`┌ │ ◇ └`) en vez de dibujar una ventana que imita una terminal: no mide el ancho de cada línea, se copia limpia y se ve igual en un log. Glifos Unicode con respaldo ASCII automático (`TERM=linux`, un locale que no es UTF-8 o `MAXOR_ASCII=1`).
 - **Un solo cargador para todo** (`ui_run`): spinner, las últimas líneas si tarda, el tiempo y el fallo con `maxor logs --last`. Desaparecen `ui_run_tail`, `ui_pipeline`, el esqueleto y las pestañas de la CLI; la pantalla completa habla el mismo idioma.

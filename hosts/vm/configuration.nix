@@ -12,21 +12,16 @@
 {
   imports = [ (modulesPath + "/virtualisation/qemu-vm.nix") ];
 
-  networking.hostName = "maxor-vm";
-  time.timeZone = "UTC";
-  i18n.defaultLocale = "en_US.UTF-8";
+  maxor.machine = {
+    hostname = "maxor-vm";
+    user = "bryan";
+    fullname = "Bryan";
+  };
 
   maxor.hardware.report = ./hardware.json;
   maxor.settings = ./maxor.json;
-  services.displayManager.dms-greeter.configHome = "/home/bryan";
 
-  users.users.bryan = {
-    isNormalUser = true;
-    description = "Bryan";
-    extraGroups = [ "networkmanager" "wheel" "video" "audio" ];
-    shell = pkgs.fish;
-    initialPassword = "maxor"; # solo para esta máquina de pruebas
-  };
+  users.users.${config.maxor.machine.user}.initialPassword = "maxor"; # solo para esta máquina de pruebas
 
   virtualisation = {
     memorySize = 6144;
@@ -39,7 +34,7 @@
   # aparece el login de verdad, el greeter de Maxor Shell.
   services.greetd.settings.initial_session = {
     command = "${config.programs.hyprland.package}/bin/start-hyprland";
-    user = "bryan";
+    user = config.maxor.machine.user;
   };
 
   # Sin aceleración 3D (o con ella, según el lanzador) Hyprland necesita estas ayudas en una VM.

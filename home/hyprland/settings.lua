@@ -2,9 +2,12 @@
 -- Se instala en ~/.config/hypr/maxor/settings.lua (solo lectura).
 -- Para cambiar algo sin tocar el sistema, usa user.lua.
 
+local machine = require("maxor.machine") -- teclado de la máquina (lo genera Nix)
+
 hl.config({
   input = {
-    kb_layout = "latam",
+    kb_layout = machine.kb_layout,
+    kb_variant = machine.kb_variant,
     numlock_by_default = true,
     follow_mouse = 1,
     touchpad = {
