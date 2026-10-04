@@ -1,35 +1,62 @@
-# Política de seguridad
+# Security policy
 
-## Versiones con soporte
+## Supported versions
 
-Maxor OS está en desarrollo activo y no tiene versiones estables. Solo la rama `main` recibe
-correcciones.
+Maxor OS is under active development and has no stable versions. Only the `main` branch receives
+fixes.
 
-## Cómo informar de una vulnerabilidad
+## How to report a vulnerability
 
-Usa el [reporte privado de GitHub](https://github.com/bgrados31/maxor-os/security/advisories/new).
-No abras un issue público ni publiques detalles antes de que haya una corrección.
+Use [GitHub's private report](https://github.com/bgrados31/maxor-os/security/advisories/new).
+Do not open a public issue or publish details before there is a fix.
 
-Incluye, si puedes:
+Include, if you can:
 
-- qué componente afecta (CLI `maxor`, motor de temas, configuración del sistema);
-- cómo reproducirlo;
-- el impacto que crees que tiene.
+- which component it affects (the `maxor` CLI, the theme engine, the system configuration);
+- how to reproduce it;
+- the impact you think it has.
 
-Se acusará recibo en un plazo razonable y se te mantendrá al tanto de la corrección.
+Receipt will be acknowledged within a reasonable time and you will be kept informed about the fix.
 
-## Qué se considera en alcance
+## What is in scope
 
-- El CLI `maxor` y el motor de temas: por ejemplo, que un tema pueda ejecutar código, escribir
-  fuera de las rutas permitidas o inyectar contenido en archivos de configuración.
-- Configuraciones del sistema que debiliten la seguridad de forma no evidente.
+- The `maxor` CLI and the theme engine: for example, a theme that can run code, write outside the
+  allowed paths or inject content into configuration files.
+- `maxor backup` and `maxor restore`: for example, a backup that can write outside its folders.
+- System configurations that weaken security in a non-obvious way.
 
-Fuera de alcance: vulnerabilidades de componentes de terceros (Hyprland, DMS, nixpkgs), que deben
-informarse a sus proyectos.
+Out of scope: vulnerabilities in third-party components (Hyprland, DMS, nixpkgs), which should be
+reported to their own projects.
 
-## Modelo de seguridad de los temas
+## Security model of themes
 
-Un tema solo aporta datos. El motor valida que cada color sea `#rrggbb` antes de usarlo, no
-ejecuta ningún archivo del tema y solo escribe en `~/.config/maxor/current/`,
-`~/.local/state/maxor/` y dos claves de la configuración de DMS. Detalles en
-[docs/THEMING.md](docs/THEMING.md#seguridad).
+A theme only provides data. The engine validates that every color is `#rrggbb` before using it,
+runs no file from the theme, and only writes to `~/.config/maxor/current/`,
+`~/.local/state/maxor/` and two keys of the DMS configuration. Details in
+[docs/THEMING.md](docs/THEMING.md#security).
+
+## Security model of the password prompt
+
+The full-screen app asks for your password in its own field only when `sudo` needs it to change
+the system. The password goes to `sudo` through standard input and is never saved, logged or shown
+(it is drawn as dots). See [docs/TUI.md](docs/TUI.md).
+
+## Security model of updates and releases
+
+Every release is signed. `maxor release` only trusts a manifest, and `maxor release apply` only
+trusts a git tag, signed by the release key whose public half is committed in
+[`keys/allowed_signers`](keys/allowed_signers) and shipped inside the `maxor` package.
+
+- Key fingerprint: `SHA256:9W5S6iKHa26a9wzHK1MWLzfsMXCbe+CG/GflwisYi7Y` (ed25519, `maxor-release`).
+  Check it yourself with `ssh-keygen -lf keys/maxor-release.pub`, and compare it with a copy you got
+  from somewhere other than this repository before you rely on it for the first time.
+- Anything that fails verification is ignored and reported as such; it is never installed, and "could
+  not check" is never shown as "up to date". An older manifest than one already seen is rejected.
+- The private key lives only on the maintainer's machine, protected by a passphrase. CI never holds it:
+  CI only re-verifies what was published.
+- `main` and the `v*` tags cannot be force-pushed or deleted, and a published tag cannot be moved.
+- Releases are not reproducible byte for byte yet, and there is no key rotation or manifest expiry yet.
+  See [docs/UPDATES.md](docs/UPDATES.md#limits-said-plainly).
+
+If you think the release key has leaked, report it privately (above). The response is to publish a new
+`keys/allowed_signers` in a release signed by the old key, and to announce the new fingerprint here.

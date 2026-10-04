@@ -1,0 +1,16 @@
+# Keeps the pinned GitHub Actions and the Go modules of maxor-tui up to date. Updates arrive as
+# pull requests: CI runs on them and nothing is merged without looking.
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    commit-message:
+      prefix: "chore(ci)"
+  - package-ecosystem: gomod
+    directory: /tui
+    schedule:
+      interval: weekly
+    commit-message:
+      prefix: "chore(tui)"
