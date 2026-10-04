@@ -10,6 +10,7 @@ import (
 
 	tea "github.com/charmbracelet/bubbletea"
 
+	"github.com/bgrados31/maxor-os/tui/internal/i18n"
 	"github.com/bgrados31/maxor-os/tui/internal/install"
 )
 
@@ -125,6 +126,7 @@ func introModel(t *testing.T, e *env) *Model {
 // installModel is the installer past the introduction, at the first question.
 func installModel(t *testing.T, e *env) *Model {
 	t.Helper()
+	t.Cleanup(func() { i18n.Set("en") }) // choosing a language switches the whole interface: do not leak it to other tests
 	m := introModel(t, e)
 	send(m, key("enter"))
 	return m
@@ -194,8 +196,18 @@ func TestWelcomeChoosesTheLanguage(t *testing.T) {
 		t.Fatalf("typing filters the list:\n%s", view(m))
 	}
 	send(m, key("enter"))
+	// the installer speaks the language that was chosen, from the next screen on
+	if !has(view(m), "Teclado") || has(view(m), "Keyboard") {
+		t.Fatalf("moves on to the keyboard, in Spanish:\n%s", view(m))
+	}
+}
+
+func TestAnUntranslatedLanguageStaysInEnglish(t *testing.T) {
+	m := installModel(t, newInstallEnv(emptyDisk()))
+	typeText(m, "日本語")
+	send(m, key("enter"))
 	if !has(view(m), "Keyboard") {
-		t.Fatal("moves on to the keyboard")
+		t.Fatalf("a language without a catalog falls back to English:\n%s", view(m))
 	}
 }
 
@@ -526,6 +538,28 @@ func TestEveryStepFitsInASmallWindow(t *testing.T) {
 			t.Fatalf("step %d: %d rows in a %d-row window", i, len(lines), m.h)
 		}
 		send(m, key("ctrl+n"))
+	}
+}
+
+// Translations are longer than English: no step of the installer may overflow the window in any language.
+func TestEveryStepFitsInASmallWindowInEveryLanguage(t *testing.T) {
+	for _, locale := range []string{"es_PE", "pt_BR", "fr_FR", "de_DE", "it_IT"} {
+		t.Run(locale, func(t *testing.T) {
+			e := newInstallEnv(windowsDisk())
+			m := installModel(t, e)
+			typeText(m, locale)
+			send(m, key("enter"))
+			if i18n.Code() == "en" {
+				t.Fatalf("%s did not switch the interface", locale)
+			}
+			for i := 0; i < 12; i++ {
+				out := view(m)
+				if lines := strings.Split(out, "\n"); len(lines) != m.h {
+					t.Fatalf("step %d: %d rows in a %d-row window:\n%s", i, len(lines), m.h, out)
+				}
+				send(m, key("ctrl+n"))
+			}
+		})
 	}
 }
 

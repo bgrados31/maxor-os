@@ -10,6 +10,7 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 
 	"github.com/bgrados31/maxor-os/tui/internal/core"
+	"github.com/bgrados31/maxor-os/tui/internal/i18n"
 	"github.com/bgrados31/maxor-os/tui/internal/task"
 	"github.com/bgrados31/maxor-os/tui/internal/ui"
 )
@@ -189,3 +190,6 @@ func ago(now time.Time, unix int64) string {
 	}
 	return fmt.Sprintf("%d days ago", int(d.Round(24*time.Hour)/(24*time.Hour)))
 }
+
+// tr translates a text of the interface (see package i18n); the English text is the key.
+var tr = i18n.T

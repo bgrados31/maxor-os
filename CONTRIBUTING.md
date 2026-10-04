@@ -69,6 +69,10 @@ Requirements:
 - A license that allows redistribution (CC0-1.0 is recommended).
 - A theme never includes scripts or executables.
 
+## Translating
+
+A translation is one JSON file and needs no Go: see [docs/TRANSLATING.md](docs/TRANSLATING.md).
+
 ## Security
 
 Do not open a public issue for a vulnerability. Follow [SECURITY.md](SECURITY.md).

@@ -58,6 +58,14 @@ Also on branch `claude/vigilant-ptolemy-ng8e4i` (2026-10-04, evening; not yet me
 outline, dims at 150 s); wallpaper signature (vignette, `ac2` glow top-right with three orbits, grain; light themes
 softer). None of this was seen on a real screen yet: check it on the laptop before the release.
 
+Translations (same branch): `tui/internal/i18n` (the English text is the key; catalogs `lang/<code>.json`, fallback
+to English, `go test ./internal/i18n -update` syncs them, tests check placeholders and that every installer step fits
+in a small window in each language). The installer is fully wrapped in `tr(...)` and switches language when the
+user picks it in the first step. `es` is reviewed by me, `pt fr de it` are machine translations awaiting native
+review (docs/TRANSLATING.md invites the community by pull request). NOT yet translated: the rest of maxor-tui
+(Home, Store, Themes, Update, Doctor, palette, help: `app/` and the other `screens/*.go`), keyboard layout names
+(`install/catalog.go`), the `maxor` CLI (still `lib/lang/en.sh` only), the engine's messages, the live ISO's boot menu.
+
 Next, in order:
 1. **Verify the latest ISO** (`nix build .#iso`) with a full install in a VM (Spanish, offline) to the desktop.
 2. **Release 0.2.0-beta** (pre-release, Bryan chose this): set `VERSION` to `0.2.0-beta`, rebuild the ISO, write its

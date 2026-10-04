@@ -69,10 +69,10 @@ func (d Disk) Contents() string {
 		kinds = append(kinds, "Windows")
 	}
 	if d.Maxor {
-		kinds = append(kinds, "a previous Maxor OS")
+		kinds = append(kinds, tr("a previous Maxor OS"))
 	}
 	n := len(d.Partitions)
-	desc := fmt.Sprintf("%d partitions", n)
+	desc := fmt.Sprintf(tr("%d partitions"), n)
 	if n == 1 {
 		desc = "1 partition"
 	}
@@ -99,17 +99,17 @@ func (d Disk) Problem(strategy string) string {
 	case d.ReadOnly:
 		return "read-only"
 	case d.Mounted:
-		return "in use (something on it is mounted)"
+		return tr("in use (something on it is mounted)")
 	}
 	if strategy == "alongside" {
 		f := d.LargestFree()
 		if f == nil || f.Sectors*512 < MinRegionGiB*gib {
-			return fmt.Sprintf("no free region of %d GiB or more", MinRegionGiB)
+			return fmt.Sprintf(tr("no free region of %d GiB or more"), MinRegionGiB)
 		}
 		return ""
 	}
 	if d.Size < MinWholeGiB*gib {
-		return fmt.Sprintf("smaller than %d GiB", MinWholeGiB)
+		return fmt.Sprintf(tr("smaller than %d GiB"), MinWholeGiB)
 	}
 	return ""
 }
@@ -120,11 +120,11 @@ func HumanSize(b int64) string {
 	f := float64(b)
 	switch {
 	case f >= k*k*k*k:
-		return fmt.Sprintf("%.1f TB", f/(k*k*k*k))
+		return fmt.Sprintf(tr("%.1f TB"), f/(k*k*k*k))
 	case f >= k*k*k:
-		return fmt.Sprintf("%.0f GB", f/(k*k*k))
+		return fmt.Sprintf(tr("%.0f GB"), f/(k*k*k))
 	case f >= k*k:
-		return fmt.Sprintf("%.0f MB", f/(k*k))
+		return fmt.Sprintf(tr("%.0f MB"), f/(k*k))
 	}
 	return fmt.Sprintf("%d B", b)
 }

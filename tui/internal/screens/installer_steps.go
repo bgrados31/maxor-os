@@ -13,6 +13,7 @@ import (
 	"github.com/charmbracelet/x/ansi"
 
 	"github.com/bgrados31/maxor-os/tui/internal/core"
+	"github.com/bgrados31/maxor-os/tui/internal/i18n"
 	"github.com/bgrados31/maxor-os/tui/internal/install"
 	"github.com/bgrados31/maxor-os/tui/internal/task"
 	"github.com/bgrados31/maxor-os/tui/internal/ui"
@@ -38,7 +39,7 @@ func listRows[T any](env *core.Env, pk *picker, items []T, text func(T) string, 
 	lines := []ui.Line{ui.Of(ui.S(p.Mu, ui.G.Find+"  "), ui.Seg{T: ""}), gap()}
 	lines[0] = ui.Line{L: append([]ui.Seg{ui.S(p.Mu, ui.G.Find+"  ")}, pk.in.Segs(p, !pk.blurred, width-6)...)}
 	if len(items) == 0 {
-		return append(lines, muted(env, "Nothing matches. Keep typing, or delete a letter."))
+		return append(lines, muted(env, tr("Nothing matches. Keep typing, or delete a letter.")))
 	}
 	from, to := pk.list.window(len(items), pickRows)
 	for i := from; i < to; i++ {
@@ -50,7 +51,7 @@ func listRows[T any](env *core.Env, pk *picker, items []T, text func(T) string, 
 		lines = append(lines, ui.Line{L: segs, R: right, Sel: i == pk.list.sel})
 	}
 	if hidden := len(items) - (to - from); hidden > 0 {
-		lines = append(lines, muted(env, fmt.Sprintf("   %d more: type to narrow the list", hidden)))
+		lines = append(lines, muted(env, fmt.Sprintf(tr("   %d more: type to narrow the list"), hidden)))
 	}
 	return lines
 }
@@ -66,9 +67,9 @@ type welcomeStep struct {
 }
 
 func (*welcomeStep) ID() string    { return "welcome" }
-func (*welcomeStep) Title() string { return "Language" }
+func (*welcomeStep) Title() string { return tr("Language") }
 func (*welcomeStep) Intro() string {
-	return "A few questions, and nothing changes until the end."
+	return tr("A few questions, and nothing changes until the end.")
 }
 
 func (s *welcomeStep) filtered() []install.Locale {
@@ -83,7 +84,7 @@ func (s *welcomeStep) Enter(w *Installer, env *core.Env) tea.Cmd {
 			s.pk.list.sel = i
 		}
 	}
-	return runTask(env, "welcome.net", "Looking at the network", true, func(ctx context.Context) (any, error) {
+	return runTask(env, "welcome.net", tr("Looking at the network"), true, func(ctx context.Context) (any, error) {
 		return env.Install.Net.Status(ctx)
 	})
 }
@@ -103,6 +104,7 @@ func (s *welcomeStep) Key(w *Installer, env *core.Env, k tea.KeyMsg) (bool, tea.
 	if k.String() == "enter" {
 		if s.pk.list.sel >= 0 && s.pk.list.sel < len(items) {
 			w.st.Locale = items[s.pk.list.sel].Code
+			i18n.Set(w.st.Locale) // from the next screen on the installer speaks the language that was chosen
 			w.suggest()
 		}
 		return true, nil
@@ -113,10 +115,10 @@ func (s *welcomeStep) Key(w *Installer, env *core.Env, k tea.KeyMsg) (bool, tea.
 
 func (s *welcomeStep) Gate(w *Installer) string {
 	if !s.sys.UEFI {
-		return "This machine did not start in UEFI mode, and legacy BIOS is not supported yet. Restart it in UEFI mode."
+		return tr("This machine did not start in UEFI mode, and legacy BIOS is not supported yet. Restart it in UEFI mode.")
 	}
 	if s.sys.RAMBytes > 0 && s.sys.RAMBytes < 1500*1000*1000 {
-		return "Maxor OS needs at least 2 GB of memory to install."
+		return tr("Maxor OS needs at least 2 GB of memory to install.")
 	}
 	return ""
 }
@@ -130,19 +132,19 @@ func (s *welcomeStep) Lines(w *Installer, env *core.Env, width int) []ui.Line {
 		return ui.Of(ui.S(p.Bad, ui.G.Bad+"  "), ui.S(p.Text, text))
 	}
 	// the network is not a requirement (Maxor OS installs without one): not having it is said plainly, not as a fault
-	netLine := ui.Of(ui.S(p.Mu, ui.G.Info+"  "), ui.S(p.Mu, "Looking for a network…"))
+	netLine := ui.Of(ui.S(p.Mu, ui.G.Info+"  "), ui.S(p.Mu, tr("Looking for a network…")))
 	if s.got {
 		if s.net.Online {
-			netLine = tick(true, "Connected to the internet ("+s.net.Name+")")
+			netLine = tick(true, tr("Connected to the internet (%s)", s.net.Name))
 		} else {
-			netLine = ui.Of(ui.S(p.Mu, ui.G.Info+"  "), ui.S(p.Text, "No network yet: connect in a moment, or install without one"))
+			netLine = ui.Of(ui.S(p.Mu, ui.G.Info+"  "), ui.S(p.Text, tr("No network yet: connect in a moment, or install without one")))
 		}
 	}
 	lines := []ui.Line{
-		tick(s.sys.UEFI, "UEFI firmware"),
-		tick(s.sys.RAMBytes == 0 || s.sys.RAMBytes >= 1500*1000*1000, fmt.Sprintf("%.1f GB of memory", float64(s.sys.RAMBytes)/1e9)),
+		tick(s.sys.UEFI, tr("UEFI firmware")),
+		tick(s.sys.RAMBytes == 0 || s.sys.RAMBytes >= 1500*1000*1000, fmt.Sprintf(tr("%.1f GB of memory"), float64(s.sys.RAMBytes)/1e9)),
 		netLine,
-		gap(), heading(env, "System language"),
+		gap(), heading(env, tr("System language")),
 	}
 	return append(lines, listRows(env, &s.pk, s.filtered(), func(l install.Locale) string { return l.Name }, func(l install.Locale) string { return l.Code }, width)...)
 }
@@ -158,8 +160,8 @@ type keyboardStep struct {
 }
 
 func (*keyboardStep) ID() string    { return "keyboard" }
-func (*keyboardStep) Title() string { return "Keyboard" }
-func (*keyboardStep) Intro() string { return "Pick your layout, then type in the box to check that the keys are where you expect." }
+func (*keyboardStep) Title() string { return tr("Keyboard") }
+func (*keyboardStep) Intro() string { return tr("Pick your layout, then type in the box to check that the keys are where you expect.") }
 
 func (s *keyboardStep) filtered() []install.Layout {
 	return install.Filter(install.Layouts, s.pk.in.Text(), func(l install.Layout) string { return l.Name + " " + l.XKB })
@@ -167,7 +169,7 @@ func (s *keyboardStep) filtered() []install.Layout {
 
 func (s *keyboardStep) Enter(w *Installer, env *core.Env) tea.Cmd {
 	s.pk = newPicker("layout")
-	s.test.Placeholder = "try your keys here, accents included"
+	s.test.Placeholder = tr("try your keys here, accents included")
 	s.onTest, s.pk.blurred = false, false
 	cur := install.FindLayout(w.st.XKBLayout, w.st.XKBVariant)
 	for i, l := range install.Layouts {
@@ -220,7 +222,7 @@ func (s *keyboardStep) Key(w *Installer, env *core.Env, k tea.KeyMsg) (bool, tea
 
 func (s *keyboardStep) Lines(w *Installer, env *core.Env, width int) []ui.Line {
 	lines := listRows(env, &s.pk, s.filtered(), func(l install.Layout) string { return l.Name }, func(l install.Layout) string { return l.XKB }, width)
-	return append(lines, gap(), field(env, "Try it", &s.test, s.onTest, width), muted(env, "tab switches between the list and the test box"))
+	return append(lines, gap(), field(env, tr("Try it"), &s.test, s.onTest, width), muted(env, tr("tab switches between the list and the test box")))
 }
 
 // ── 3 · Network ──────────────────────────────────────────────────────
@@ -239,26 +241,26 @@ type networkStep struct {
 }
 
 func (*networkStep) ID() string    { return "network" }
-func (*networkStep) Title() string { return "Network" }
+func (*networkStep) Title() string { return tr("Network") }
 func (*networkStep) Intro() string {
-	return "The installer can download updates. It also works without a network."
+	return tr("The installer can download updates. It also works without a network.")
 }
 
 func (s *networkStep) Enter(w *Installer, env *core.Env) tea.Cmd {
-	s.pw = ui.Input{Mask: true, Placeholder: "Wi-Fi password"}
+	s.pw = ui.Input{Mask: true, Placeholder: tr("Wi-Fi password")}
 	s.askPW, s.joining, s.msg = false, false, ""
 	return tea.Batch(s.refresh(env), s.scan(env))
 }
 
 func (s *networkStep) refresh(env *core.Env) tea.Cmd {
-	return runTask(env, "network.status", "Looking at the network", true, func(ctx context.Context) (any, error) {
+	return runTask(env, "network.status", tr("Looking at the network"), true, func(ctx context.Context) (any, error) {
 		return env.Install.Net.Status(ctx)
 	})
 }
 
 func (s *networkStep) scan(env *core.Env) tea.Cmd {
 	s.apsDone = false
-	return runTask(env, "network.scan", "Looking for Wi-Fi networks", false, func(ctx context.Context) (any, error) {
+	return runTask(env, "network.scan", tr("Looking for Wi-Fi networks"), false, func(ctx context.Context) (any, error) {
 		return env.Install.Net.Scan(ctx)
 	})
 }
@@ -294,7 +296,7 @@ func (s *networkStep) Captures() bool { return true }
 
 func (s *networkStep) join(env *core.Env, ap install.AP, password string) tea.Cmd {
 	s.joining, s.msg = true, ""
-	return runTask(env, "network.join", "Joining "+ap.SSID, false, func(ctx context.Context) (any, error) {
+	return runTask(env, "network.join", tr("Joining %s", ap.SSID), false, func(ctx context.Context) (any, error) {
 		return nil, env.Install.Net.Connect(ctx, ap.SSID, password)
 	})
 }
@@ -348,7 +350,7 @@ func (s *networkStep) Key(w *Installer, env *core.Env, k tea.KeyMsg) (bool, tea.
 
 func (s *networkStep) Gate(w *Installer) string {
 	if s.loaded && !s.status.Online && !w.st.Offline {
-		return "Join a network, or choose «Install without a network»."
+		return tr("Join a network, or choose «Install without a network».")
 	}
 	return ""
 }
@@ -358,17 +360,17 @@ func (s *networkStep) Lines(w *Installer, env *core.Env, width int) []ui.Line {
 	var lines []ui.Line
 	switch {
 	case !s.loaded:
-		lines = append(lines, muted(env, "Looking at the network…"))
+		lines = append(lines, muted(env, tr("Looking at the network…")))
 	case s.status.Online:
-		lines = append(lines, ui.Of(ui.S(p.Ok, ui.G.Tick+"  "), ui.S(p.Text, "Connected through "+s.status.Name)))
+		lines = append(lines, ui.Of(ui.S(p.Ok, ui.G.Tick+"  "), ui.S(p.Text, tr("Connected through %s", s.status.Name))))
 	default:
-		lines = append(lines, ui.Of(ui.S(p.Warn, ui.G.Warn+"  "), ui.S(p.Text, "No internet connection")))
+		lines = append(lines, ui.Of(ui.S(p.Warn, ui.G.Warn+"  "), ui.S(p.Text, tr("No internet connection"))))
 	}
 	lines = append(lines, gap(), heading(env, "Wi-Fi"))
-	if l, ok := working(env, "install.network.scan", "Looking for Wi-Fi networks"); ok {
+	if l, ok := working(env, "install.network.scan", tr("Looking for Wi-Fi networks")); ok {
 		lines = append(lines, l)
 	} else if s.apsDone && len(s.aps) == 0 {
-		for _, l := range ui.Wrap("No Wi-Fi networks found (a wired connection works without any setup).", width) {
+		for _, l := range ui.Wrap(tr("No Wi-Fi networks found (a wired connection works without any setup)."), width) {
 			lines = append(lines, muted(env, l))
 		}
 	}
@@ -376,7 +378,7 @@ func (s *networkStep) Lines(w *Installer, env *core.Env, width int) []ui.Line {
 	for i := from; i < to; i++ {
 		sel := i == s.list.sel
 		if i == len(s.aps) {
-			lines = append(lines, ui.Line{L: []ui.Seg{ui.S(p.Ac, pad(sel)), ui.S(p.Text, "Install without a network")}, R: []ui.Seg{ui.S(p.Mu, "offline ")}, Sel: sel})
+			lines = append(lines, ui.Line{L: []ui.Seg{ui.S(p.Ac, pad(sel)), ui.S(p.Text, tr("Install without a network"))}, R: []ui.Seg{ui.S(p.Mu, tr("offline "))}, Sel: sel})
 			continue
 		}
 		ap := s.aps[i]
@@ -390,14 +392,14 @@ func (s *networkStep) Lines(w *Installer, env *core.Env, width int) []ui.Line {
 		right := fmt.Sprintf("%s  %d%% ", lock, ap.Signal)
 		name := ap.SSID
 		if ap.InUse {
-			name += "  (connected)"
+			name += tr("  (connected)")
 		}
 		lines = append(lines, ui.Line{L: []ui.Seg{ui.S(p.Ac, pad(sel)), ui.S(p.Text, name)}, R: []ui.Seg{ui.S(p.Mu, right)}, Sel: sel})
 	}
 	if s.askPW && s.list.sel < len(s.aps) {
-		lines = append(lines, gap(), field(env, "Password for "+s.aps[s.list.sel].SSID, &s.pw, true, width))
+		lines = append(lines, gap(), field(env, tr("Password for %s", s.aps[s.list.sel].SSID), &s.pw, true, width))
 	}
-	if l, ok := working(env, "install.network.join", "Joining the network"); ok {
+	if l, ok := working(env, "install.network.join", tr("Joining the network")); ok {
 		lines = append(lines, gap(), l)
 	}
 	if s.msg != "" {
@@ -424,8 +426,8 @@ type regionStep struct {
 }
 
 func (*regionStep) ID() string    { return "region" }
-func (*regionStep) Title() string { return "Time zone" }
-func (*regionStep) Intro() string { return "Where is this computer? It sets the clock. Type a city or a region." }
+func (*regionStep) Title() string { return tr("Time zone") }
+func (*regionStep) Intro() string { return tr("Where is this computer? It sets the clock. Type a city or a region.") }
 
 // detectRow stands for «find it from the internet connection»; it is the first row while nothing is typed.
 const detectRow = "\x00detect"
@@ -443,13 +445,13 @@ func (s *regionStep) filtered(w *Installer, env *core.Env) []string {
 }
 
 func (s *regionStep) Enter(w *Installer, env *core.Env) tea.Cmd {
-	s.pk = newPicker("city, e.g. Lima or Madrid")
+	s.pk = newPicker(tr("city, e.g. Lima or Madrid"))
 	s.detecting, s.msg = false, ""
 	if len(s.zones) > 0 {
 		s.select_(w, env)
 		return nil
 	}
-	return runTask(env, "region.zones", "Reading the time zones", true, func(ctx context.Context) (any, error) {
+	return runTask(env, "region.zones", tr("Reading the time zones"), true, func(ctx context.Context) (any, error) {
 		return env.Install.Zones(ctx), nil
 	})
 }
@@ -491,13 +493,13 @@ func (s *regionStep) Key(w *Installer, env *core.Env, k tea.KeyMsg) (bool, tea.C
 	items := s.filtered(w, env)
 	if k.String() == "enter" {
 		if s.pk.list.sel < 0 || s.pk.list.sel >= len(items) {
-			w.notice = "No time zone matches: keep typing or delete a letter."
+			w.notice = tr("No time zone matches: keep typing or delete a letter.")
 			return false, nil
 		}
 		if items[s.pk.list.sel] == detectRow {
 			s.detecting, s.msg = true, ""
 			zones := s.zones
-			return false, runTask(env, "region.detect", "Asking the internet for the time zone", false, func(ctx context.Context) (any, error) {
+			return false, runTask(env, "region.detect", tr("Asking the internet for the time zone"), false, func(ctx context.Context) (any, error) {
 				return env.Install.DetectZone(ctx, zones)
 			})
 		}
@@ -510,29 +512,29 @@ func (s *regionStep) Key(w *Installer, env *core.Env, k tea.KeyMsg) (bool, tea.C
 
 func (s *regionStep) Gate(w *Installer) string {
 	if len(s.zones) > 0 && w.st.Timezone == "" {
-		return "Choose a time zone from the list."
+		return tr("Choose a time zone from the list.")
 	}
 	return ""
 }
 
 func (s *regionStep) Lines(w *Installer, env *core.Env, width int) []ui.Line {
 	if len(s.zones) == 0 {
-		return []ui.Line{muted(env, "Reading the time zones…")}
+		return []ui.Line{muted(env, tr("Reading the time zones…"))}
 	}
 	text := func(z string) string {
 		if z == detectRow {
-			return "Detect automatically"
+			return tr("Detect automatically")
 		}
 		return z
 	}
 	extra := func(z string) string {
 		if z == detectRow {
-			return "from your internet connection"
+			return tr("from your internet connection")
 		}
 		return ""
 	}
 	lines := listRows(env, &s.pk, s.filtered(w, env), text, extra, width)
-	if l, ok := working(env, "install.region.detect", "Asking the internet for the time zone"); ok {
+	if l, ok := working(env, "install.region.detect", tr("Asking the internet for the time zone")); ok {
 		lines = append(lines, gap(), l)
 	}
 	if s.msg != "" {
@@ -546,7 +548,7 @@ func (s *regionStep) Lines(w *Installer, env *core.Env, width int) []ui.Line {
 		}
 	}
 	if s.canDetect(w, env) {
-		lines = append(lines, gap(), muted(env, "Detecting tells ipapi.co your address. Choosing a city sends nothing."))
+		lines = append(lines, gap(), muted(env, tr("Detecting tells ipapi.co your address. Choosing a city sends nothing.")))
 	}
 	return lines
 }
@@ -562,12 +564,12 @@ type diskStep struct {
 }
 
 func (*diskStep) ID() string    { return "disk" }
-func (*diskStep) Title() string { return "Disk" }
-func (*diskStep) Intro() string { return "Where should Maxor OS go? Nothing is written yet." }
+func (*diskStep) Title() string { return tr("Disk") }
+func (*diskStep) Intro() string { return tr("Where should Maxor OS go? Nothing is written yet.") }
 
 func (s *diskStep) Enter(w *Installer, env *core.Env) tea.Cmd {
 	s.loaded, s.err = false, nil
-	return runTask(env, "disk.probe", "Looking at the disks", false, func(ctx context.Context) (any, error) {
+	return runTask(env, "disk.probe", tr("Looking at the disks"), false, func(ctx context.Context) (any, error) {
 		return env.Install.Engine.Probe(ctx)
 	})
 }
@@ -609,7 +611,7 @@ func (s *diskStep) Key(w *Installer, env *core.Env, k tea.KeyMsg) (bool, tea.Cmd
 		}
 		d := s.disks[s.list.sel]
 		if !usable(d) {
-			w.notice = "This disk cannot be used: " + firstProblem(d)
+			w.notice = tr("This disk cannot be used: %s", firstProblem(d))
 			return false, nil
 		}
 		if d.Path != w.st.Disk {
@@ -632,23 +634,23 @@ func firstProblem(d install.Disk) string {
 
 func (s *diskStep) Gate(w *Installer) string {
 	if !s.loaded {
-		return "Looking at the disks…"
+		return tr("Looking at the disks…")
 	}
 	if s.list.sel < 0 || s.list.sel >= len(s.disks) {
-		return "No disk to install on. Plug one in and press r."
+		return tr("No disk to install on. Plug one in and press r.")
 	}
 	return ""
 }
 
 func (s *diskStep) Lines(w *Installer, env *core.Env, width int) []ui.Line {
-	if l, ok := working(env, "install.disk.probe", "Looking at the disks"); ok {
+	if l, ok := working(env, "install.disk.probe", tr("Looking at the disks")); ok {
 		return []ui.Line{l}
 	}
 	if s.err != nil {
-		return append(failed(env, "Could not list the disks", s.err), gap(), muted(env, "r tries again"))
+		return append(failed(env, tr("Could not list the disks"), s.err), gap(), muted(env, tr("r tries again")))
 	}
 	if len(s.disks) == 0 {
-		return []ui.Line{muted(env, "No disks found. Plug one in and press r.")}
+		return []ui.Line{muted(env, tr("No disks found. Plug one in and press r."))}
 	}
 	// Each disk is a small block: its name and size, what it is and what is on it, and the disk drawn to scale.
 	// The one with the focus is tinted as a whole and also names its parts.
@@ -668,10 +670,10 @@ func (s *diskStep) Lines(w *Installer, env *core.Env, width int) []ui.Line {
 		}
 	}
 	if from > 0 || to < len(s.disks) {
-		lines = append(lines, muted(env, fmt.Sprintf("   %d of %d disks · ↑ ↓ for the others", to-from, len(s.disks))))
+		lines = append(lines, muted(env, fmt.Sprintf(tr("   %d of %d disks · ↑ ↓ for the others"), to-from, len(s.disks))))
 	}
 	lines = append(lines, gap())
-	for _, l := range ui.Wrap("The disk this installer started from is never offered.", width) {
+	for _, l := range ui.Wrap(tr("The disk this installer started from is never offered."), width) {
 		lines = append(lines, muted(env, l))
 	}
 	return lines
@@ -701,7 +703,7 @@ func diskBlock(env *core.Env, d install.Disk, sel, ok bool, width int) []ui.Line
 	meta = append(meta, d.Contents())
 	lines := []ui.Line{title, ui.Of(ui.S(p.Mu, "  "+strings.Join(meta, " · ")))}
 	if !ok {
-		return append(lines, ui.Of(ui.S(p.Warn, "  "+ui.G.Warn+" "), ui.S(p.Mu, "cannot be used: "+firstProblem(d))))
+		return append(lines, ui.Of(ui.S(p.Warn, "  "+ui.G.Warn+" "), ui.S(p.Mu, tr("cannot be used: %s", firstProblem(d)))))
 	}
 	spans := d.Layout()
 	if !sel {
@@ -719,28 +721,28 @@ func diskName(d install.Disk) string {
 	dev := strings.TrimPrefix(d.Path, "/dev/")
 	switch {
 	case strings.HasPrefix(dev, "vd") || strings.HasPrefix(dev, "xvd"):
-		return "Virtual disk"
+		return tr("Virtual disk")
 	case strings.HasPrefix(dev, "nvme"):
-		return "NVMe disk"
+		return tr("NVMe disk")
 	case strings.HasPrefix(dev, "mmcblk"):
-		return "Memory card"
+		return tr("Memory card")
 	case d.Removable || d.Transport == "usb":
-		return "USB drive"
+		return tr("USB drive")
 	}
-	return "Disk"
+	return tr("Disk")
 }
 
 // transportName is how a disk is connected, in the words on the box.
 func transportName(d install.Disk) string {
 	switch {
 	case d.Removable || d.Transport == "usb":
-		return "USB, removable"
+		return tr("USB, removable")
 	case d.Transport == "nvme":
 		return "NVMe"
 	case d.Transport == "sata" || d.Transport == "ata":
 		return "SATA"
 	case d.Transport == "mmc":
-		return "SD / eMMC"
+		return tr("SD / eMMC")
 	}
 	return ""
 }
@@ -754,8 +756,8 @@ type strategyStep struct {
 }
 
 func (*strategyStep) ID() string    { return "strategy" }
-func (*strategyStep) Title() string { return "How to install" }
-func (*strategyStep) Intro() string { return "Use the whole disk, or share it with what is already there." }
+func (*strategyStep) Title() string { return tr("How to install") }
+func (*strategyStep) Intro() string { return tr("Use the whole disk, or share it with what is already there.") }
 
 func (s *strategyStep) disk(w *Installer) *install.Disk {
 	if d, ok := w.currentDisk(); ok {
@@ -829,7 +831,7 @@ func (s *strategyStep) Key(w *Installer, env *core.Env, k tea.KeyMsg) (bool, tea
 
 func (s *strategyStep) Gate(w *Installer) string {
 	if len(s.opts) == 0 {
-		return "This disk cannot take Maxor OS. Go back and choose another."
+		return tr("This disk cannot take Maxor OS. Go back and choose another.")
 	}
 	return ""
 }
@@ -838,7 +840,7 @@ func (s *strategyStep) Lines(w *Installer, env *core.Env, width int) []ui.Line {
 	p := env.P
 	d := s.disk(w)
 	if d == nil || len(s.opts) == 0 {
-		return []ui.Line{muted(env, "This disk cannot take Maxor OS. Go back and choose another.")}
+		return []ui.Line{muted(env, tr("This disk cannot take Maxor OS. Go back and choose another."))}
 	}
 	var lines []ui.Line
 	for i, o := range s.opts {
@@ -846,7 +848,7 @@ func (s *strategyStep) Lines(w *Installer, env *core.Env, width int) []ui.Line {
 		var opt []ui.Line
 		switch o {
 		case "whole":
-			opt = []ui.Line{radio(env, sel, sel, "Erase the disk and install Maxor OS", ""),
+			opt = []ui.Line{radio(env, sel, sel, tr("Erase the disk and install Maxor OS"), ""),
 				ui.T(p.Warn, "      Everything on "+d.Path+" will be deleted.")}
 		case "alongside":
 			f := d.LargestFree()
@@ -854,12 +856,12 @@ func (s *strategyStep) Lines(w *Installer, env *core.Env, width int) []ui.Line {
 			if f != nil {
 				size = install.HumanSize(f.Sectors*512) + " free"
 			}
-			other := "what is already there"
+			other := tr("what is already there")
 			if d.Windows {
 				other = "Windows"
 			}
-			opt = []ui.Line{radio(env, sel, sel, "Install alongside "+other, size),
-				ui.T(p.Mu, "      Only the free space is used. Nothing else is touched.")}
+			opt = []ui.Line{radio(env, sel, sel, tr("Install alongside %s", other), size),
+				ui.T(p.Mu, tr("      Only the free space is used. Nothing else is touched."))}
 		}
 		for k := range opt {
 			opt[k].Sel = sel
@@ -871,13 +873,13 @@ func (s *strategyStep) Lines(w *Installer, env *core.Env, width int) []ui.Line {
 	label := func(t string) ui.Seg { return ui.S(p.Mu, fmt.Sprintf("%-8s", t)) }
 	lines = append(lines, ui.Of(append([]ui.Seg{label("now")}, diskBar(env, d.Layout(), width-8)...)...))
 	after := d.Planned(s.opts[min(s.sel, len(s.opts)-1)])
-	lines = append(lines, ui.Of(append([]ui.Seg{label("after")}, diskBar(env, after, width-8)...)...))
+	lines = append(lines, ui.Of(append([]ui.Seg{label(tr("after"))}, diskBar(env, after, width-8)...)...))
 	for _, l := range diskLegend(env, after, width-8) {
 		lines = append(lines, ui.Of(append([]ui.Seg{label("")}, l.L...)...))
 	}
 	if d.Windows {
 		lines = append(lines, gap())
-		for _, l := range ui.Wrap("Need more room for Maxor OS? Shrink the Windows partition from Windows first (Disk Management), then come back.", width) {
+		for _, l := range ui.Wrap(tr("Need more room for Maxor OS? Shrink the Windows partition from Windows first (Disk Management), then come back."), width) {
 			lines = append(lines, muted(env, l))
 		}
 	}
@@ -904,12 +906,12 @@ const (
 )
 
 func (*storageStep) ID() string    { return "storage" }
-func (*storageStep) Title() string { return "Storage" }
-func (*storageStep) Intro() string { return "How Maxor OS sits on the disk. ↑ ↓ moves, ← → changes." }
+func (*storageStep) Title() string { return tr("Storage") }
+func (*storageStep) Intro() string { return tr("How Maxor OS sits on the disk. ↑ ↓ moves, ← → changes.") }
 
 func (s *storageStep) Enter(w *Installer, env *core.Env) tea.Cmd {
-	s.pass = ui.Input{Mask: true, Placeholder: "passphrase"}
-	s.confirm = ui.Input{Mask: true, Placeholder: "again"}
+	s.pass = ui.Input{Mask: true, Placeholder: tr("passphrase")}
+	s.confirm = ui.Input{Mask: true, Placeholder: tr("again")}
 	s.gib = ui.Input{Placeholder: "GiB", Filter: install.DigitRune}
 	s.gib.Set(fmt.Sprint(max(w.st.SwapGiB, 4)))
 	s.pass.Set(w.st.Passphrase)
@@ -998,14 +1000,14 @@ func (s *storageStep) Key(w *Installer, env *core.Env, k tea.KeyMsg) (bool, tea.
 func (s *storageStep) Gate(w *Installer) string {
 	if w.st.Encrypt {
 		if err := install.ValidatePassphrase(s.pass.Text(), s.confirm.Text()); err != nil {
-			return "Encryption passphrase: " + err.Error()
+			return tr("Encryption passphrase: %s", err.Error())
 		}
 		w.st.Passphrase = s.pass.Text()
 	} else {
 		w.st.Passphrase = ""
 	}
 	if w.st.SwapKind == "file" && (w.st.SwapGiB < 1 || w.st.SwapGiB > 128) {
-		return "A swap file needs between 1 and 128 GiB."
+		return tr("A swap file needs between 1 and 128 GiB.")
 	}
 	if w.st.SwapKind != "file" {
 		w.st.SwapGiB = 0
@@ -1025,36 +1027,36 @@ func (s *storageStep) Lines(w *Installer, env *core.Env, width int) []ui.Line {
 			if spans[i].Kind == "maxor" && spans[i].New {
 				what := []string{w.st.Filesystem}
 				if w.st.Encrypt {
-					what = append(what, "encrypted")
+					what = append(what, tr("encrypted"))
 				}
-				spans[i].Label = "Maxor OS (" + strings.Join(what, ", ") + ")"
+				spans[i].Label = tr("Maxor OS (%s)", strings.Join(what, ", "))
 			}
 		}
 		lines = append(lines, diskMap(env, spans, width, 0)...)
 		lines = append(lines, gap())
 	}
 
-	lines = append(lines, choice(env, "Filesystem", []string{"btrfs", "ext4"}, []string{"btrfs", "ext4"}, w.st.Filesystem, row == rFS))
+	lines = append(lines, choice(env, tr("Filesystem"), []string{"btrfs", "ext4"}, []string{"btrfs", "ext4"}, w.st.Filesystem, row == rFS))
 	enc := "off"
 	if w.st.Encrypt {
 		enc = "on"
 	}
-	lines = append(lines, gap(), choice(env, "Encryption", []string{"off", "on"}, []string{"Off", "On"}, enc, row == rEnc))
+	lines = append(lines, gap(), choice(env, tr("Encryption"), []string{"off", "on"}, []string{tr("Off"), "On"}, enc, row == rEnc))
 	if w.st.Encrypt {
-		lines = append(lines, field(env, "    Passphrase", &s.pass, row == rPass, width))
+		lines = append(lines, field(env, tr("    Passphrase"), &s.pass, row == rPass, width))
 		if s.pass.Text() != "" {
 			n := install.Strength(s.pass.Text())
 			lines = append(lines, ui.Of(ui.S(p.Mu, strings.Repeat(" ", 18)), meter(env, n), ui.S(p.Mu, "  "+strengthWord(n))))
 		}
-		again := field(env, "    Again", &s.confirm, row == rConf, width)
+		again := field(env, tr("    Again"), &s.confirm, row == rConf, width)
 		if s.confirm.Text() != "" && s.confirm.Text() == s.pass.Text() {
 			again.L = append(again.L, ui.S(p.Ok, "  "+ui.G.Tick+" match"))
 		}
 		lines = append(lines, again)
 	}
-	lines = append(lines, gap(), choice(env, "Low memory", []string{"zram", "file", "none"}, []string{"zram", "swap file", "none"}, w.st.SwapKind, row == rSwap))
+	lines = append(lines, gap(), choice(env, tr("Low memory"), []string{"zram", "file", "none"}, []string{"zram", tr("swap file"), tr("none")}, w.st.SwapKind, row == rSwap))
 	if w.st.SwapKind == "file" {
-		lines = append(lines, field(env, "    Size (GiB)", &s.gib, row == rGiB, width))
+		lines = append(lines, field(env, tr("    Size (GiB)"), &s.gib, row == rGiB, width))
 	}
 
 	// One place, always the same, explains the row with the focus: the screen stays short and nothing jumps
@@ -1075,26 +1077,26 @@ func (s *storageStep) help(w *Installer) string {
 	switch s.row(w) {
 	case rFS:
 		if w.st.Filesystem == "ext4" {
-			return "ext4: the classic Linux filesystem, plain and proven, without snapshots."
+			return tr("ext4: the classic Linux filesystem, plain and proven, without snapshots.")
 		}
-		return "btrfs: snapshots to roll back a bad change, and compression. Recommended."
+		return tr("btrfs: snapshots to roll back a bad change, and compression. Recommended.")
 	case rEnc:
 		if w.st.Encrypt {
-			return "Encrypted with LUKS2: the passphrase is asked every time the computer starts."
+			return tr("Encrypted with LUKS2: the passphrase is asked every time the computer starts.")
 		}
-		return "Encryption protects your files if the computer is lost or stolen. ← → turns it on."
+		return tr("Encryption protects your files if the computer is lost or stolen. ← → turns it on.")
 	case rPass, rConf:
-		return "There is no way to recover the passphrase if you forget it. Write it down somewhere safe."
+		return tr("There is no way to recover the passphrase if you forget it. Write it down somewhere safe.")
 	case rSwap:
 		switch w.st.SwapKind {
 		case "file":
-			return "A swap file on the disk: slower than zram, but it lets the computer hibernate."
+			return tr("A swap file on the disk: slower than zram, but it lets the computer hibernate.")
 		case "none":
-			return "Nothing: when memory runs out, programs are closed."
+			return tr("Nothing: when memory runs out, programs are closed.")
 		}
-		return "zram: compressed memory, fast and easy on the disk. Recommended."
+		return tr("zram: compressed memory, fast and easy on the disk. Recommended.")
 	case rGiB:
-		return "Between 1 and 128 GiB. To hibernate, at least the size of your memory."
+		return tr("Between 1 and 128 GiB. To hibernate, at least the size of your memory.")
 	}
 	return ""
 }
@@ -1130,7 +1132,7 @@ func choice(env *core.Env, label string, ids, names []string, cur string, focuse
 
 // strengthWord says in a word what the strength meter shows.
 func strengthWord(n int) string {
-	return [...]string{"too weak", "weak", "fair", "good", "strong"}[min(max(n, 0), 4)]
+	return [...]string{tr("too weak"), tr("weak"), tr("fair"), tr("good"), tr("strong")}[min(max(n, 0), 4)]
 }
 
 // ── 8 · Account ──────────────────────────────────────────────────────
@@ -1152,15 +1154,15 @@ const (
 )
 
 func (*accountStep) ID() string    { return "account" }
-func (*accountStep) Title() string { return "Your account" }
-func (*accountStep) Intro() string { return "Who will use this computer?" }
+func (*accountStep) Title() string { return tr("Your account") }
+func (*accountStep) Intro() string { return tr("Who will use this computer?") }
 
 func (s *accountStep) Enter(w *Installer, env *core.Env) tea.Cmd {
-	s.full = ui.Input{Placeholder: "your name"}
-	s.user = ui.Input{Placeholder: "login name", Filter: install.UserRune}
-	s.host = ui.Input{Placeholder: "computer name", Filter: install.HostRune}
+	s.full = ui.Input{Placeholder: tr("your name")}
+	s.user = ui.Input{Placeholder: tr("login name"), Filter: install.UserRune}
+	s.host = ui.Input{Placeholder: tr("computer name"), Filter: install.HostRune}
 	s.pass = ui.Input{Mask: true, Placeholder: "password"}
-	s.conf = ui.Input{Mask: true, Placeholder: "again"}
+	s.conf = ui.Input{Mask: true, Placeholder: tr("again")}
 	s.full.Set(w.st.Fullname)
 	s.user.Set(w.st.Username)
 	s.host.Set(w.st.Hostname)
@@ -1235,16 +1237,16 @@ func (s *accountStep) Key(w *Installer, env *core.Env, k tea.KeyMsg) (bool, tea.
 
 func (s *accountStep) Gate(w *Installer) string {
 	if err := install.ValidateFullname(s.full.Text()); err != nil {
-		return "Name: " + err.Error()
+		return tr("Name: %s", err.Error())
 	}
 	if err := install.ValidateUsername(s.user.Text()); err != nil {
-		return "Login name: " + err.Error()
+		return tr("Login name: %s", err.Error())
 	}
 	if err := install.ValidateHostname(s.host.Text()); err != nil {
-		return "Computer name: " + err.Error()
+		return tr("Computer name: %s", err.Error())
 	}
 	if err := install.ValidatePassword(s.pass.Text(), s.conf.Text()); err != nil {
-		return "Password: " + err.Error()
+		return tr("Password: %s", err.Error())
 	}
 	if w.st.Password != s.pass.Text() {
 		w.st.PasswordHash = "" // a new password needs a new hash
@@ -1256,18 +1258,18 @@ func (s *accountStep) Gate(w *Installer) string {
 func (s *accountStep) Lines(w *Installer, env *core.Env, width int) []ui.Line {
 	p := env.P
 	lines := []ui.Line{
-		field(env, "Your name", &s.full, s.focus == aFull, width),
-		field(env, "Login name", &s.user, s.focus == aUser, width),
-		field(env, "Computer name", &s.host, s.focus == aHost, width),
+		field(env, tr("Your name"), &s.full, s.focus == aFull, width),
+		field(env, tr("Login name"), &s.user, s.focus == aUser, width),
+		field(env, tr("Computer name"), &s.host, s.focus == aHost, width),
 		gap(),
-		field(env, "Password", &s.pass, s.focus == aPass, width),
+		field(env, tr("Password"), &s.pass, s.focus == aPass, width),
 	}
 	if s.pass.Text() != "" {
 		n := install.Strength(s.pass.Text())
 		lines = append(lines, ui.Of(ui.S(p.Mu, fmt.Sprintf("%-18s", "")), meter(env, n), ui.S(p.Mu, "  "+strengthWord(n))))
 	}
-	lines = append(lines, field(env, "Again", &s.conf, s.focus == aConf, width), gap(),
-		radio(env, w.st.Autologin, s.focus == aAuto, "Sign in automatically", "no password at the login screen"))
+	lines = append(lines, field(env, tr("Again"), &s.conf, s.focus == aConf, width), gap(),
+		radio(env, w.st.Autologin, s.focus == aAuto, tr("Sign in automatically"), tr("no password at the login screen")))
 	return lines
 }
 
@@ -1288,9 +1290,9 @@ type lookStep struct {
 }
 
 func (*lookStep) ID() string    { return "look" }
-func (*lookStep) Title() string { return "Look and tools" }
+func (*lookStep) Title() string { return tr("Look and tools") }
 func (*lookStep) Intro() string {
-	return "Light or dark: the screen shows it as you choose. Other themes are in the Maxor app after installing."
+	return tr("Light or dark: the screen shows it as you choose. Other themes are in the Maxor app after installing.")
 }
 
 func (s *lookStep) Enter(w *Installer, env *core.Env) tea.Cmd {
@@ -1380,24 +1382,24 @@ func (s *lookStep) Key(w *Installer, env *core.Env, k tea.KeyMsg) (bool, tea.Cmd
 
 func (s *lookStep) Lines(w *Installer, env *core.Env, width int) []ui.Line {
 	p := env.P
-	lines := []ui.Line{choice(env, "Appearance", []string{lookDark, lookLight}, []string{"Dark", "Light"}, w.st.Theme, !s.onProf)}
+	lines := []ui.Line{choice(env, tr("Appearance"), []string{lookDark, lookLight}, []string{tr("Dark"), tr("Light")}, w.st.Theme, !s.onProf)}
 	// a strip in the colours of the theme being shown: the screen around it already is that theme
 	t := env.Theme.P
 	var strip []ui.Seg
 	for _, c := range []string{t.Ac, t.Ac2, t.S2, t.Fg} {
 		strip = append(strip, ui.S(p.Fill.Foreground(lipgloss.Color(c)), ui.G.Swatch+" "))
 	}
-	what := map[string]string{lookDark: "navy and violet", lookLight: "soft white, pink and violet"}[w.st.Theme]
+	what := map[string]string{lookDark: tr("navy and violet"), lookLight: tr("soft white, pink and violet")}[w.st.Theme]
 	lines = append(lines, ui.Of(append(append([]ui.Seg{{T: strings.Repeat(" ", optCol)}}, strip...), ui.S(p.Mu, " "+what))...))
 
 	if w.st.Offline {
-		lines = append(lines, gap(), heading(env, "Tools for what you do"))
-		for _, l := range ui.Wrap("Gaming, development and the other profiles download their packages, so they need a network. Add them after installing with `maxor profile`.", width) {
+		lines = append(lines, gap(), heading(env, tr("Tools for what you do")))
+		for _, l := range ui.Wrap(tr("Gaming, development and the other profiles download their packages, so they need a network. Add them after installing with `maxor profile`."), width) {
 			lines = append(lines, muted(env, l))
 		}
 		return lines
 	}
-	lines = append(lines, gap(), heading(env, "What will you use it for?  (space to choose)"))
+	lines = append(lines, gap(), heading(env, tr("What will you use it for?  (space to choose)")))
 	for i, pr := range env.Data.Profiles {
 		sel := s.onProf && i == s.profs.sel
 		lines = append(lines, radio(env, s.chosen[pr.ID], sel, pr.Title, strings.Join(pr.Includes, ", ")))
@@ -1413,8 +1415,8 @@ type hardwareStep struct {
 }
 
 func (*hardwareStep) ID() string    { return "hardware" }
-func (*hardwareStep) Title() string { return "Your hardware" }
-func (*hardwareStep) Intro() string { return "This is what was found. Maxor OS picks the drivers for it." }
+func (*hardwareStep) Title() string { return tr("Your hardware") }
+func (*hardwareStep) Intro() string { return tr("This is what was found. Maxor OS picks the drivers for it.") }
 
 // options are the ways to use the graphics hardware: only where there is a real choice (see install.GPUOptions).
 func (*hardwareStep) options(env *core.Env) []install.GPUOption {
@@ -1479,25 +1481,25 @@ func (s *hardwareStep) Lines(w *Installer, env *core.Env, width int) []ui.Line {
 	p := env.P
 	hw := env.Data.Hardware
 	if hw == nil {
-		if l, ok := working(env, "data.hardware", "Detecting your hardware"); ok {
+		if l, ok := working(env, "data.hardware", tr("Detecting your hardware")); ok {
 			return []ui.Line{l}
 		}
-		return []ui.Line{muted(env, "Could not detect the hardware. The installer will try again while installing.")}
+		return []ui.Line{muted(env, tr("Could not detect the hardware. The installer will try again while installing."))}
 	}
 	kv := func(k, v string) ui.Line {
 		return ui.Of(ui.S(p.Mu, fmt.Sprintf("%-12s", k)), ui.S(p.Text, v))
 	}
-	kind := "Desktop"
+	kind := tr("Desktop")
 	if hw.Laptop {
-		kind = "Laptop"
+		kind = tr("Laptop")
 	}
 	if hw.Virt != "" && hw.Virt != "none" {
-		kind = "Virtual machine (" + virtName(hw.Virt) + ")"
+		kind = tr("Virtual machine (%s)", virtName(hw.Virt))
 	}
-	lines := []ui.Line{kv("Type", kind), kv("Processor", cpuName(hw.CPU.Model))}
+	lines := []ui.Line{kv(tr("Type"), kind), kv(tr("Processor"), cpuName(hw.CPU.Model))}
 	if env.Install != nil && env.Install.Sys != nil {
 		if ram := env.Install.Sys().RAMBytes; ram > 0 {
-			lines = append(lines, kv("Memory", fmt.Sprintf("%.0f GB", float64(ram)/1e9)))
+			lines = append(lines, kv(tr("Memory"), fmt.Sprintf(tr("%.0f GB"), float64(ram)/1e9)))
 		}
 	}
 	var vendors []string
@@ -1505,21 +1507,21 @@ func (s *hardwareStep) Lines(w *Installer, env *core.Env, width int) []ui.Line {
 		vendors = append(vendors, g.Vendor)
 		label := ""
 		if i == 0 {
-			label = "Graphics"
+			label = tr("Graphics")
 		}
 		lines = append(lines, kv(label, install.GPUName(g.Vendor, g.ID)))
 	}
 	if len(hw.GPUs) == 0 {
-		lines = append(lines, kv("Graphics", "none detected"))
+		lines = append(lines, kv(tr("Graphics"), tr("none detected")))
 	}
 	lines = append(lines, gap())
 
 	if opts := s.options(env); len(opts) > 0 {
-		lines = append(lines, heading(env, "Which GPU should draw the desktop?"))
+		lines = append(lines, heading(env, tr("Which GPU should draw the desktop?")))
 		for i, o := range opts {
 			hint := ""
 			if o.Recommended {
-				hint = "recommended"
+				hint = tr("recommended")
 			}
 			lines = append(lines, radio(env, i == s.sel, i == s.sel, o.Title, hint))
 		}
@@ -1528,11 +1530,11 @@ func (s *hardwareStep) Lines(w *Installer, env *core.Env, width int) []ui.Line {
 		for _, l := range ui.Wrap(cur.Description, width-3) {
 			lines = append(lines, muted(env, "   "+l))
 		}
-		lines = append(lines, gap(), muted(env, "You can change this later in your configuration."))
+		lines = append(lines, gap(), muted(env, tr("You can change this later in your configuration.")))
 		return lines
 	}
 
-	lines = append(lines, heading(env, "What Maxor OS will set up"))
+	lines = append(lines, heading(env, tr("What Maxor OS will set up")))
 	has := func(v string) bool {
 		for _, x := range vendors {
 			if x == v {
@@ -1544,18 +1546,18 @@ func (s *hardwareStep) Lines(w *Installer, env *core.Env, width int) []ui.Line {
 	item := func(text string) { lines = append(lines, ui.Of(ui.S(p.Ok, ui.G.Tick+"  "), ui.S(p.Text, text))) }
 	switch {
 	case has("nvidia"):
-		item("The NVIDIA driver, fetched while installing")
+		item(tr("The NVIDIA driver, fetched while installing"))
 	case has("amd"):
-		item("The open-source AMD graphics stack")
+		item(tr("The open-source AMD graphics stack"))
 	case has("intel"):
-		item("The Intel graphics stack, with video acceleration")
+		item(tr("The Intel graphics stack, with video acceleration"))
 	case hw.Virt != "" && hw.Virt != "none":
-		item("The guest tools of the virtual machine")
+		item(tr("The guest tools of the virtual machine"))
 	default:
-		item("Generic graphics drivers")
+		item(tr("Generic graphics drivers"))
 	}
 	if hw.Laptop {
-		item("Power profiles and laptop settings")
+		item(tr("Power profiles and laptop settings"))
 	}
 	if hw.Bluetooth {
 		item("Bluetooth")
@@ -1566,10 +1568,10 @@ func (s *hardwareStep) Lines(w *Installer, env *core.Env, width int) []ui.Line {
 // cpuName tidies the name a processor reports: «13th Gen Intel(R) Core(TM) i5-13500H» → «13th Gen Intel Core
 // i5-13500H», «AMD Ryzen 7 5800H with Radeon Graphics» → «AMD Ryzen 7 5800H».
 func cpuName(s string) string {
-	for _, junk := range []string{"(R)", "(r)", "(TM)", "(tm)", " CPU", " Processor"} {
+	for _, junk := range []string{"(R)", "(r)", "(TM)", "(tm)", " CPU", tr(" Processor")} {
 		s = strings.ReplaceAll(s, junk, "")
 	}
-	for _, cut := range []string{" @ ", " with "} {
+	for _, cut := range []string{" @ ", tr(" with ")} {
 		if i := strings.Index(s, cut); i > 0 {
 			s = s[:i]
 		}
@@ -1598,8 +1600,8 @@ type summaryStep struct {
 }
 
 func (*summaryStep) ID() string    { return "summary" }
-func (*summaryStep) Title() string { return "Review" }
-func (*summaryStep) Intro() string { return "This is exactly what will happen. Nothing has been written yet." }
+func (*summaryStep) Title() string { return tr("Review") }
+func (*summaryStep) Intro() string { return tr("This is exactly what will happen. Nothing has been written yet.") }
 
 func requiredWord(strategy string) string {
 	if strategy == "alongside" {
@@ -1612,7 +1614,7 @@ func (s *summaryStep) Enter(w *Installer, env *core.Env) tea.Cmd {
 	s.confirm = ui.Input{Placeholder: requiredWord(w.st.Strategy)}
 	s.ready, s.prep, s.planText, s.showPlan = false, prepared{}, "", false
 	st := w.st // a copy: the task must not touch the wizard's state from another goroutine
-	return runTask(env, "summary.prepare", "Checking everything", false, func(ctx context.Context) (any, error) {
+	return runTask(env, "summary.prepare", tr("Checking everything"), false, func(ctx context.Context) (any, error) {
 		var out prepared
 		if st.PasswordHash == "" {
 			h, err := env.Install.Engine.HashPassword(ctx, st.Password)
@@ -1681,7 +1683,7 @@ func (s *summaryStep) Key(w *Installer, env *core.Env, k tea.KeyMsg) (bool, tea.
 		if s.showPlan && s.planText == "" {
 			st := w.st
 			st.Confirmed = requiredWord(st.Strategy)
-			return false, runTask(env, "summary.plan", "Writing the plan", false, func(ctx context.Context) (any, error) {
+			return false, runTask(env, "summary.plan", tr("Writing the plan"), false, func(ctx context.Context) (any, error) {
 				a, err := st.Answers()
 				if err != nil {
 					return nil, err
@@ -1698,13 +1700,13 @@ func (s *summaryStep) Key(w *Installer, env *core.Env, k tea.KeyMsg) (bool, tea.
 func (s *summaryStep) Gate(w *Installer) string {
 	switch {
 	case !s.ready:
-		return "Still checking…"
+		return tr("Still checking…")
 	case s.prep.err != nil:
-		return "Could not prepare the installation: " + oneLine(s.prep.err.Error())
+		return tr("Could not prepare the installation: %s", oneLine(s.prep.err.Error()))
 	case s.prep.problem != nil:
-		return "The installer does not accept these choices: " + oneLine(s.prep.problem.Error())
+		return tr("The installer does not accept these choices: %s", oneLine(s.prep.problem.Error()))
 	case s.confirm.Text() != requiredWord(w.st.Strategy):
-		return "Type " + requiredWord(w.st.Strategy) + " to confirm."
+		return tr("Type %s to confirm.", requiredWord(w.st.Strategy))
 	}
 	w.st.Confirmed = s.confirm.Text()
 	return ""
@@ -1714,43 +1716,43 @@ func (s *summaryStep) Lines(w *Installer, env *core.Env, width int) []ui.Line {
 	p := env.P
 	if s.showPlan {
 		var lines []ui.Line
-		if l, ok := working(env, "install.summary.plan", "Writing the plan"); ok {
+		if l, ok := working(env, "install.summary.plan", tr("Writing the plan")); ok {
 			return []ui.Line{l}
 		}
 		for _, l := range strings.Split(strings.TrimSpace(s.planText), "\n") {
 			l = strings.TrimPrefix(l, "DRYRUN: ")
 			lines = append(lines, muted(env, l))
 		}
-		return append(lines, gap(), muted(env, "ctrl+p goes back to the summary"))
+		return append(lines, gap(), muted(env, tr("ctrl+p goes back to the summary")))
 	}
 	kv := func(k, v string) ui.Line { return ui.Of(ui.S(p.Mu, fmt.Sprintf("%-14s", k)), ui.S(p.Text, v)) }
 	var lines []ui.Line
 	if d, ok := w.currentDisk(); ok {
-		lines = append(lines, kv("Disk", d.Label()))
+		lines = append(lines, kv(tr("Disk"), d.Label()))
 		lines = append(lines, diskMap(env, d.Planned(w.st.Strategy), min(width, 64), 0)...)
 		lines = append(lines, gap())
 	}
-	how := "Erase the whole disk"
+	how := tr("Erase the whole disk")
 	if w.st.Strategy == "alongside" {
-		how = "Alongside what is there, in the free space"
+		how = tr("Alongside what is there, in the free space")
 	}
-	enc := "not encrypted"
+	enc := tr("not encrypted")
 	if w.st.Encrypt {
-		enc = "encrypted (LUKS2)"
+		enc = tr("encrypted (LUKS2)")
 	}
-	swap := map[string]string{"zram": "compressed memory", "file": fmt.Sprintf("%d GiB swap file", w.st.SwapGiB), "none": "no swap"}[w.st.SwapKind]
+	swap := map[string]string{"zram": tr("compressed memory"), "file": fmt.Sprintf(tr("%d GiB swap file"), w.st.SwapGiB), "none": tr("no swap")}[w.st.SwapKind]
 	lines = append(lines,
-		kv("Method", how),
-		kv("Storage", w.st.Filesystem+", "+enc+", "+swap),
-		kv("Account", fmt.Sprintf("%s (%s) on %s", w.st.Username, w.st.Fullname, w.st.Hostname)),
-		kv("Language", strings.TrimSpace(install.LocaleName(w.st.Locale))),
-		kv("Time zone", zoneName(w.st.Timezone, env.Now())),
-		kv("Keyboard", install.FindLayout(w.st.XKBLayout, w.st.XKBVariant).Name),
-		kv("Look", lookName(w.st.Theme)+profilesText(w.st.Profiles)),
-		kv("Graphics", graphicsText(env, w.st.GPU)),
-		kv("Network", map[bool]string{true: "none: installing without internet", false: "online"}[w.st.Offline]))
+		kv(tr("Method"), how),
+		kv(tr("Storage"), w.st.Filesystem+", "+enc+", "+swap),
+		kv(tr("Account"), fmt.Sprintf(tr("%s (%s) on %s"), w.st.Username, w.st.Fullname, w.st.Hostname)),
+		kv(tr("Language"), strings.TrimSpace(install.LocaleName(w.st.Locale))),
+		kv(tr("Time zone"), zoneName(w.st.Timezone, env.Now())),
+		kv(tr("Keyboard"), install.FindLayout(w.st.XKBLayout, w.st.XKBVariant).Name),
+		kv(tr("Look"), lookName(w.st.Theme)+profilesText(w.st.Profiles)),
+		kv(tr("Graphics"), graphicsText(env, w.st.GPU)),
+		kv(tr("Network"), map[bool]string{true: tr("none: installing without internet"), false: "online"}[w.st.Offline]))
 	if d, ok := w.currentDisk(); ok && w.st.Strategy == "alongside" && d.Windows {
-		for i, l := range ui.Wrap("Windows stays untouched and keeps its place in the boot menu.", width-3) {
+		for i, l := range ui.Wrap(tr("Windows stays untouched and keeps its place in the boot menu."), width-3) {
 			mark := ui.S(p.Ok, "   ")
 			if i == 0 {
 				mark = ui.S(p.Ok, ui.G.Tick+"  ")
@@ -1760,23 +1762,23 @@ func (s *summaryStep) Lines(w *Installer, env *core.Env, width int) []ui.Line {
 		}
 	}
 	lines = append(lines, gap())
-	if l, ok := working(env, "install.summary.prepare", "Checking everything"); ok {
+	if l, ok := working(env, "install.summary.prepare", tr("Checking everything")); ok {
 		return append(lines, l)
 	}
 	word := requiredWord(w.st.Strategy)
 	if w.st.Strategy == "whole" {
-		lines = append(lines, ui.T(p.Warn, "Everything on the disk will be erased."))
+		lines = append(lines, ui.T(p.Warn, tr("Everything on the disk will be erased.")))
 	}
-	lines = append(lines, field(env, "Type "+word, &s.confirm, true, width))
+	lines = append(lines, field(env, tr("Type %s", word), &s.confirm, true, width))
 	if w.railShown {
-		lines = append(lines, muted(env, "1-9 edits that step (the numbers in the list on the left)"))
+		lines = append(lines, muted(env, tr("1-9 edits that step (the numbers in the list on the left)")))
 	} else {
-		lines = append(lines, muted(env, "esc goes back through the steps to change one"))
+		lines = append(lines, muted(env, tr("esc goes back through the steps to change one")))
 	}
 	if s.prep.planHash != "" {
-		lines = append(lines, muted(env, "plan "+s.prep.planHash[:12]))
+		lines = append(lines, muted(env, tr("plan %s", s.prep.planHash[:12])))
 	}
-	return append(lines, muted(env, "ctrl+p shows the exact steps"))
+	return append(lines, muted(env, tr("ctrl+p shows the exact steps")))
 }
 
 func profilesText(p []string) string {
@@ -1810,8 +1812,8 @@ type installStep struct {
 }
 
 func (*installStep) ID() string    { return "install" }
-func (*installStep) Title() string { return "Installing" }
-func (*installStep) Intro() string { return "Please do not turn the computer off." }
+func (*installStep) Title() string { return tr("Installing") }
+func (*installStep) Intro() string { return tr("Please do not turn the computer off.") }
 
 func (s *installStep) Enter(w *Installer, env *core.Env) tea.Cmd {
 	if !s.resume {
@@ -1823,7 +1825,7 @@ func (s *installStep) Enter(w *Installer, env *core.Env) tea.Cmd {
 	st := w.st
 	resume := s.resume
 	s.resume = false
-	return runTask(env, "install.run", "Installing Maxor OS", true, func(ctx context.Context) (any, error) {
+	return runTask(env, "install.run", tr("Installing Maxor OS"), true, func(ctx context.Context) (any, error) {
 		answers, err := st.Answers()
 		if err != nil {
 			return installResult{code: 1}, err
@@ -1841,7 +1843,7 @@ func (s *installStep) Done(w *Installer, env *core.Env, d task.DoneMsg) tea.Cmd 
 	w.running = false
 	if d.Err != nil || res.code != 0 {
 		w.failed = true
-		msg := fmt.Sprintf("The installer stopped (exit code %d).", res.code)
+		msg := fmt.Sprintf(tr("The installer stopped (exit code %d)."), res.code)
 		if d.Err != nil {
 			msg = oneLine(d.Err.Error())
 		}
@@ -1901,7 +1903,7 @@ func (s *installStep) Lines(w *Installer, env *core.Env, width int) []ui.Line {
 		if state[st.ID] == "" || state[st.ID] == "skip" {
 			txt = p.Mu
 		}
-		lines = append(lines, ui.Of(mark, ui.S(txt, st.Title)))
+		lines = append(lines, ui.Of(mark, ui.S(txt, tr(st.Title))))
 	}
 	bar := progressLine(env, env.P, progress, 36, w.running)
 	lines = append(lines, gap(), ui.Line{L: append(bar, ui.S(p.Mu, fmt.Sprintf("  %d%%", int(progress*100))))})
@@ -1918,7 +1920,7 @@ func (s *installStep) Lines(w *Installer, env *core.Env, width int) []ui.Line {
 		}
 	}
 	if w.failed {
-		lines = append(lines, gap(), ui.Of(ui.S(p.Bad, ui.G.Bad+"  "), ui.S(p.Text, "The installation did not finish.")))
+		lines = append(lines, gap(), ui.Of(ui.S(p.Bad, ui.G.Bad+"  "), ui.S(p.Text, tr("The installation did not finish."))))
 		// what went wrong, in words, when the log shows a cause the installer knows
 		if why := failureHint(w.tailLogs(200), w.st.Offline); why != "" {
 			for _, l := range ui.Wrap(why, width-3) {
@@ -1926,8 +1928,8 @@ func (s *installStep) Lines(w *Installer, env *core.Env, width int) []ui.Line {
 			}
 		}
 		lines = append(lines,
-			muted(env, "Nothing is lost: r tries again from where it stopped, esc goes back."),
-			muted(env, "The log is /var/log/maxor-install.log"))
+			muted(env, tr("Nothing is lost: r tries again from where it stopped, esc goes back.")),
+			muted(env, tr("The log is /var/log/maxor-install.log")))
 	}
 	return lines
 }
@@ -1943,20 +1945,20 @@ type doneStep struct {
 }
 
 func (*doneStep) ID() string    { return "done" }
-func (*doneStep) Title() string { return "All done" }
+func (*doneStep) Title() string { return tr("All done") }
 func (*doneStep) Intro() string { return "" }
 
 func (s *doneStep) Captures() bool { return false }
 
 var doneChoices = []struct{ label, hint string }{
-	{"Restart now", "recommended"},
-	{"Power off", ""},
-	{"Stay in a text console", "look around first"},
+	{i18n.Mark("Restart now"), "recommended"},
+	{i18n.Mark("Power off"), ""},
+	{i18n.Mark("Stay in a text console"), i18n.Mark("look around first")},
 }
 
 func (s *doneStep) Enter(w *Installer, env *core.Env) tea.Cmd {
 	s.sel, s.working = 0, ""
-	return core.Note("ok", "Installed Maxor OS on "+w.st.Disk)
+	return core.Note("ok", tr("Installed Maxor OS on %s", w.st.Disk))
 }
 
 func (s *doneStep) Key(w *Installer, env *core.Env, k tea.KeyMsg) (bool, tea.Cmd) {
@@ -1972,11 +1974,11 @@ func (s *doneStep) Key(w *Installer, env *core.Env, k tea.KeyMsg) (bool, tea.Cmd
 		var f func() error
 		switch s.sel {
 		case 0:
-			s.working, f = "Restarting", env.Install.Reboot
+			s.working, f = tr("Restarting"), env.Install.Reboot
 		case 1:
-			s.working, f = "Turning the computer off", env.Install.PowerOff
+			s.working, f = tr("Turning the computer off"), env.Install.PowerOff
 		default:
-			s.working, f = "Opening a text console", env.Install.Shell
+			s.working, f = tr("Opening a text console"), env.Install.Shell
 		}
 		if f == nil {
 			s.working = ""
@@ -2003,18 +2005,18 @@ func (s *doneStep) Lines(w *Installer, env *core.Env, width int) []ui.Line {
 	lines := []ui.Line{
 		ui.Of(ui.S(p.Ok.Bold(true), ui.G.Tick+"  Maxor OS is installed on "+w.st.Disk)),
 		gap(),
-		plain(env, "Remove the installation medium (the USB stick), restart,"),
-		plain(env, "and sign in as "+w.st.Username+"."),
+		plain(env, tr("Remove the installation medium (the USB stick), restart,")),
+		plain(env, tr("and sign in as %s.", w.st.Username)),
 		gap(),
-		muted(env, "Your configuration is in ~/nixos-config, a git repository:"),
-		muted(env, "it is yours to change. The log is /var/log/maxor-install.log."),
+		muted(env, tr("Your configuration is in ~/nixos-config, a git repository:")),
+		muted(env, tr("it is yours to change. The log is /var/log/maxor-install.log.")),
 		gap(),
 	}
 	if s.working != "" {
 		return append(lines, ui.Of(ui.S(p.Ac, ui.Spin(env.Frame)+"  "), ui.S(p.Text, s.working+"…")))
 	}
 	for i, c := range doneChoices {
-		lines = append(lines, radio(env, i == s.sel, i == s.sel, c.label, c.hint))
+		lines = append(lines, radio(env, i == s.sel, i == s.sel, tr(c.label), tr(c.hint)))
 	}
 	return lines
 }
@@ -2032,16 +2034,16 @@ func virtName(v string) string {
 func lookName(id string) string {
 	switch id {
 	case lookDark:
-		return "Dark"
+		return tr("Dark")
 	case lookLight:
-		return "Light"
+		return tr("Light")
 	}
 	return id
 }
 
 // Keys: r looks again, for networks and for disks (one was plugged in, a Wi-Fi was switched on).
-func (*networkStep) Keys() []ui.Hint { return []ui.Hint{{Key: "r", Action: "look again"}} }
-func (*diskStep) Keys() []ui.Hint    { return []ui.Hint{{Key: "r", Action: "look again"}} }
+func (*networkStep) Keys() []ui.Hint { return []ui.Hint{{Key: "r", Action: tr("look again")}} }
+func (*diskStep) Keys() []ui.Hint    { return []ui.Hint{{Key: "r", Action: tr("look again")}} }
 
 // zoneName is a time zone as a person reads it: «America/Lima» → «Lima (UTC−5, now 17:40)», so the clock it will
 // set can be checked at a glance. The zone database is built into the program (time/tzdata).
@@ -2068,7 +2070,7 @@ func zoneName(tz string, now time.Time) string {
 	if off == 0 {
 		utc = "UTC"
 	}
-	return fmt.Sprintf("%s (%s, now %s)", city, utc, t.Format("15:04"))
+	return fmt.Sprintf(tr("%s (%s, now %s)"), city, utc, t.Format("15:04"))
 }
 
 // graphicsText says what the graphics will be: the choice made on a machine with two GPUs, or the GPU found and
@@ -2076,15 +2078,15 @@ func zoneName(tz string, now time.Time) string {
 func graphicsText(env *core.Env, mode string) string {
 	switch mode {
 	case "hybrid":
-		return "hybrid (integrated + NVIDIA on demand)"
+		return tr("hybrid (integrated + NVIDIA on demand)")
 	case "nvidia":
-		return "NVIDIA only"
+		return tr("NVIDIA only")
 	case "integrated":
-		return "integrated only"
+		return tr("integrated only")
 	}
 	hw := env.Data.Hardware
 	if hw == nil || len(hw.GPUs) == 0 {
-		return "drivers chosen while installing"
+		return tr("drivers chosen while installing")
 	}
 	var names []string
 	for _, g := range hw.GPUs {
@@ -2099,14 +2101,14 @@ func failureHint(logs []string, offline bool) string {
 	text := strings.ToLower(strings.Join(logs, "\n"))
 	switch {
 	case strings.Contains(text, "no space left on device"):
-		return "The disk ran out of space. Go back and choose a bigger disk or a bigger free region."
+		return tr("The disk ran out of space. Go back and choose a bigger disk or a bigger free region.")
 	case offline && (strings.Contains(text, "cannot build") || strings.Contains(text, "unable to download") ||
 		strings.Contains(text, "could not resolve host")):
-		return "This computer needs a package that is not on the installation medium. Connect to a network (esc goes back to the network step), then press r: it will be downloaded."
+		return tr("This computer needs a package that is not on the installation medium. Connect to a network (esc goes back to the network step), then press r: it will be downloaded.")
 	case strings.Contains(text, "could not resolve host") || strings.Contains(text, "unable to download"):
-		return "The network stopped answering while downloading. Check the connection, then press r to carry on."
+		return tr("The network stopped answering while downloading. Check the connection, then press r to carry on.")
 	case strings.Contains(text, "input/output error"):
-		return "The disk reported a read or write error: it may be failing. Try another disk."
+		return tr("The disk reported a read or write error: it may be failing. Try another disk.")
 	}
 	return ""
 }
