@@ -202,3 +202,16 @@ func TestPainterLevelDevuelveGlifoPorNivel(t *testing.T) {
 }
 
 var _ = lipgloss.NewStyle
+
+func TestWrapKeepsWordsAndCutsOnlyWhatCannotFit(t *testing.T) {
+	got := Wrap("copying path '/nix/store/3zvg83mg9aavm9bgh26ydljchply7i25-source' from 'auto'", 20)
+	want := []string{"copying path", "'/nix/store/3zvg83mg", "9aavm9bgh26ydljchply", "7i25-source' from", "'auto'"}
+	if strings.Join(got, "|") != strings.Join(want, "|") {
+		t.Fatalf("Wrap = %q, want %q", got, want)
+	}
+	for _, l := range got {
+		if ansi.StringWidth(l) > 20 {
+			t.Fatalf("row %q is wider than 20 cells", l)
+		}
+	}
+}

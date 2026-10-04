@@ -1311,7 +1311,7 @@ func (s *hardwareStep) Lines(w *Installer, env *core.Env, width int) []ui.Line {
 	var vendors []string
 	for _, g := range hw.GPUs {
 		vendors = append(vendors, g.Vendor)
-		lines = append(lines, kv("Graphics", g.Vendor+" "+g.ID))
+		lines = append(lines, kv("Graphics", install.GPUName(g.Vendor, g.ID)))
 	}
 	if len(hw.GPUs) == 0 {
 		lines = append(lines, kv("Graphics", "none detected"))
@@ -1730,11 +1730,16 @@ func (s *installStep) Lines(w *Installer, env *core.Env, width int) []ui.Line {
 	}
 	bar := gradBar(env, ui.NewPainter(env.Theme, env.Theme.P.Bg), int(progress*100), 36, w.running)
 	lines = append(lines, gap(), ui.Line{L: append(bar, ui.S(p.Mu, fmt.Sprintf("  %d%%", int(progress*100))))})
-	// what the programs are printing, as far as the window has room for
+	// what the programs are printing, as far as the window has room for: the newest rows, each line whole (an
+	// error is often a long line, and its end is the part that says what went wrong)
 	if n := min(6, w.bodyH-19); n > 0 {
-		lines = append(lines, gap())
+		var rows []string
 		for _, l := range w.tailLogs(n) {
-			lines = append(lines, muted(env, ansi.Truncate(ansi.Strip(l), width-2, "…")))
+			rows = append(rows, ui.Wrap(ansi.Strip(l), width-2)...)
+		}
+		lines = append(lines, gap())
+		for _, r := range rows[max(len(rows)-n, 0):] {
+			lines = append(lines, muted(env, r))
 		}
 	}
 	if w.failed {

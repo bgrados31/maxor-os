@@ -1,5 +1,7 @@
 package install
 
+import "strings"
+
 // GPUOption is one way to use the graphics hardware the machine has.
 type GPUOption struct {
 	Mode        string // "integrated" | "nvidia" | "hybrid": a value of hardware.gpu in the answers
@@ -41,4 +43,47 @@ func RecommendedGPU(opts []GPUOption) string {
 		}
 	}
 	return "auto"
+}
+
+// GPUName is how a graphics device is shown to a person: its maker, and for virtual machines what the device is.
+// The PCI id stays only for hardware these tables do not know.
+func GPUName(vendor, id string) string {
+	switch vendor {
+	case "intel":
+		return "Intel graphics"
+	case "amd":
+		return "AMD Radeon graphics"
+	case "nvidia":
+		return "NVIDIA graphics"
+	}
+	if n, ok := knownGPUs[id]; ok {
+		return n
+	}
+	maker, _, _ := strings.Cut(id, ":")
+	if n, ok := gpuMakers[maker]; ok {
+		return n
+	}
+	return "Graphics adapter (" + id + ")"
+}
+
+// knownGPUs are single devices worth naming exactly: the virtual ones a test or a VM shows.
+var knownGPUs = map[string]string{
+	"1af4:1050": "VirtIO GPU (virtual)",
+	"1234:1111": "QEMU standard VGA (virtual)",
+	"1b36:0100": "QXL (virtual)",
+	"15ad:0405": "VMware SVGA (virtual)",
+	"80ee:beef": "VirtualBox graphics (virtual)",
+}
+
+// gpuMakers name the rest by their PCI vendor id.
+var gpuMakers = map[string]string{
+	"1af4": "VirtIO graphics (virtual)",
+	"1234": "QEMU graphics (virtual)",
+	"1b36": "QEMU graphics (virtual)",
+	"15ad": "VMware graphics (virtual)",
+	"80ee": "VirtualBox graphics (virtual)",
+	"1414": "Hyper-V graphics (virtual)",
+	"1a03": "ASPEED graphics",
+	"102b": "Matrox graphics",
+	"5143": "Qualcomm Adreno graphics",
 }

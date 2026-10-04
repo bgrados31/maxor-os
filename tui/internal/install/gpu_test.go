@@ -38,3 +38,16 @@ func TestGPUOptionsRecommendHybridOnALaptopAndNvidiaOnADesktop(t *testing.T) {
 		t.Fatal("no choice means auto")
 	}
 }
+
+func TestGPUNameIsReadable(t *testing.T) {
+	for _, c := range []struct{ vendor, id, want string }{
+		{"nvidia", "10de:28e0", "NVIDIA graphics"},
+		{"other", "1af4:1050", "VirtIO GPU (virtual)"},
+		{"other", "15ad:9999", "VMware graphics (virtual)"},
+		{"other", "abcd:0001", "Graphics adapter (abcd:0001)"},
+	} {
+		if got := GPUName(c.vendor, c.id); got != c.want {
+			t.Errorf("GPUName(%q, %q) = %q, want %q", c.vendor, c.id, got, c.want)
+		}
+	}
+}

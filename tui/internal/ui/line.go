@@ -185,7 +185,8 @@ func Cell(segs []Seg, w int, fill lipgloss.Style) []Seg {
 	return out
 }
 
-// Wrap parte un texto en filas de hasta w celdas, por palabras.
+// Wrap parte un texto en filas de hasta w celdas, por palabras. Una palabra más ancha que la fila (una ruta,
+// un hash) va en trozos en filas propias: nunca se sale.
 func Wrap(text string, w int) []string {
 	if w < 4 {
 		w = 4
@@ -194,6 +195,14 @@ func Wrap(text string, w int) []string {
 	for _, para := range strings.Split(text, "\n") {
 		cur := ""
 		for _, word := range strings.Fields(para) {
+			for ansi.StringWidth(word) > w {
+				if cur != "" {
+					lines, cur = append(lines, cur), ""
+				}
+				head := ansi.Truncate(word, w, "")
+				lines = append(lines, head)
+				word = ansi.TruncateLeft(word, ansi.StringWidth(head), "")
+			}
 			switch {
 			case cur == "":
 				cur = word
