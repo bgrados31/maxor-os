@@ -64,10 +64,14 @@
 
     # La CLI como paquete propio, para construirla y probarla sin el sistema entero.
     packages.x86_64-linux.maxor = nixpkgs.legacyPackages.x86_64-linux.callPackage ./packages/maxor.nix { };
+    packages.x86_64-linux.maxor-install = nixpkgs.legacyPackages.x86_64-linux.callPackage ./packages/maxor-install.nix { inherit (self.packages.x86_64-linux) maxor; };
     packages.x86_64-linux.maxor-tui = nixpkgs.legacyPackages.x86_64-linux.callPackage ./packages/maxor-tui.nix { };
 
     # La pantalla completa compila y corre sus pruebas de Go (go test) al construirse.
     checks.x86_64-linux.tui = self.packages.x86_64-linux.maxor-tui;
+
+    # El motor del instalador compila (y shellcheck lo revisa) como parte de las comprobaciones.
+    checks.x86_64-linux.maxor-install = self.packages.x86_64-linux.maxor-install;
 
     # Pruebas de la CLI (tests/): `nix build .#checks.x86_64-linux.cli-tests` o
     # `nix flake check`. Corren en el sandbox, sin tocar nada del usuario.

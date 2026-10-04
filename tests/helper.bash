@@ -38,3 +38,43 @@ load_lib() {
 
 # strip_ansi texto → sin secuencias de color
 strip_ansi() { sed 's/\x1b\[[0-9;?]*[a-zA-Z]//g'; }
+
+# load_engine → carga las bibliotecas del motor del instalador (installer/engine) en el propio proceso,
+# con estado, registro y destino dentro del directorio temporal de la prueba. Sin `main`.
+load_engine() {
+  isolate
+  W="$BATS_TEST_TMPDIR"
+  export MAXOR_INSTALL_NO_MAIN=1 MAXOR_INSTALL_STATE="$W/state" MAXOR_INSTALL_LOG="$W/install.log" MAXOR_INSTALL_ROOT="$W/mnt"
+  export MAXOR_INSTALL_SCHEMA="$ROOT/installer/schema/answers.v1.json" MAXOR_PROFILES="$ROOT/modules/profiles-catalog.json"
+  export MAXOR_INSTALL_EFI="$W/efi" MAXOR_INSTALL_MEMINFO="$W/meminfo" MAXOR_INSTALL_NM_DIR="$W/nm"
+  mkdir -p "$W/bin" "$W/efi"
+  printf 'MemTotal:       4000000 kB\n' > "$W/meminfo"
+  PATH="$W/bin:$PATH"
+  local f
+  for f in lib/common.sh lib/answers.sh lib/preflight.sh lib/disk.sh lib/luks.sh lib/filesystem.sh lib/host.sh lib/nixinstall.sh lib/bootloader.sh lib/finish.sh main.sh; do
+    # shellcheck disable=SC1090
+    source "$ROOT/installer/engine/$f"
+  done
+}
+
+# shim NOMBRE [CUERPO] [stdin] → un programa de mentira en $W/bin que anota cómo lo llamaron
+# ($W/calls). Con «stdin» también guarda lo que recibe por la entrada estándar en $W/stdin.NOMBRE
+# (solo si se pide: leer una entrada que nadie cierra bloquearía). Sin CUERPO imprime $W/out.NOMBRE.
+shim() {
+  local name="$1" body="${2:-}" reads="${3:-}"
+  {
+    printf '#!%s\n' "$(command -v bash)"
+    printf 'printf "%%s %%s\\n" "%s" "$*" >> "%s/calls"\n' "$name" "$W"
+    if [ "$reads" = stdin ]; then printf 'cat >> "%s/stdin.%s"\n' "$W" "$name"; fi
+    if [ -n "$body" ]; then printf '%s\n' "$body"; else printf '[ -f "%s/out.%s" ] && cat "%s/out.%s"\nexit 0\n' "$W" "$name" "$W" "$name"; fi
+  } > "$W/bin/$name"
+  chmod +x "$W/bin/$name"
+}
+
+# base_answers → unas respuestas válidas (disco entero, btrfs); mk 'FILTRO jq' las modifica y las guarda.
+base_answers() {
+  jq -nc '{schema: 1, timezone: "America/Lima", keymap: "la-latin1", xkb: {layout: "latam"},
+    disk: {device: "/dev/vda", strategy: "whole", confirmed: "ERASE"}, machine: {hostname: "maxor"},
+    user: {name: "ana", fullname: "Ana", password_hash: "$6$salt1234$abcdefghijklmnopqrstuvwxyz"}, look: {profiles: ["dev"]}}'
+}
+mk() { base_answers | jq -c "${1:-.}" > "$W/a.json"; }

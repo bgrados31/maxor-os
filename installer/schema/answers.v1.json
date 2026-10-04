@@ -1,0 +1,98 @@
+{
+  "$comment": "El contrato entre quien recoge las respuestas (la TUI, una pantalla gráfica, un archivo de instalación desatendida) y el motor maxor-install. El motor lee ESTE archivo para validar y para poner los valores por defecto: no hay otra lista de campos. Los secretos (la contraseña de LUKS) no van aquí: llegan por un descriptor de archivo.",
+  "type": "object",
+  "required": ["schema", "disk", "machine", "user"],
+  "properties": {
+    "schema": { "type": "integer", "enum": [1] },
+    "locale": { "type": "string", "pattern": "^[a-z]{2,3}_[A-Z]{2}(\\.UTF-8)?$", "default": "en_US.UTF-8" },
+    "keymap": { "type": "string", "pattern": "^[a-z0-9._-]{1,32}$", "default": "us" },
+    "xkb": {
+      "type": "object",
+      "properties": {
+        "layout": { "type": "string", "pattern": "^[a-z0-9_,]{1,32}$", "default": "us" },
+        "variant": { "type": "string", "pattern": "^[A-Za-z0-9_,-]{0,32}$", "default": "" }
+      },
+      "default": {}
+    },
+    "timezone": { "type": "string", "pattern": "^(UTC|[A-Z][A-Za-z_]+/[A-Za-z0-9_+-]+(/[A-Za-z0-9_+-]+)?)$", "default": "UTC" },
+    "disk": {
+      "type": "object",
+      "required": ["device", "strategy"],
+      "properties": {
+        "device": { "type": "string", "pattern": "^/dev/(nvme[0-9]+n[0-9]+|sd[a-z]+|vd[a-z]+|mmcblk[0-9]+)$" },
+        "strategy": { "type": "string", "enum": ["whole", "alongside"] },
+        "region": {
+          "type": "object",
+          "required": ["start", "end"],
+          "properties": {
+            "start": { "type": "integer", "minimum": 2048 },
+            "end": { "type": "integer", "minimum": 2048 }
+          }
+        },
+        "filesystem": { "type": "string", "enum": ["ext4", "btrfs"], "default": "btrfs" },
+        "encrypt": {
+          "type": "object",
+          "properties": { "enabled": { "type": "boolean", "default": false } },
+          "default": {}
+        },
+        "swap": {
+          "type": "object",
+          "properties": {
+            "kind": { "type": "string", "enum": ["zram", "file", "none"], "default": "zram" },
+            "gib": { "type": "integer", "minimum": 0, "maximum": 128, "default": 0 }
+          },
+          "default": {}
+        },
+        "confirmed": { "type": "string", "pattern": "^[A-Z]{0,16}$" },
+        "plan_hash": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+        "reclaim_leftovers": { "type": "boolean", "default": false }
+      }
+    },
+    "machine": {
+      "type": "object",
+      "required": ["hostname"],
+      "properties": {
+        "hostname": { "type": "string", "pattern": "^[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?$" }
+      }
+    },
+    "user": {
+      "type": "object",
+      "required": ["name", "password_hash"],
+      "properties": {
+        "name": { "type": "string", "pattern": "^[a-z_][a-z0-9_-]{0,31}$" },
+        "fullname": { "type": "string", "pattern": "^[^:\\n\\r]{0,64}$", "default": "" },
+        "password_hash": { "type": "string", "pattern": "^\\$(6|y|2b|5)\\$[^\\s:]{8,}$" },
+        "autologin": { "type": "boolean", "default": false }
+      }
+    },
+    "look": {
+      "type": "object",
+      "properties": {
+        "theme": { "type": "string", "pattern": "^[a-z0-9-]{1,32}$", "default": "sakura" },
+        "profiles": { "type": "array", "items": { "type": "string", "pattern": "^[a-z0-9-]{1,32}$" }, "default": [] },
+        "extra_apps": { "type": "array", "items": { "type": "string", "pattern": "^[A-Za-z0-9._+-]{1,80}$" }, "default": [] }
+      },
+      "default": {}
+    },
+    "hardware": {
+      "type": "object",
+      "properties": { "report": { "type": "string", "enum": ["auto"], "default": "auto" } },
+      "default": {}
+    },
+    "network": {
+      "type": "object",
+      "properties": { "offline": { "type": "boolean", "default": false } },
+      "default": {}
+    },
+    "release": {
+      "type": "object",
+      "properties": { "channel": { "type": "string", "enum": ["stable"], "default": "stable" } },
+      "default": {}
+    },
+    "advanced": {
+      "type": "object",
+      "properties": { "allow_secureboot": { "type": "boolean", "default": false } },
+      "default": {}
+    }
+  }
+}
