@@ -103,6 +103,16 @@ in
     systemd.services.greetd = {
       wants = [ "home-manager-${cfg.user}.service" ];
       after = [ "home-manager-${cfg.user}.service" ];
+      # El login recuerda al último usuario que entró; en el primer arranque aún no hay ninguno y pediría
+      # elegirlo de una lista: sale ya elegido. (/var/lib/dms-greeter es el cacheDir del módulo de nixpkgs.)
+      preStart = lib.mkAfter ''
+        m=/var/lib/dms-greeter/.local/state/memory.json
+        if [ ! -e "$m" ]; then
+          mkdir -p "$(dirname "$m")"
+          printf '{"lastSuccessfulUser": "%s"}\n' ${lib.escapeShellArg cfg.user} > "$m"
+          chown -R dms-greeter:dms-greeter /var/lib/dms-greeter/.local
+        fi
+      '';
     };
 
     home-manager = {
