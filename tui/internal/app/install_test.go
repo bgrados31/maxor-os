@@ -304,8 +304,9 @@ func TestDiskListsWhatIsOnEachDiskAndRefusesUnusableOnes(t *testing.T) {
 func TestAnEmptyDiskSkipsTheStrategyAndAWindowsDiskAsksForIt(t *testing.T) {
 	m := installModel(t, newInstallEnv(emptyDisk()))
 	enter(m, 5)
-	if has(view(m), "How to install") || !has(view(m), "Storage") {
-		t.Fatalf("an empty disk has a single way:\n%s", view(m))
+	// the step is settled on its own: the screen is storage, and the list says how it will install
+	if out := view(m); has(out, "Use the whole disk, or share it") || !has(out, "Storage") || !has(out, "erase disk") || !has(out, "/ 11") {
+		t.Fatalf("an empty disk has a single way:\n%s", out)
 	}
 	m = installModel(t, newInstallEnv(windowsDisk()))
 	enter(m, 5)
@@ -755,7 +756,7 @@ func TestTheReviewEditsAStepByItsNumberAndComesBackToTheReview(t *testing.T) {
 	typeText(m, "madrid")
 	send(m, key("enter"))
 	out = view(m)
-	if !has(out, "Type ERASE") || !has(out, "Europe/Madrid") {
+	if !has(out, "Type ERASE") || !has(out, "Madrid (UTC") {
 		t.Fatalf("after the change the review comes right back, with the change:\n%s", out)
 	}
 	typeText(m, "ERASE")
@@ -806,5 +807,25 @@ func TestTheLanguageProposesTheKeyboardAndTheTimeZone(t *testing.T) {
 	send(m, key("enter"), key("enter")) // keyboard → network → time zone
 	if !has(view(m), "❯ America/Lima") {
 		t.Fatalf("and the time zone of Peru:\n%s", view(m))
+	}
+}
+
+func TestAFailureSaysWhatHappenedInWords(t *testing.T) {
+	e := newInstallEnv(emptyDisk())
+	e.net.status = install.NetStatus{}
+	e.eng.runCode = 1
+	e.eng.runEvents = []install.Event{
+		{Stage: "disk", State: "ok"},
+		{State: "log", Message: "error: Cannot build '/nix/store/abc-glibc-locales-2.42.drv'."},
+		{Stage: "install", State: "fail", Message: "stage failed (exit 1)"},
+	}
+	m := installModel(t, e)
+	walkToAccount(m)
+	fillAccount(m, "Ana", "ana", "pc", "correct-horse-1")
+	enter(m, 3) // look, hardware → review
+	typeText(m, "ERASE")
+	send(m, key("enter"))
+	if out := view(m); !has(out, "not on the installation medium") || !has(out, "Connect to a network") {
+		t.Fatalf("an offline build failure is explained:\n%s", out)
 	}
 }

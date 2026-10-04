@@ -26,7 +26,7 @@ func spanColor(env *core.Env, s install.Span) string {
 		return t.Ac2
 	case "efi":
 		if s.New {
-			return ui.Mix(t.Ac, t.Mu, 0.55)
+			return ui.Mix(t.Ac2, t.Mu, 0.25) // the second accent: set apart from Maxor OS beside it
 		}
 		return ui.Mix(t.Mu, t.S2, 0.35)
 	case "linux":

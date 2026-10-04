@@ -3,7 +3,10 @@ package screens
 import (
 	"context"
 	"fmt"
+	"strconv"
 	"strings"
+	"time"
+	_ "time/tzdata" // the zone database inside the program: the review shows the time of any zone
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
@@ -33,7 +36,7 @@ func (stepBase) Key(_ *Installer, _ *core.Env, k tea.KeyMsg) (bool, tea.Cmd) {
 func listRows[T any](env *core.Env, pk *picker, items []T, text func(T) string, extra func(T) string, width int) []ui.Line {
 	p := env.P
 	lines := []ui.Line{ui.Of(ui.S(p.Mu, ui.G.Find+"  "), ui.Seg{T: ""}), gap()}
-	lines[0] = ui.Line{L: append([]ui.Seg{ui.S(p.Mu, ui.G.Find+"  ")}, pk.in.Segs(p, true, width-6)...)}
+	lines[0] = ui.Line{L: append([]ui.Seg{ui.S(p.Mu, ui.G.Find+"  ")}, pk.in.Segs(p, !pk.blurred, width-6)...)}
 	if len(items) == 0 {
 		return append(lines, muted(env, "Nothing matches. Keep typing, or delete a letter."))
 	}
@@ -165,7 +168,7 @@ func (s *keyboardStep) filtered() []install.Layout {
 func (s *keyboardStep) Enter(w *Installer, env *core.Env) tea.Cmd {
 	s.pk = newPicker("layout")
 	s.test.Placeholder = "try your keys here, accents included"
-	s.onTest = false
+	s.onTest, s.pk.blurred = false, false
 	cur := install.FindLayout(w.st.XKBLayout, w.st.XKBVariant)
 	for i, l := range install.Layouts {
 		if l == cur {
@@ -199,6 +202,7 @@ func (s *keyboardStep) Key(w *Installer, env *core.Env, k tea.KeyMsg) (bool, tea
 	switch k.String() {
 	case "tab":
 		s.onTest = !s.onTest
+		s.pk.blurred = s.onTest
 		return false, nil
 	case "enter":
 		s.apply(w, env)
@@ -406,7 +410,7 @@ func (s *networkStep) Lines(w *Installer, env *core.Env, width int) []ui.Line {
 			lines = append(lines, ui.Of(ui.S(p.Bad, mark), ui.S(p.Text, l)))
 		}
 	}
-	return append(lines, gap(), muted(env, "r looks again"))
+	return lines
 }
 
 // ── 4 · Region ───────────────────────────────────────────────────────
@@ -667,7 +671,7 @@ func (s *diskStep) Lines(w *Installer, env *core.Env, width int) []ui.Line {
 		lines = append(lines, muted(env, fmt.Sprintf("   %d of %d disks · ↑ ↓ for the others", to-from, len(s.disks))))
 	}
 	lines = append(lines, gap())
-	for _, l := range ui.Wrap("r looks again. The disk this installer started from is never offered.", width) {
+	for _, l := range ui.Wrap("The disk this installer started from is never offered.", width) {
 		lines = append(lines, muted(env, l))
 	}
 	return lines
@@ -1259,7 +1263,8 @@ func (s *accountStep) Lines(w *Installer, env *core.Env, width int) []ui.Line {
 		field(env, "Password", &s.pass, s.focus == aPass, width),
 	}
 	if s.pass.Text() != "" {
-		lines = append(lines, ui.Of(ui.S(p.Mu, fmt.Sprintf("%-18s", "")), meter(env, install.Strength(s.pass.Text()))))
+		n := install.Strength(s.pass.Text())
+		lines = append(lines, ui.Of(ui.S(p.Mu, fmt.Sprintf("%-18s", "")), meter(env, n), ui.S(p.Mu, "  "+strengthWord(n))))
 	}
 	lines = append(lines, field(env, "Again", &s.conf, s.focus == aConf, width), gap(),
 		radio(env, w.st.Autologin, s.focus == aAuto, "Sign in automatically", "no password at the login screen"))
@@ -1738,10 +1743,11 @@ func (s *summaryStep) Lines(w *Installer, env *core.Env, width int) []ui.Line {
 		kv("Method", how),
 		kv("Storage", w.st.Filesystem+", "+enc+", "+swap),
 		kv("Account", fmt.Sprintf("%s (%s) on %s", w.st.Username, w.st.Fullname, w.st.Hostname)),
-		kv("Region", w.st.Timezone+" · "+w.st.Locale),
+		kv("Language", strings.TrimSpace(install.LocaleName(w.st.Locale))),
+		kv("Time zone", zoneName(w.st.Timezone, env.Now())),
 		kv("Keyboard", install.FindLayout(w.st.XKBLayout, w.st.XKBVariant).Name),
 		kv("Look", lookName(w.st.Theme)+profilesText(w.st.Profiles)),
-		kv("Graphics", map[string]string{"auto": "recommended for this machine", "hybrid": "hybrid (integrated + NVIDIA on demand)", "nvidia": "NVIDIA only", "integrated": "integrated only"}[w.st.GPU]),
+		kv("Graphics", graphicsText(env, w.st.GPU)),
 		kv("Network", map[bool]string{true: "none: installing without internet", false: "online"}[w.st.Offline]))
 	if d, ok := w.currentDisk(); ok && w.st.Strategy == "alongside" && d.Windows {
 		for i, l := range ui.Wrap("Windows stays untouched and keeps its place in the boot menu.", width-3) {
@@ -1762,7 +1768,11 @@ func (s *summaryStep) Lines(w *Installer, env *core.Env, width int) []ui.Line {
 		lines = append(lines, ui.T(p.Warn, "Everything on the disk will be erased."))
 	}
 	lines = append(lines, field(env, "Type "+word, &s.confirm, true, width))
-	lines = append(lines, muted(env, "1-9 edits that step"))
+	if w.railShown {
+		lines = append(lines, muted(env, "1-9 edits that step (the numbers in the list on the left)"))
+	} else {
+		lines = append(lines, muted(env, "esc goes back through the steps to change one"))
+	}
 	if s.prep.planHash != "" {
 		lines = append(lines, muted(env, "plan "+s.prep.planHash[:12]))
 	}
@@ -1908,7 +1918,14 @@ func (s *installStep) Lines(w *Installer, env *core.Env, width int) []ui.Line {
 		}
 	}
 	if w.failed {
-		lines = append(lines, gap(), ui.Of(ui.S(p.Bad, ui.G.Bad+"  "), ui.S(p.Text, "The installation did not finish.")),
+		lines = append(lines, gap(), ui.Of(ui.S(p.Bad, ui.G.Bad+"  "), ui.S(p.Text, "The installation did not finish.")))
+		// what went wrong, in words, when the log shows a cause the installer knows
+		if why := failureHint(w.tailLogs(200), w.st.Offline); why != "" {
+			for _, l := range ui.Wrap(why, width-3) {
+				lines = append(lines, ui.Of(ui.S(p.Mu, "   "), ui.S(p.Text, l)))
+			}
+		}
+		lines = append(lines,
 			muted(env, "Nothing is lost: r tries again from where it stopped, esc goes back."),
 			muted(env, "The log is /var/log/maxor-install.log"))
 	}
@@ -2020,4 +2037,76 @@ func lookName(id string) string {
 		return "Light"
 	}
 	return id
+}
+
+// Keys: r looks again, for networks and for disks (one was plugged in, a Wi-Fi was switched on).
+func (*networkStep) Keys() []ui.Hint { return []ui.Hint{{Key: "r", Action: "look again"}} }
+func (*diskStep) Keys() []ui.Hint    { return []ui.Hint{{Key: "r", Action: "look again"}} }
+
+// zoneName is a time zone as a person reads it: «America/Lima» → «Lima (UTC−5, now 17:40)», so the clock it will
+// set can be checked at a glance. The zone database is built into the program (time/tzdata).
+func zoneName(tz string, now time.Time) string {
+	city := tz
+	if i := strings.LastIndex(tz, "/"); i >= 0 {
+		city = tz[i+1:]
+	}
+	city = strings.ReplaceAll(city, "_", " ")
+	loc, err := time.LoadLocation(tz)
+	if err != nil {
+		return city
+	}
+	t := now.In(loc)
+	_, off := t.Zone()
+	sign, h, m := "+", off/3600, (off%3600)/60
+	if off < 0 {
+		sign, h, m = "−", -off/3600, (-off%3600)/60
+	}
+	utc := "UTC" + sign + strconv.Itoa(h)
+	if m != 0 {
+		utc += fmt.Sprintf(":%02d", m)
+	}
+	if off == 0 {
+		utc = "UTC"
+	}
+	return fmt.Sprintf("%s (%s, now %s)", city, utc, t.Format("15:04"))
+}
+
+// graphicsText says what the graphics will be: the choice made on a machine with two GPUs, or the GPU found and
+// that its drivers come with the installation.
+func graphicsText(env *core.Env, mode string) string {
+	switch mode {
+	case "hybrid":
+		return "hybrid (integrated + NVIDIA on demand)"
+	case "nvidia":
+		return "NVIDIA only"
+	case "integrated":
+		return "integrated only"
+	}
+	hw := env.Data.Hardware
+	if hw == nil || len(hw.GPUs) == 0 {
+		return "drivers chosen while installing"
+	}
+	var names []string
+	for _, g := range hw.GPUs {
+		names = append(names, install.GPUName(g.Vendor, g.ID))
+	}
+	return strings.Join(names, " + ") + ", with its drivers"
+}
+
+// failureHint reads the end of the log for causes the installer knows and says, in words, what happened and what to
+// do; "" when it does not recognise the cause (the log path is shown anyway).
+func failureHint(logs []string, offline bool) string {
+	text := strings.ToLower(strings.Join(logs, "\n"))
+	switch {
+	case strings.Contains(text, "no space left on device"):
+		return "The disk ran out of space. Go back and choose a bigger disk or a bigger free region."
+	case offline && (strings.Contains(text, "cannot build") || strings.Contains(text, "unable to download") ||
+		strings.Contains(text, "could not resolve host")):
+		return "This computer needs a package that is not on the installation medium. Connect to a network (esc goes back to the network step), then press r: it will be downloaded."
+	case strings.Contains(text, "could not resolve host") || strings.Contains(text, "unable to download"):
+		return "The network stopped answering while downloading. Check the connection, then press r to carry on."
+	case strings.Contains(text, "input/output error"):
+		return "The disk reported a read or write error: it may be failing. Try another disk."
+	}
+	return ""
 }

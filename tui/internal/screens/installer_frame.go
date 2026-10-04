@@ -84,15 +84,13 @@ func (w *Installer) mark(env *core.Env, page ui.Painter) []ui.Seg {
 	return segs
 }
 
-// visible lists the steps the rail and the counter show: those a person goes through.
+// visible lists the steps the rail and the counter show: those a person goes through. A step the installer settles
+// on its own (the way to install, when a disk allows only one) stays in the list, done with its value: the count
+// does not change half way, and the list says what happened.
 func (w *Installer) visible() []int {
 	var out []int
 	for i, s := range w.steps {
 		if i == len(w.steps)-1 || s.ID() == "install" || s.ID() == "intro" {
-			continue
-		}
-		// a step that does not apply (the way to install, when there is only one) is not counted either
-		if sk, ok := s.(interface{ Skip(*Installer) bool }); ok && i != w.idx && sk.Skip(w) {
 			continue
 		}
 		out = append(out, i)
@@ -152,9 +150,6 @@ func (w *Installer) railLines(env *core.Env) []ui.Line {
 	lines := []ui.Line{ui.Of(w.mark(env, env.P)...), ui.Blank()}
 	for _, i := range w.visible() {
 		s := w.steps[i]
-		if sk, ok := s.(interface{ Skip(*Installer) bool }); ok && i != w.idx && sk.Skip(w) {
-			continue
-		}
 		var mark ui.Seg
 		name := p.Mu
 		switch {
@@ -168,7 +163,7 @@ func (w *Installer) railLines(env *core.Env) []ui.Line {
 		label := s.Title()
 		if w.cur().ID() == "summary" {
 			n := 0
-			for k, v := range w.visible() {
+			for k, v := range w.editable() {
 				if v == i {
 					n = k + 1
 				}
@@ -228,6 +223,7 @@ func (w *Installer) Frame(env *core.Env, width, height int) []string {
 		w.railW = railWide
 	}
 	showRail := !w.running && !final && !intro && w.cur().ID() != "install" && width >= w.railW+minCard+6
+	w.railShown = showRail
 	cw := min(cardWidth, width-2)
 	if showRail {
 		cw = min(cardWidth, width-w.railW-6) // the card gives way before the list of steps does

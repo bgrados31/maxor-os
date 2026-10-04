@@ -32,6 +32,7 @@ type Installer struct {
 	barFrom    float64       // what the progress bar showed when the step changed: it glides from there
 	bodyH      int           // rows the card may use, as of the last frame
 	railW      int           // the width of the list of steps, as of the last frame
+	railShown  bool          // the list of steps is on screen (its numbers are what the review edits by)
 	sugLayout  string        // the keyboard (xkb:variant) and the time zone proposed from the language, so a new
 	sugZone    string        // language can replace them while the person has not chosen others (see suggest)
 	fromReview bool          // a step is being edited from the review: the review comes back right after it
@@ -239,6 +240,10 @@ func (w *Installer) Hints(env *core.Env) []ui.Hint {
 		return []ui.Hint{{Key: "↑↓", Action: "choose"}, {Key: "⏎", Action: "confirm"}}
 	}
 	h := []ui.Hint{{Key: "⏎", Action: "continue"}}
+	// a step may have keys of its own (r to look again for disks or networks): they go here, with the others
+	if k, ok := w.cur().(interface{ Keys() []ui.Hint }); ok {
+		h = append(h, k.Keys()...)
+	}
 	if w.idx > 0 && w.idx < len(w.steps)-1 {
 		h = append(h, ui.Hint{Key: "esc", Action: "back"})
 	}
@@ -301,8 +306,9 @@ func meter(env *core.Env, n int) ui.Seg {
 
 // picker is a list you filter by typing and move with the arrows.
 type picker struct {
-	in   ui.Input
-	list listState
+	in      ui.Input
+	list    listState
+	blurred bool // another field of the step has the focus: the filter does not draw its cursor
 }
 
 func newPicker(placeholder string) picker {
@@ -354,7 +360,7 @@ func (w *Installer) indexOf(id string) int {
 
 // editStep takes the person from the review back to the n-th step of the list (1 is the first question).
 func (w *Installer) editStep(env *core.Env, n int) tea.Cmd {
-	vis := w.visible()
+	vis := w.editable()
 	if n < 1 || n > len(vis) || vis[n-1] >= w.idx {
 		return nil
 	}
@@ -376,4 +382,17 @@ func (w *Installer) suggest() {
 	if z, ok := install.SuggestZone(w.st.Locale); ok && (w.st.Timezone == "UTC" || w.st.Timezone == w.sugZone) {
 		w.st.Timezone, w.sugZone = z, z
 	}
+}
+
+// editable are the steps of the list a person answers: the visible ones but those the installer settled on its own
+// (the way to install, when the disk allows only one). The review numbers them, 1 to 9.
+func (w *Installer) editable() []int {
+	var out []int
+	for _, i := range w.visible() {
+		if sk, ok := w.steps[i].(interface{ Skip(*Installer) bool }); ok && sk.Skip(w) {
+			continue
+		}
+		out = append(out, i)
+	}
+	return out
 }
