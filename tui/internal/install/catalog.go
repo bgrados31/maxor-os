@@ -138,14 +138,14 @@ func parseZones(s string) []string {
 // Filter keeps the items whose text contains every word of the query, ignoring case: the way every list
 // of the wizard is searched by typing.
 func Filter[T any](items []T, query string, text func(T) string) []T {
-	words := strings.Fields(strings.ToLower(query))
+	words := strings.Fields(fold(query))
 	if len(words) == 0 {
 		return items
 	}
 	var out []T
 next:
 	for _, it := range items {
-		t := strings.ToLower(text(it))
+		t := fold(text(it))
 		for _, w := range words {
 			if !strings.Contains(t, w) {
 				continue next
@@ -155,6 +155,15 @@ next:
 	}
 	return out
 }
+
+// fold lowercases and drops the accents of Latin letters, so «peru» finds «Perú».
+var folder = strings.NewReplacer(
+	"á", "a", "à", "a", "ä", "a", "â", "a", "ã", "a", "å", "a", "é", "e", "è", "e", "ë", "e", "ê", "e",
+	"í", "i", "ì", "i", "ï", "i", "î", "i", "ó", "o", "ò", "o", "ö", "o", "ô", "o", "õ", "o", "ø", "o",
+	"ú", "u", "ù", "u", "ü", "u", "û", "u", "ñ", "n", "ç", "c", "ß", "ss",
+)
+
+func fold(s string) string { return folder.Replace(strings.ToLower(s)) }
 
 // HostHint suggests a machine name from the account name: «ana» → «ana-pc».
 func HostHint(user string) string {

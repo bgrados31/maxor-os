@@ -113,3 +113,73 @@ func TestSplitTerseHonoursEscapes(t *testing.T) {
 		t.Fatalf("%q", f)
 	}
 }
+
+func TestMergeCatalogAddsAfterTheCuratedListsWithoutRepeating(t *testing.T) {
+	savedL, savedY := Locales, Layouts
+	defer func() { Locales, Layouts = savedL, savedY }()
+	nl, ny := len(Locales), len(Layouts)
+	err := MergeCatalog([]byte(`{"version":1,
+	  "locales":[{"code":"es_PE.UTF-8","name":"Spanish (Peru)"},{"code":"aa_ER.UTF-8","name":"Afar (Eritrea)"}],
+	  "layouts":[{"xkb":"es","variant":"","name":"Spanish"},{"xkb":"latam","variant":"deadtilde","name":"Spanish (Latin American, dead tilde)"}]}`))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(Locales) != nl+1 || Locales[len(Locales)-1].Code != "aa_ER.UTF-8" {
+		t.Fatalf("only the locale that was not there is added, at the end: %d → %d", nl, len(Locales))
+	}
+	if Locales[5].Name != "Español (Perú)" {
+		t.Fatalf("the curated name stays: %q", Locales[5].Name)
+	}
+	if len(Layouts) != ny+1 {
+		t.Fatalf("only the layout that was not there is added: %d → %d", ny, len(Layouts))
+	}
+	got := FindLayout("latam", "deadtilde")
+	if got.Console != "" || got.Name == "" {
+		t.Fatalf("a catalog layout has no console keymap of its own: %+v", got)
+	}
+}
+
+func TestMergeCatalogRefusesNonsense(t *testing.T) {
+	for _, bad := range []string{`not json`, `{}`, `{"locales":[],"layouts":[]}`} {
+		if err := MergeCatalog([]byte(bad)); err == nil {
+			t.Fatalf("%q should be refused", bad)
+		}
+	}
+}
+
+func TestLoadCatalogFromEnvIsOptional(t *testing.T) {
+	t.Setenv("MAXOR_CATALOG", "")
+	if err := LoadCatalogFromEnv(); err != nil {
+		t.Fatalf("no catalog is not an error: %v", err)
+	}
+	t.Setenv("MAXOR_CATALOG", "/nonexistent/catalog.json")
+	if err := LoadCatalogFromEnv(); err == nil {
+		t.Fatal("a catalog that was asked for and cannot be read is reported")
+	}
+}
+
+func TestCheckZoneOnlyAcceptsKnownZones(t *testing.T) {
+	known := []string{"America/Lima", "Europe/Madrid"}
+	if z, err := CheckZone("America/Lima", known); err != nil || z != "America/Lima" {
+		t.Fatalf("%q %v", z, err)
+	}
+	for _, bad := range []string{"", "Mars/Olympus", "America/Lima\nrm -rf /", "<html>blocked</html>"} {
+		if _, err := CheckZone(bad, known); err == nil {
+			t.Fatalf("%q should be refused", bad)
+		}
+	}
+}
+
+func TestFilterIgnoresAccentsAndCase(t *testing.T) {
+	items := []string{"Español (Perú)", "Português (Brasil)", "Deutsch"}
+	got := Filter(items, "peru", func(s string) string { return s })
+	if len(got) != 1 || got[0] != "Español (Perú)" {
+		t.Fatalf("%v", got)
+	}
+	if got := Filter(items, "ESPANOL", func(s string) string { return s }); len(got) != 1 {
+		t.Fatalf("%v", got)
+	}
+	if got := Filter(items, "portugues brasil", func(s string) string { return s }); len(got) != 1 {
+		t.Fatalf("%v", got)
+	}
+}

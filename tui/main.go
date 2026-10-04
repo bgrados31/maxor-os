@@ -13,6 +13,7 @@ import (
 	"golang.org/x/term"
 
 	"github.com/bgrados31/maxor-os/tui/internal/app"
+	"github.com/bgrados31/maxor-os/tui/internal/install"
 	"github.com/bgrados31/maxor-os/tui/internal/maxor"
 	"github.com/bgrados31/maxor-os/tui/internal/theme"
 	"github.com/bgrados31/maxor-os/tui/internal/ui"
@@ -27,6 +28,8 @@ func main() {
 	search := flag.String("search", "", "abre la Tienda con esta búsqueda ya lanzada")
 	showVersion := flag.Bool("version", false, "imprime la versión y sale")
 	flag.Parse()
+	// the complete language and keyboard lists, if the package ships them; otherwise the short built-in ones
+	_ = install.LoadCatalogFromEnv()
 
 	if *showVersion {
 		fmt.Println("maxor-tui", version)

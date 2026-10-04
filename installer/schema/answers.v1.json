@@ -4,8 +4,8 @@
   "required": ["schema", "disk", "machine", "user"],
   "properties": {
     "schema": { "type": "integer", "enum": [1] },
-    "locale": { "type": "string", "pattern": "^[a-z]{2,3}_[A-Z]{2}(\\.UTF-8)?$", "default": "en_US.UTF-8" },
-    "keymap": { "type": "string", "pattern": "^[a-z0-9._-]{1,32}$", "default": "us" },
+    "locale": { "type": "string", "pattern": "^[a-z]{2,3}_[A-Z]{2}(\\.UTF-8)?(@[a-z]+)?$", "default": "en_US.UTF-8" },
+    "keymap": { "type": "string", "pattern": "^[a-z0-9._-]{0,32}$", "default": "us", "description": "Console keymap; empty means derive it from the XKB layout" },
     "xkb": {
       "type": "object",
       "properties": {

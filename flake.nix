@@ -73,6 +73,20 @@
     # El motor del instalador compila (y shellcheck lo revisa) como parte de las comprobaciones.
     checks.x86_64-linux.maxor-install = self.packages.x86_64-linux.maxor-install;
 
+    # The language and keyboard lists of the installer, generated from the system's data: they must be complete and every
+    # locale must fit what the answers schema accepts.
+    checks.x86_64-linux.catalog =
+      let pkgs = nixpkgs.legacyPackages.x86_64-linux; catalog = pkgs.callPackage ./packages/catalog.nix { }; in
+      pkgs.runCommand "check-catalog" { nativeBuildInputs = [ pkgs.jq ]; } ''
+        jq -e '(.locales | length) > 250 and (.layouts | length) > 400' ${catalog}
+        jq -e '.locales[] | select(.code == "es_PE.UTF-8" and .name == "Spanish (Peru)")' ${catalog} > /dev/null
+        jq -e '.layouts[] | select(.xkb == "latam" and .variant == "")' ${catalog} > /dev/null
+        if jq -e '.locales[] | select(.code | test("^[a-z]{2,3}_[A-Z]{2}\\.UTF-8(@[a-z]+)?$") | not)' ${catalog}; then
+          echo "a locale does not fit the answers schema"; exit 1
+        fi
+        touch $out
+      '';
+
     # Pruebas de la CLI (tests/): `nix build .#checks.x86_64-linux.cli-tests` o
     # `nix flake check`. Corren en el sandbox, sin tocar nada del usuario.
     checks.x86_64-linux.cli-tests =

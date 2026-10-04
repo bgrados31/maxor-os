@@ -75,6 +75,9 @@ func (n *fakeNet) Connect(_ context.Context, ssid, pw string) error {
 }
 
 type env struct {
+	detectCalls int
+	detected  string
+	detectErr error
 	eng      *fakeEngine
 	net      *fakeNet
 	layouts  []string
@@ -106,6 +109,7 @@ func (e *env) deps() *install.Deps {
 		Engine: e.eng, Net: e.net,
 		Sys:           func() install.SysInfo { return e.sys },
 		Zones:         func(context.Context) []string { return []string{"America/Lima", "America/Mexico_City", "Europe/Madrid", "UTC"} },
+		DetectZone:    func(context.Context, []string) (string, error) { e.detectCalls++; return e.detected, e.detectErr },
 		ApplyKeyboard: func(l install.Layout) { e.layouts = append(e.layouts, l.XKB) },
 		Reboot:        func() error { e.rebooted = true; return nil },
 	}
@@ -584,5 +588,54 @@ func TestTheFinalOffersRestartPowerOffAndAConsole(t *testing.T) {
 	send(m, key("up"), key("down"), key("down"), key("enter"))
 	if !shell {
 		t.Fatal("the third choice opens a text console")
+	}
+}
+
+func TestRegionOffersToDetectTheZoneFromTheInternetAndUsesTheAnswer(t *testing.T) {
+	e := newInstallEnv(emptyDisk())
+	e.detected = "Europe/Madrid"
+	m := installModel(t, e)
+	enter(m, 3) // → time zone
+	out := view(m)
+	if !has(out, "Detect automatically") || !has(out, "Detecting tells ipapi.co your address") {
+		t.Fatalf("the first row detects, and says what it sends:\n%s", out)
+	}
+	send(m, key("home"))
+	send(m, key("enter"))
+	if !has(view(m), "Disk") {
+		t.Fatalf("a detected zone moves on:\n%s", view(m))
+	}
+	if e.detectCalls != 1 {
+		t.Fatalf("the service is asked exactly once, and only because the row was chosen: %d", e.detectCalls)
+	}
+}
+
+func TestRegionShowsWhyDetectionFailedAndStays(t *testing.T) {
+	e := newInstallEnv(emptyDisk())
+	e.detectErr = errors.New("could not reach the time zone service")
+	m := installModel(t, e)
+	enter(m, 3)
+	send(m, key("home"), key("enter"))
+	out := view(m)
+	if !has(out, "could not reach the time zone service") || !has(out, "Time zone") {
+		t.Fatalf("a failure is explained and the step stays:\n%s", out)
+	}
+}
+
+func TestRegionHasNoDetectRowWhenOfflineOrWhenFiltering(t *testing.T) {
+	e := newInstallEnv(emptyDisk())
+	m := installModel(t, e)
+	enter(m, 3)
+	typeText(m, "lima")
+	if has(view(m), "Detect automatically") {
+		t.Fatal("typing a city hides the detect row")
+	}
+	e2 := newInstallEnv(emptyDisk())
+	e2.net.status = install.NetStatus{}
+	m2 := installModel(t, e2)
+	enter(m2, 2)
+	send(m2, key("enter")) // «Install without a network»
+	if has(view(m2), "Detect automatically") {
+		t.Fatalf("offline cannot detect:\n%s", view(m2))
 	}
 }

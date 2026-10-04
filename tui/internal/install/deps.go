@@ -23,6 +23,8 @@ type Deps struct {
 	Sys    func() SysInfo
 	// Zones lists the time zones.
 	Zones func(ctx context.Context) []string
+	// DetectZone asks which time zone this connection is in (it contacts a service, so only on request).
+	DetectZone func(ctx context.Context, known []string) (string, error)
 	// ApplyKeyboard makes the live session use the layout, so the user can test it by typing.
 	ApplyKeyboard func(Layout)
 	// Reboot restarts the machine (the last step).
@@ -39,6 +41,7 @@ func RealDeps() *Deps {
 		Net:           NewNMCLI(),
 		Sys:           realSys,
 		Zones:         Timezones,
+		DetectZone:    DetectZone,
 		ApplyKeyboard: applyKeyboard,
 		Reboot:        reboot,
 		PowerOff:      func() error { return systemctl("poweroff") },

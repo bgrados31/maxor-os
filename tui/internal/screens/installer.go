@@ -280,6 +280,12 @@ func (p *picker) handle(k tea.KeyMsg, n, rows int) (changed bool) {
 	case "down":
 		p.list.move(1, n, rows)
 		return true
+	case "home":
+		p.list.move(-n, n, rows)
+		return true
+	case "end":
+		p.list.move(n, n, rows)
+		return true
 	case "pgup":
 		p.list.move(-rows, n, rows)
 		return true

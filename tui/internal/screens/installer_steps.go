@@ -407,22 +407,36 @@ func (s *networkStep) Lines(w *Installer, env *core.Env, width int) []ui.Line {
 
 type regionStep struct {
 	stepBase
-	pk    picker
-	zones []string
+	pk        picker
+	zones     []string
+	detecting bool
+	msg       string
 }
 
 func (*regionStep) ID() string    { return "region" }
 func (*regionStep) Title() string { return "Time zone" }
 func (*regionStep) Intro() string { return "Where is this computer? It sets the clock. Type a city or a region." }
 
-func (s *regionStep) filtered() []string {
-	return install.Filter(s.zones, strings.ReplaceAll(s.pk.in.Text(), " ", "_"), func(z string) string { return z })
+// detectRow stands for «find it from the internet connection»; it is the first row while nothing is typed.
+const detectRow = "\x00detect"
+
+func (s *regionStep) canDetect(w *Installer, env *core.Env) bool {
+	return env.Install.DetectZone != nil && !w.st.Offline && s.pk.in.Text() == ""
+}
+
+func (s *regionStep) filtered(w *Installer, env *core.Env) []string {
+	items := install.Filter(s.zones, strings.ReplaceAll(s.pk.in.Text(), " ", "_"), func(z string) string { return z })
+	if s.canDetect(w, env) {
+		return append([]string{detectRow}, items...)
+	}
+	return items
 }
 
 func (s *regionStep) Enter(w *Installer, env *core.Env) tea.Cmd {
 	s.pk = newPicker("city, e.g. Lima or Madrid")
+	s.detecting, s.msg = false, ""
 	if len(s.zones) > 0 {
-		s.select_(w)
+		s.select_(w, env)
 		return nil
 	}
 	return runTask(env, "region.zones", "Reading the time zones", true, func(ctx context.Context) (any, error) {
@@ -430,8 +444,8 @@ func (s *regionStep) Enter(w *Installer, env *core.Env) tea.Cmd {
 	})
 }
 
-func (s *regionStep) select_(w *Installer) {
-	for i, z := range s.zones {
+func (s *regionStep) select_(w *Installer, env *core.Env) {
+	for i, z := range s.filtered(w, env) {
 		if z == w.st.Timezone {
 			s.pk.list.sel = i
 			s.pk.list.top = max(0, i-pickRows/2)
@@ -440,9 +454,20 @@ func (s *regionStep) select_(w *Installer) {
 }
 
 func (s *regionStep) Done(w *Installer, env *core.Env, d task.DoneMsg) tea.Cmd {
-	if d.ID == "install.region.zones" {
+	switch d.ID {
+	case "install.region.zones":
 		s.zones, _ = d.Value.([]string)
-		s.select_(w)
+		s.select_(w, env)
+	case "install.region.detect":
+		s.detecting = false
+		if d.Err != nil {
+			s.msg = oneLine(d.Err.Error())
+			return nil
+		}
+		if z, ok := d.Value.(string); ok {
+			w.st.Timezone = z
+			return w.advance(env)
+		}
 	}
 	return nil
 }
@@ -450,11 +475,23 @@ func (s *regionStep) Done(w *Installer, env *core.Env, d task.DoneMsg) tea.Cmd {
 func (s *regionStep) Captures() bool { return true }
 
 func (s *regionStep) Key(w *Installer, env *core.Env, k tea.KeyMsg) (bool, tea.Cmd) {
-	items := s.filtered()
+	if s.detecting {
+		return false, nil
+	}
+	items := s.filtered(w, env)
 	if k.String() == "enter" {
-		if s.pk.list.sel >= 0 && s.pk.list.sel < len(items) {
-			w.st.Timezone = items[s.pk.list.sel]
+		if s.pk.list.sel < 0 || s.pk.list.sel >= len(items) {
+			w.notice = "No time zone matches: keep typing or delete a letter."
+			return false, nil
 		}
+		if items[s.pk.list.sel] == detectRow {
+			s.detecting, s.msg = true, ""
+			zones := s.zones
+			return false, runTask(env, "region.detect", "Asking the internet for the time zone", false, func(ctx context.Context) (any, error) {
+				return env.Install.DetectZone(ctx, zones)
+			})
+		}
+		w.st.Timezone = items[s.pk.list.sel]
 		return true, nil
 	}
 	s.pk.handle(k, len(items), pickRows)
@@ -462,8 +499,7 @@ func (s *regionStep) Key(w *Installer, env *core.Env, k tea.KeyMsg) (bool, tea.C
 }
 
 func (s *regionStep) Gate(w *Installer) string {
-	items := s.filtered()
-	if len(s.zones) > 0 && (s.pk.list.sel < 0 || s.pk.list.sel >= len(items)) {
+	if len(s.zones) > 0 && w.st.Timezone == "" {
 		return "Choose a time zone from the list."
 	}
 	return ""
@@ -473,7 +509,36 @@ func (s *regionStep) Lines(w *Installer, env *core.Env, width int) []ui.Line {
 	if len(s.zones) == 0 {
 		return []ui.Line{muted(env, "Reading the time zones…")}
 	}
-	return listRows(env, &s.pk, s.filtered(), func(z string) string { return z }, nil, width)
+	text := func(z string) string {
+		if z == detectRow {
+			return "Detect automatically"
+		}
+		return z
+	}
+	extra := func(z string) string {
+		if z == detectRow {
+			return "from your internet connection"
+		}
+		return ""
+	}
+	lines := listRows(env, &s.pk, s.filtered(w, env), text, extra, width)
+	if l, ok := working(env, "install.region.detect", "Asking the internet for the time zone"); ok {
+		lines = append(lines, gap(), l)
+	}
+	if s.msg != "" {
+		lines = append(lines, gap())
+		for i, l := range ui.Wrap(s.msg, width-3) {
+			mark := "   "
+			if i == 0 {
+				mark = ui.G.Bad + "  "
+			}
+			lines = append(lines, ui.Of(ui.S(env.P.Bad, mark), ui.S(env.P.Text, l)))
+		}
+	}
+	if s.canDetect(w, env) {
+		lines = append(lines, gap(), muted(env, "Detecting tells ipapi.co your address. Choosing a city sends nothing."))
+	}
+	return lines
 }
 
 // ── 5 · Disk ─────────────────────────────────────────────────────────

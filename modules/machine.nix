@@ -48,7 +48,7 @@ in
     keymap = mkOption {
       type = types.str;
       default = "us";
-      description = "Teclado de la consola (por ejemplo la-latin1).";
+      description = "Teclado de la consola (por ejemplo la-latin1). Vacío: el mismo que el del escritorio (xkb).";
     };
     xkb = {
       layout = mkOption {
@@ -82,7 +82,8 @@ in
     networking.hostName = cfg.hostname;
     time.timeZone = cfg.timezone;
     i18n.defaultLocale = cfg.locale;
-    console.keyMap = cfg.keymap;
+    # An empty console keymap means "the same as the desktop layout" (every XKB layout works that way).
+    console = if cfg.keymap == "" then { useXkbConfig = true; } else { keyMap = cfg.keymap; };
     services.xserver.xkb = {
       layout = cfg.xkb.layout;
       variant = cfg.xkb.variant;
