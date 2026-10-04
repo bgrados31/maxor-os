@@ -46,7 +46,7 @@ load_engine() {
   W="$BATS_TEST_TMPDIR"
   export MAXOR_INSTALL_NO_MAIN=1 MAXOR_INSTALL_STATE="$W/state" MAXOR_INSTALL_LOG="$W/install.log" MAXOR_INSTALL_ROOT="$W/mnt"
   export MAXOR_INSTALL_SCHEMA="$ROOT/installer/schema/answers.v1.json" MAXOR_PROFILES="$ROOT/modules/profiles-catalog.json"
-  export MAXOR_INSTALL_EFI="$W/efi" MAXOR_INSTALL_MEMINFO="$W/meminfo" MAXOR_INSTALL_NM_DIR="$W/nm" MAXOR_INSTALL_OVERRIDES_FILE="$W/overrides"
+  export MAXOR_INSTALL_EFI="$W/efi" MAXOR_INSTALL_MEMINFO="$W/meminfo" MAXOR_INSTALL_NM_DIR="$W/nm" MAXOR_INSTALL_OVERRIDES_FILE="$W/overrides" MAXOR_INSTALL_LOCKS_FILE="$W/locks.json"
   mkdir -p "$W/bin" "$W/efi"
   printf 'MemTotal:       4000000 kB\n' > "$W/meminfo"
   PATH="$W/bin:$PATH"

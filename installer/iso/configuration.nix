@@ -13,6 +13,8 @@ let
   # To install without a network: local copies of Maxor OS and its inputs, with their metadata (see
   # installer/offline-overrides.nix). The installer reads them from /etc/maxor-install/overrides.
   overrides = pkgs.writeText "maxor-install-overrides" (import ../offline-overrides.nix { inherit lib self inputs; });
+  # ...and where each of those copies lives on the internet, so the machine's flake.lock ends up pointing there.
+  locks = pkgs.writeText "maxor-install-locks.json" (import ../offline-locks.nix { inherit lib self; });
 
   # The official themes, where the CLI looks for them ($HOME/.local/share/maxor/themes). An installed system gets them
   # from home-manager; the installation medium has none, so they are linked here. Sakura is the default.
@@ -99,6 +101,7 @@ in
 
   environment.systemPackages = [ maxorInstall maxorTui maxor pkgs.sway ]; # sway: swaymsg changes the layout under test
   environment.etc."maxor-install/overrides".source = overrides;
+  environment.etc."maxor-install/locks.json".source = locks;
   # Marks the installation medium: whatever only makes sense here asks for this file.
   environment.etc."maxor-live".text = "${version}\n";
   systemd.tmpfiles.rules = [

@@ -5,6 +5,7 @@
 IN_OS_URL="${MAXOR_INSTALL_OS_URL:-github:bgrados31/maxor-os}"
 IN_MAXOR="${MAXOR_BIN:-maxor}"
 IN_OVERRIDES_FILE="${MAXOR_INSTALL_OVERRIDES_FILE:-/etc/maxor-install/overrides}"
+IN_LOCKS_FILE="${MAXOR_INSTALL_LOCKS_FILE:-/etc/maxor-install/locks.json}"
 
 # nixstr TEXTO → TEXTO como cadena de Nix, entre comillas y con lo especial escapado.
 nixstr() { jq -nr --arg v "$1" '$v | @json | gsub("\\$\\{"; "\\${")'; }
@@ -135,8 +136,9 @@ stage_host() {
   in_run git -C "$dir" -c user.name=Maxor -c user.email=maxor@localhost commit --quiet -m "Initial Maxor OS configuration"
 
   # Fija las versiones (flake.lock). La ISO trae en /etc/maxor-install/overrides (o MAXOR_INSTALL_OVERRIDES)
-  # una línea «entrada=referencia» por cada entrada del flake (maxor-os, maxor-os/nixpkgs, …) con su copia local en el disco (ver offline-overrides.nix);
-  # sin ese archivo (instalar desde un sistema ya hecho), se resuelven desde internet.
+  # una línea «entrada=referencia» por cada entrada del flake (maxor-os, maxor-os/nixpkgs, …) con su copia local
+  # en el disco (ver offline-overrides.nix), que luego se cambia por su referencia de internet; sin ese archivo
+  # (instalar desde un sistema ya hecho), se resuelven desde internet.
   local args=() line overrides="${MAXOR_INSTALL_OVERRIDES:-}"
   if [ -z "$overrides" ] && [ -r "$IN_OVERRIDES_FILE" ]; then overrides="$(cat "$IN_OVERRIDES_FILE")"; fi
   if [ -n "$overrides" ]; then
@@ -146,6 +148,23 @@ stage_host() {
     done <<< "$overrides"
   fi
   in_run nix flake lock "${args[@]}" "$dir"
+  if [ -n "$overrides" ]; then host_lock_canonical "$dir/flake.lock"; fi
   in_run git -C "$dir" add flake.lock
   in_run git -C "$dir" -c user.name=Maxor -c user.email=maxor@localhost commit --quiet -m "Pin Maxor OS"
+}
+
+# host_lock_canonical flake.lock → cambia cada copia local (`path:/nix/store/…`) por su referencia de internet,
+# la de $IN_LOCKS_FILE con el mismo narHash (ver installer/offline-locks.nix). Nix sigue usando la copia local, que
+# encuentra por ese narHash; si un día se borra, la baja otra vez en vez de fallar. Lo que no está en el mapa se
+# queda como está.
+host_lock_canonical() {
+  local lock="$1"
+  [ -r "$IN_LOCKS_FILE" ] || return 0
+  if [ "$IN_DRY" = 1 ]; then
+    printf 'DRYRUN: point %s at the internet references in %s\n' "$lock" "$IN_LOCKS_FILE"
+    return 0
+  fi
+  jq --slurpfile c "$IN_LOCKS_FILE" '.nodes |= map_values(
+      if .locked.type? == "path" and ($c[0][.locked.narHash // ""] != null) then .locked = $c[0][.locked.narHash] else . end)' \
+    "$lock" | write_file "$lock" 0644 || in_die "$IN_EX_FAIL" "could not rewrite $lock"
 }

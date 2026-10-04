@@ -800,3 +800,20 @@ EOF
   [ "$status" = 0 ]
   calls | grep -q "^umount -R $W/mnt$"
 }
+
+@test "host: sin red, el flake.lock acaba apuntando a internet con el mismo narHash, no a copias locales" {
+  mk
+  ans_load "$W/a.json"
+  IN_MAXOR="$W/bin/maxor"
+  shim maxor 'echo "{}"'
+  shim nixos-generate-config 'echo "{ ... }: { }"'
+  shim nix 'printf "%s" "{\"nodes\":{\"np\":{\"locked\":{\"type\":\"path\",\"path\":\"/nix/store/np\",\"narHash\":\"sha256-np\"},\"original\":{\"type\":\"github\",\"owner\":\"nixos\",\"repo\":\"nixpkgs\"}},\"otra\":{\"locked\":{\"type\":\"path\",\"path\":\"/nix/store/otra\",\"narHash\":\"sha256-otra\"}},\"root\":{\"inputs\":{\"np\":\"np\"}}},\"root\":\"root\",\"version\":7}" > "${@: -1}/flake.lock"'
+  printf 'maxor-os/nixpkgs=path:/nix/store/np\n' > "$W/overrides"
+  echo '{"sha256-np":{"type":"github","owner":"nixos","repo":"nixpkgs","rev":"774debe","narHash":"sha256-np"}}' > "$W/locks.json"
+  stage_host
+  lock="$(host_dir)/flake.lock"
+  [ "$(jq -c .nodes.np.locked "$lock")" = '{"type":"github","owner":"nixos","repo":"nixpkgs","rev":"774debe","narHash":"sha256-np"}' ]
+  [ "$(jq -r .nodes.np.original.repo "$lock")" = nixpkgs ]
+  # lo que el mapa no conoce se queda como estaba
+  [ "$(jq -r .nodes.otra.locked.type "$lock")" = path ]
+}
