@@ -174,3 +174,30 @@ func TestRunResumeAsksTheEngineToContinue(t *testing.T) {
 		t.Fatalf("resume must reach the engine: %s", args)
 	}
 }
+
+func TestRunFollowsWhatTheEnginePrintsAsLogLines(t *testing.T) {
+	c := fakeEngine(t, `
+printf 'copying path 1\n' >&2
+sleep 0.1
+printf 'downloading  10%%\rdownloading  60%%\rdownloading 100%%\n' >&2
+printf '\n   \nlast line without newline' >&2
+exit 0`)
+	var mu sync.Mutex
+	var logs []string
+	code, err := c.Run(context.Background(), []byte(`{}`), "", false, func(e Event) {
+		if e.State == "log" {
+			mu.Lock()
+			logs = append(logs, e.Message)
+			mu.Unlock()
+		}
+	})
+	if err != nil || code != 0 {
+		t.Fatalf("run: %d %v", code, err)
+	}
+	mu.Lock()
+	defer mu.Unlock()
+	want := []string{"copying path 1", "downloading  10%", "downloading  60%", "downloading 100%", "last line without newline"}
+	if strings.Join(logs, "|") != strings.Join(want, "|") {
+		t.Fatalf("log lines: %q", logs)
+	}
+}

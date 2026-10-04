@@ -27,9 +27,11 @@ type Installer struct {
 	failed  bool
 
 	changed int // the animation frame at which the current step started
+	bodyH   int // rows the card may use, as of the last frame
 
 	mu     sync.Mutex
 	events []install.Event
+	logs   []string // the last lines the engine printed, for the log under the stages
 }
 
 // wizStep is one screen of the wizard.
@@ -119,8 +121,26 @@ func (w *Installer) back(env *core.Env) tea.Cmd {
 
 func (w *Installer) push(e install.Event) {
 	w.mu.Lock()
+	if e.State == "log" {
+		w.logs = append(w.logs, e.Message)
+		if len(w.logs) > 200 {
+			w.logs = w.logs[len(w.logs)-200:]
+		}
+		w.mu.Unlock()
+		return
+	}
 	w.events = append(w.events, e)
 	w.mu.Unlock()
+}
+
+// tailLogs are the last n lines the engine printed.
+func (w *Installer) tailLogs(n int) []string {
+	w.mu.Lock()
+	defer w.mu.Unlock()
+	if len(w.logs) > n {
+		return append([]string(nil), w.logs[len(w.logs)-n:]...)
+	}
+	return append([]string(nil), w.logs...)
 }
 
 func (w *Installer) snapshot() []install.Event {

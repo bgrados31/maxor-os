@@ -202,6 +202,7 @@ func (w *Installer) Frame(env *core.Env, width, height int) []string {
 		cw = min(cardWidth+12, width-2)
 	}
 
+	w.bodyH = bodyH
 	lines := w.cardLines(env, cw-6)
 	off := 0
 	if k := env.Frame - w.changed; k >= 0 && k < slideFrames {

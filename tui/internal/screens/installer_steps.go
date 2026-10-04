@@ -7,6 +7,7 @@ import (
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
+	"github.com/charmbracelet/x/ansi"
 
 	"github.com/bgrados31/maxor-os/tui/internal/core"
 	"github.com/bgrados31/maxor-os/tui/internal/install"
@@ -1625,7 +1626,7 @@ func (*installStep) Intro() string { return "Please do not turn the computer off
 func (s *installStep) Enter(w *Installer, env *core.Env) tea.Cmd {
 	if !s.resume {
 		w.mu.Lock()
-		w.events = nil
+		w.events, w.logs = nil, nil
 		w.mu.Unlock()
 	}
 	w.running, w.failed, w.notice = true, false, ""
@@ -1711,6 +1712,13 @@ func (s *installStep) Lines(w *Installer, env *core.Env, width int) []ui.Line {
 	}
 	n := int(progress * 36)
 	lines = append(lines, gap(), ui.Of(ui.S(p.Ac, strings.Repeat(ui.G.BarOn, n)), ui.S(p.Mu, strings.Repeat(ui.G.BarOff, 36-n)), ui.S(p.Mu, fmt.Sprintf("  %d%%", int(progress*100)))))
+	// what the programs are printing, as far as the window has room for
+	if n := min(6, w.bodyH-19); n > 0 {
+		lines = append(lines, gap())
+		for _, l := range w.tailLogs(n) {
+			lines = append(lines, muted(env, ansi.Truncate(ansi.Strip(l), width-2, "…")))
+		}
+	}
 	if w.failed {
 		lines = append(lines, gap(), ui.Of(ui.S(p.Bad, ui.G.Bad+"  "), ui.S(p.Text, "The installation did not finish.")),
 			muted(env, "Nothing is lost: r tries again from where it stopped, esc goes back."),

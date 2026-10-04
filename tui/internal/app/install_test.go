@@ -686,3 +686,29 @@ func TestLeavingTheGPUOnTheRecommendationSendsAuto(t *testing.T) {
 		t.Fatalf("the recommendation is an explicit, visible choice:\n%s", e.eng.answers)
 	}
 }
+
+func TestTheInstallScreenShowsWhatTheEnginePrinted(t *testing.T) {
+	e := newInstallEnv(emptyDisk())
+	e.eng.runCode = 1
+	e.eng.runEvents = []install.Event{
+		{Stage: "disk", State: "ok"},
+		{State: "log", Message: "copying path '/nix/store/abc-glibc' from 'https://cache.nixos.org'"},
+		{State: "log", Message: "\x1b[31mbuilding '/nix/store/def-maxor.drv'\x1b[0m"},
+		{Stage: "install", State: "fail", Message: "the build failed"},
+	}
+	m := installModel(t, e)
+	walkToAccount(m)
+	fillAccount(m, "Ana", "ana", "pc", "correct-horse-1")
+	enter(m, 3)
+	typeText(m, "ERASE")
+	send(m, key("enter"))
+	out := view(m)
+	for _, want := range []string{"copying path", "building '/nix/store/def-maxor.drv'", "did not finish"} {
+		if !has(out, want) {
+			t.Fatalf("missing %q:\n%s", want, out)
+		}
+	}
+	if strings.Contains(out, "\x1b[31m") || strings.Contains(out, "[31m") {
+		t.Fatalf("terminal escapes from the programs must not reach the screen:\n%s", out)
+	}
+}

@@ -245,11 +245,26 @@ func (c *CLI) Run(ctx context.Context, answers []byte, passphrase string, resume
 	if passphrase != "" {
 		cmd.Stdin = strings.NewReader(passphrase)
 	}
-	var errb bytes.Buffer
-	cmd.Stderr = &errb
+	// What the engine and the programs it runs print: followed live, line by line, as the log the screen shows.
+	stderr, err := cmd.StderrPipe()
+	if err != nil {
+		return 0, err
+	}
 	if err := cmd.Start(); err != nil {
 		return 0, err
 	}
+	logDone := make(chan struct{})
+	go func() {
+		defer close(logDone)
+		sc := bufio.NewScanner(stderr)
+		sc.Buffer(make([]byte, 64*1024), 1024*1024)
+		sc.Split(splitLines)
+		for sc.Scan() {
+			if line := strings.TrimSpace(sc.Text()); line != "" {
+				onEvent(Event{State: "log", Message: line})
+			}
+		}
+	}()
 
 	// Follow the events file while the engine works.
 	var wg sync.WaitGroup
@@ -287,6 +302,7 @@ func (c *CLI) Run(ctx context.Context, answers []byte, passphrase string, resume
 		}
 	}()
 
+	<-logDone // the pipe has to be read to its end before Wait
 	werr := cmd.Wait()
 	close(stop)
 	wg.Wait()
@@ -295,4 +311,19 @@ func (c *CLI) Run(ctx context.Context, answers []byte, passphrase string, resume
 		return ee.ExitCode(), nil
 	}
 	return 0, werr
+}
+
+// splitLines is bufio.ScanLines that also breaks at a carriage return: programs that draw a progress bar rewrite
+// one line with \r, and each rewrite is a line of the log, not one endless line.
+func splitLines(data []byte, atEOF bool) (advance int, token []byte, err error) {
+	if atEOF && len(data) == 0 {
+		return 0, nil, nil
+	}
+	if i := bytes.IndexAny(data, "\r\n"); i >= 0 {
+		return i + 1, data[:i], nil
+	}
+	if atEOF {
+		return len(data), data, nil
+	}
+	return 0, nil, nil
 }
