@@ -1,8 +1,0 @@
-{
-  "version": 1,
-  "cpu": { "vendor": "other", "model": "generic" },
-  "gpus": [],
-  "laptop": false,
-  "virt": "none",
-  "bluetooth": true
-}

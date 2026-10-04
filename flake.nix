@@ -121,7 +121,7 @@
     nixosConfigurations.maxor-iso = nixpkgs.lib.nixosSystem {
       system = "x86_64-linux";
       specialArgs = { inherit inputs self; };
-      modules = [ self.nixosModules.default ./installer/iso/configuration.nix ];
+      modules = [ ./installer/iso/configuration.nix ];
     };
     packages.x86_64-linux.iso = self.nixosConfigurations.maxor-iso.config.system.build.isoImage;
 

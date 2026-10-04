@@ -1,66 +1,81 @@
 { config, lib, pkgs, inputs, self, modulesPath, ... }:
 
-# La ISO de Maxor OS: un sistema vivo (sesión Hyprland con Maxor Shell, sin instalar nada) que lleva el
-# instalador. Es el mismo Maxor OS que se instala —mismos módulos, escritorio y CLI—, así que se puede probar
-# antes de decidir. Se construye con `nix build .#iso`. Ver docs/INSTALLER.md.
+# The Maxor OS installation medium. Like any installer ISO it is NOT a desktop: the boot menu starts a minimal
+# system whose only program is the installer, full screen on a dark background (cage, a one-program Wayland
+# compositor, and a terminal). Nothing is written to a disk until the user confirms at the end of the wizard.
+# Built with `nix build .#iso`. See docs/INSTALLER.md.
 let
   version = lib.removeSuffix "\n" (builtins.readFile ../../VERSION);
   maxor = pkgs.callPackage ../../packages/maxor.nix { };
   maxorTui = pkgs.callPackage ../../packages/maxor-tui.nix { };
   maxorInstall = pkgs.callPackage ../../packages/maxor-install.nix { inherit maxor; };
 
-  # Para instalar sin red: la copia local de Maxor OS y de sus inputs, con sus metadatos (ver
-  # installer/offline-overrides.nix). El instalador la lee de /etc/maxor-install/overrides.
+  # To install without a network: local copies of Maxor OS and its inputs, with their metadata (see
+  # installer/offline-overrides.nix). The installer reads them from /etc/maxor-install/overrides.
   overrides = pkgs.writeText "maxor-install-overrides" (import ../offline-overrides.nix { inherit lib self inputs; });
+
+  # What cage runs. A system service starts with a minimal PATH, so the programs the installer calls (maxor-install,
+  # nmcli, sudo, timedatectl) are put on it here.
+  session = pkgs.writeShellScript "maxor-installer-session" ''
+    export PATH=/run/wrappers/bin:/run/current-system/sw/bin:$PATH
+    exec ${pkgs.kitty}/bin/kitty --start-as=fullscreen --title='Maxor OS installer' \
+      ${maxorTui}/bin/maxor-tui --screen install
+  '';
 in
 {
-  imports = [ (modulesPath + "/installer/cd-dvd/installation-cd-base.nix") ];
+  imports = [
+    (modulesPath + "/installer/cd-dvd/installation-cd-base.nix")
+    ../../modules/fonts.nix
+  ];
 
-  # ── Quién es el sistema vivo ────────────────────────────────────────
-  maxor.machine = {
-    hostname = "maxor-live";
-    user = "live";
-    fullname = "Maxor live session";
+  # ── The installer session ───────────────────────────────────────────
+  # The base image already has the passwordless `nixos` user, who is also the owner of the installer.
+  services.cage = {
+    enable = true;
+    user = "nixos";
+    program = "${session}";
+    # -s lets Ctrl+Alt+F2 reach a text console: a way out if something goes wrong.
+    extraArguments = [ "-s" ];
   };
-  # El sistema vivo arranca en cualquier equipo: sin informe de hardware concreto, los drivers genéricos de la ISO.
-  maxor.hardware.report = ./hardware.json; # un archivo del repositorio: se lee al evaluar, no puede ser una derivación (IFD)
+  # Opening the installer must not need a login screen or a graphical target of its own.
+  services.getty.autologinUser = lib.mkForce null;
 
-  # ── Sesión viva: entra sola, sin contraseña ─────────────────────────
-  users.users.live = {
-    initialHashedPassword = "";
-    extraGroups = [ "wheel" ];
-  };
-  security.sudo.wheelNeedsPassword = false;
-  services.greetd.settings.initial_session = {
-    command = "${config.programs.hyprland.package}/bin/start-hyprland";
-    user = "live";
-  };
-  # La ISO base usa wpa_supplicant a secas; Maxor usa NetworkManager (Wi-Fi para el instalador y el sistema).
+  # Terminal look: the installer draws its own colors; this is the canvas under them.
+  environment.etc."xdg/kitty/kitty.conf".text = ''
+    font_family Red Hat Mono
+    font_size 15
+    background #120b12
+    foreground #fbe9f2
+    cursor #ff86b8
+    cursor_blink_interval 0
+    window_padding_width 12
+    hide_window_decorations yes
+    confirm_os_window_close 0
+    enable_audio_bell no
+    remember_window_size no
+    shell_integration disabled
+  '';
+
+  # ── What the installer needs ────────────────────────────────────────
+  networking.hostName = "maxor-live";
+  networking.networkmanager.enable = true;
+  # The base image uses a bare wpa_supplicant; Maxor uses NetworkManager (Wi-Fi for the installer and the system).
   networking.wireless.enable = lib.mkImageMediaOverride false;
+  nix.settings.experimental-features = [ "nix-command" "flakes" ];
+  security.sudo.wheelNeedsPassword = false;
 
-  # ── El instalador ───────────────────────────────────────────────────
-  environment.systemPackages = [ maxorInstall maxorTui ];
+  environment.systemPackages = [ maxorInstall maxorTui maxor ];
   environment.etc."maxor-install/overrides".source = overrides;
-  # Marca la sesión viva: lo que solo tiene sentido en la ISO (el instalador, los avisos) pregunta por este archivo.
+  # Marks the installation medium: whatever only makes sense here asks for this file.
   environment.etc."maxor-live".text = "${version}\n";
 
-  # El instalador se abre solo, a pantalla completa, cuando el escritorio está listo. Colgado de dms.service como
-  # maxor-first-run (ver home/maxor.nix): DMS arranca después de graphical-session.target. Si se cierra, se puede
-  # volver a abrir con `maxor-tui --screen install`.
-  systemd.user.services.maxor-installer = {
-    description = "Maxor OS installer";
-    after = [ "dms.service" ];
-    wantedBy = [ "dms.service" ];
-    serviceConfig = {
-      ExecStart = "${pkgs.kitty}/bin/kitty --start-as=fullscreen --title='Maxor OS installer' ${maxorTui}/bin/maxor-tui --screen install";
-      Restart = "no";
-    };
-  };
-
-  # ── Imagen y arranque ───────────────────────────────────────────────
-  # El menú de la ISO espera más que el del sistema instalado: hay que dar tiempo a elegir.
+  # ── Image and boot ──────────────────────────────────────────────────
+  # A quiet, dark boot: the installer is the first thing on screen.
+  boot.kernelParams = [ "quiet" "loglevel=3" "vt.global_cursor_default=0" ];
+  boot.consoleLogLevel = 3;
+  # The menu waits longer than the installed system's: there must be time to choose.
   boot.loader.timeout = lib.mkForce 10;
-  # Nombre del archivo: maxor-os-<versión>-<arquitectura>.iso
+  # File name: maxor-os-<version>-<architecture>.iso
   image.baseName = lib.mkForce "maxor-os-${version}-${pkgs.stdenv.hostPlatform.system}";
   isoImage = {
     volumeID = "MAXOR_OS";
@@ -70,8 +85,8 @@ in
     makeEfiBootable = true;
     makeUsbBootable = true;
   };
-  # ZFS viene con la ISO base; no hace falta que fuerce importar la raíz (y evita un aviso).
+  # ZFS comes with the base image; it does not need to force-import the root (and it avoids a warning).
   boot.zfs.forceImportRoot = false;
 
-  system.stateVersion = "26.05"; # NO cambiar
+  system.stateVersion = "26.05"; # DO NOT change
 }
