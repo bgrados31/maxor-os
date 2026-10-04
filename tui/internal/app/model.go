@@ -62,6 +62,7 @@ type Model struct {
 	base       theme.Theme // tema activo del sistema
 	previewing bool
 	ticking    bool
+	termBg     string // the background colour last given to the terminal (see termbg.go)
 	lastTick   time.Time // cuándo llegó el último fotograma: el reloj de animación avanza con el tiempo real
 	quitting   bool
 
@@ -182,7 +183,7 @@ func (m *Model) advanceClock(now time.Time) {
 }
 
 func (m *Model) Init() tea.Cmd {
-	cmds := []tea.Cmd{m.initScreen(m.active), m.ensureTick()}
+	cmds := []tea.Cmd{m.initScreen(m.active), m.ensureTick(), m.syncTerminalBg()}
 	if m.opts.Search != "" {
 		cmds = append(cmds, core.GoThen("store", core.SearchMsg{Query: m.opts.Search}))
 	}
@@ -297,6 +298,7 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		add(m.toScreen(m.active, msg))
 	}
 	add(m.ensureTick())
+	add(m.syncTerminalBg()) // a preview or a theme change also changes the colour around the screen
 	return m, tea.Batch(cmds...)
 }
 
@@ -369,6 +371,7 @@ func (m *Model) key(k tea.KeyMsg, cmds []tea.Cmd) (tea.Model, tea.Cmd) {
 	}
 	add(m.toScreen(m.active, k))
 	add(m.ensureTick())
+	add(m.syncTerminalBg())
 	return m, tea.Batch(cmds...)
 }
 

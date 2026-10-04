@@ -12,10 +12,10 @@ let
   maxorPlymouth = pkgs.runCommand "maxor-plymouth" { nativeBuildInputs = [ pkgs.imagemagick ]; } ''
     d=$out/share/plymouth/themes/maxor
     mkdir -p $d
-    magick -background none -fill '#eef0ff' -font ${fonts.cinzel} -pointsize 64 -kerning 22 label:"MAXOR OS" $d/title.png
+    magick -background none -fill '#eef0ff' -font ${fonts.cinzel} -pointsize 64 -kerning 22 label:"MAXOR OS" -depth 8 $d/title.png
     magick -size 320x6 xc:none -fill 'rgba(238,240,255,0.14)' -draw 'roundrectangle 0,0 319,5 3,3' $d/track.png
     magick -size 6x320 gradient:'#c084ff-#ff5a57' -rotate -90 \
-      \( -size 320x6 xc:none -fill white -draw 'roundrectangle 0,0 319,5 3,3' \) -compose CopyOpacity -composite $d/fill.png
+      \( -size 320x6 xc:none -fill white -draw 'roundrectangle 0,0 319,5 3,3' \) -compose CopyOpacity -composite -depth 8 $d/fill.png
     cat > $d/maxor.plymouth <<EOT
     [Plymouth Theme]
     Name=Maxor OS

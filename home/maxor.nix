@@ -21,7 +21,7 @@ let
       points = lib.imap0 (i: c: "${toString (i * 2560 / last)},${toString (i * 1600 / last)} ${c}") stops;
       wallpaper =
         if builtins.pathExists gradientFile && last > 0 then
-          "magick -size 2560x1600 xc: -sparse-color Shepards '${lib.concatStringsSep " " points}' -colorspace sRGB $out/wallpaper.png"
+          "magick -size 2560x1600 xc: -sparse-color Shepards '${lib.concatStringsSep " " points}' -colorspace sRGB -depth 8 $out/wallpaper.png"
         else
           "magick -size 2560x1600 radial-gradient:'${colors.s2}'-'${colors.bg}' -colorspace sRGB $out/wallpaper.png";
     in

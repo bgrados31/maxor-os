@@ -15,7 +15,8 @@ runCommand "maxor-grub-theme" { nativeBuildInputs = [ imagemagick grub2 ]; } ''
   # background: the gradient of themes/maxor-dark/gradient.json, and the mark above the menu with its letters open
   magick -size 1920x1080 xc: -sparse-color Shepards '0,0 #6700a3  960,540 #1b2062  1920,1080 #050c38' -colorspace sRGB $out/base.png
   magick -background none -fill '#eef0ff' -font ${fonts.cinzel} -pointsize 104 -kerning 34 label:"MAXOR OS" $TMPDIR/mark.png
-  magick $out/base.png $TMPDIR/mark.png -gravity north -geometry +0+250 -composite $out/background.png
+  # GRUB only reads 8-bit RGB PNGs: a 16-bit one (what the gradient gives) is drawn as noise
+  magick $out/base.png $TMPDIR/mark.png -gravity north -geometry +0+250 -composite -alpha off -depth 8 PNG24:$out/background.png
   rm $out/base.png
 
   # No box behind the selected entry (a pixmap style did not draw in testing, and left dark text on a dark

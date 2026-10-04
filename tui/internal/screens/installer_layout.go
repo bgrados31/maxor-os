@@ -99,13 +99,18 @@ func progressLine(env *core.Env, p ui.Painter, frac float64, width int, animate 
 	if animate && full > 0 {
 		glow = (env.Frame / 2) % full
 	}
+	// the bright cell goes towards white: the text colour on a dark theme, the page on a light one
+	shine := t.Fg
+	if t.Mode == "light" {
+		shine = t.Bg
+	}
 	segs := make([]ui.Seg, 0, width)
 	for i := 0; i < width; i++ {
 		col := ui.Mix(t.Ac, t.Ac2, float64(i)/float64(max(width-1, 1)))
 		switch {
 		case i < full:
 			if i == glow {
-				col = ui.Mix(col, t.Fg, 0.55)
+				col = ui.Mix(col, shine, 0.55)
 			}
 			segs = append(segs, ui.S(p.Fill.Foreground(lipgloss.Color(col)), ui.G.Line))
 		case i == full && half:

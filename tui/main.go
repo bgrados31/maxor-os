@@ -45,7 +45,9 @@ func main() {
 	if !*noMouse {
 		opts = append(opts, tea.WithMouseCellMotion())
 	}
-	if _, err := tea.NewProgram(m, opts...).Run(); err != nil {
+	_, err := tea.NewProgram(m, opts...).Run()
+	app.ResetTerminalBg()
+	if err != nil {
 		fmt.Fprintln(os.Stderr, "maxor-tui:", err)
 		os.Exit(1)
 	}
