@@ -555,12 +555,12 @@ func TestTheStepListShowsWhatWasChosen(t *testing.T) {
 	typeText(m, "latin")
 	send(m, key("enter")) // keyboard
 	out := view(m)
-	for _, want := range []string{"install steps", "✓", "English", "Keyboard"} {
+	for _, want := range []string{"M A X O R", "✓", "English", "Keyboard", "/ "} {
 		if !has(out, want) {
 			t.Fatalf("missing %q:\n%s", want, out)
 		}
 	}
-	if !has(out, "3/") {
+	if !has(out, "3 / ") {
 		t.Fatalf("the counter follows the step:\n%s", out)
 	}
 }

@@ -22,7 +22,8 @@ say "drawing the steps"
 
 for dir in "$out"/*x*/; do
   size="$(basename "$dir")"
-  cols="${size%x*}" rows="${size#*x}"
+  geom="${size##*-}" # «stack-132x40» → «132x40»
+  cols="${geom%x*}" rows="${geom#*x}"
   say "photographing $size"
   tape="$dir/gallery.tape"
   {

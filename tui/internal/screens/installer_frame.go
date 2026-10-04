@@ -148,7 +148,8 @@ func (w *Installer) value(id string) string {
 
 func (w *Installer) railLines(env *core.Env) []ui.Line {
 	p := env.P
-	lines := []ui.Line{ui.T(p.Mu, "install steps"), ui.Blank()}
+	// the mark heads the list: there is no header above it
+	lines := []ui.Line{ui.Of(w.mark(env, env.P)...), ui.Blank()}
 	for _, i := range w.visible() {
 		s := w.steps[i]
 		if sk, ok := s.(interface{ Skip(*Installer) bool }); ok && i != w.idx && sk.Skip(w) {
@@ -217,32 +218,8 @@ func (w *Installer) cardLines(env *core.Env, width int) []ui.Line {
 // Frame draws the whole window.
 func (w *Installer) Frame(env *core.Env, width, height int) []string {
 	page := ui.NewPainter(env.Theme, env.Theme.P.Bg)
-	pc := page.Ctx()
 	final := w.idx == len(w.steps)-1
 	intro := w.cur().ID() == "intro"
-	blank := ui.Blank().Render(width, pc)
-
-	rows := make([]string, 0, height)
-	rows = append(rows, blank, padSegs(w.mark(env, page), width, pc).Render(width, pc), blank)
-	if final || intro {
-		rows = append(rows, blank)
-	} else {
-		vis := w.visible()
-		pos := 0
-		for n, i := range vis {
-			if i <= w.idx {
-				pos = n + 1
-			}
-		}
-		if w.running {
-			pos = len(vis)
-		}
-		barW := 24
-		segs := append([]ui.Seg{ui.S(page.Mu, "install  ")}, gradBar(env, page, int(w.barShown(env)*100+0.5), barW, w.running)...)
-		segs = append(segs, ui.S(page.Mu, fmt.Sprintf("  %d/%d", pos, len(vis))))
-		rows = append(rows, padSegs(segs, width, pc).Render(width, pc))
-	}
-	rows = append(rows, blank)
 
 	bodyH := height - headerRows - footerRows
 	// the list of steps is wider where there is room, so what was chosen fits next to each step
@@ -287,53 +264,17 @@ func (w *Installer) Frame(env *core.Env, width, height int) []string {
 	ch := min(bodyH, max(len(lines)+3, steady))
 	card := ui.Block(ui.Inset(lines, inset, 1), cw, ch, ctx)
 
-	var body []string
-	margin := func(n int) string { return page.Fill.Render(strings.Repeat(" ", max(n, 0))) }
+	// the group: the list of steps and the card side by side, exactly total cells wide
+	var group []string
+	total := cw
 	if showRail {
 		rail := ui.Block(ui.Inset(railRows, 2, 1), w.railW, ch, env.P.Ctx())
-		total := w.railW + 2 + cw
-		x0 := (width - total) / 2
+		total = w.railW + 2 + cw
 		for i := 0; i < ch; i++ {
-			body = append(body, margin(x0)+rail[i]+margin(2)+card[i]+margin(width-x0-total))
+			group = append(group, rail[i]+page.Fill.Render("  ")+card[i])
 		}
 	} else {
-		x0 := (width - cw) / 2
-		for i := 0; i < ch; i++ {
-			body = append(body, margin(x0)+card[i]+margin(width-x0-cw))
-		}
+		group = card
 	}
-	top := max(min((bodyH-min(steady, bodyH))/2, bodyH-len(body)), 0)
-	for i := 0; i < top; i++ {
-		rows = append(rows, blank)
-	}
-	rows = append(rows, body...)
-	for len(rows) < height-footerRows {
-		rows = append(rows, blank)
-	}
-	rows = append(rows, blank, padSegs(ui.Hints(page, w.Hints(env)), width, pc).Render(width, pc))
-	return rows[:height]
-}
-
-// gradBar is a progress bar whose filled part runs from one accent to the other, with a bright cell that travels
-// along it while there is work going on (animate).
-func gradBar(env *core.Env, p ui.Painter, pct, width int, animate bool) []ui.Seg {
-	pct = min(max(pct, 0), 100)
-	n := pct * width / 100
-	segs := make([]ui.Seg, 0, width)
-	glow := -1
-	if animate && n > 0 {
-		glow = (env.Frame / 2) % n
-	}
-	for i := 0; i < width; i++ {
-		if i >= n {
-			segs = append(segs, ui.S(p.Mu, ui.G.BarOff))
-			continue
-		}
-		col := ui.Mix(env.Theme.P.Ac, env.Theme.P.Ac2, float64(i)/float64(max(width-1, 1)))
-		if i == glow {
-			col = ui.Mix(col, env.Theme.P.Fg, 0.55)
-		}
-		segs = append(segs, ui.S(p.Fill.Foreground(lipgloss.Color(col)), ui.G.BarOn))
-	}
-	return segs
+	return w.compose(env, page, group, total, showRail, min(steady, bodyH), width, height, final || intro)
 }

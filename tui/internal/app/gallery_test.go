@@ -22,7 +22,7 @@ func TestInstallerGallery(t *testing.T) {
 	lipgloss.SetColorProfile(termenv.TrueColor)
 	defer lipgloss.SetColorProfile(termenv.Ascii)
 
-	for _, size := range [][2]int{{132, 40}, {100, 34}, {80, 30}} {
+	for _, size := range [][2]int{{160, 45}, {132, 40}, {100, 34}, {80, 30}} {
 		dir := filepath.Join(out, fmt.Sprintf("%dx%d", size[0], size[1]))
 		if err := os.MkdirAll(dir, 0o755); err != nil {
 			t.Fatal(err)
