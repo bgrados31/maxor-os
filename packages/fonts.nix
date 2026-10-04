@@ -11,6 +11,12 @@ in
     url = "${gf}/kronaone/KronaOne-Regular.ttf";
     hash = "sha256-JzRjkW+WpHB+aX4wE9lVzegVS05tY1pVEy56EvJ2U0w=";
   };
+  # el logo «MAXOR OS» (variable: de Regular a Black)
+  cinzel = fetchurl {
+    name = "Cinzel-VF.ttf";
+    url = "${gf}/cinzel/Cinzel%5Bwght%5D.ttf";
+    hash = "sha256-9Ng9NNH2x0EZPkrPSz3/lTHlpntqplIo0Ap9typODzQ=";
+  };
   redHatMono = fetchurl {
     name = "RedHatMono-VF.ttf";
     url = "${gf}/redhatmono/RedHatMono%5Bwght%5D.ttf";

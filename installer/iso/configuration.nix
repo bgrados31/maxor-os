@@ -17,7 +17,7 @@ let
   locks = pkgs.writeText "maxor-install-locks.json" (import ../offline-locks.nix { inherit lib self; });
 
   # The official themes, where the CLI looks for them ($HOME/.local/share/maxor/themes). An installed system gets them
-  # from home-manager; the installation medium has none, so they are linked here. Sakura is the default.
+  # from home-manager; the installation medium has none, so they are linked here. Maxor Dark is the default.
   themes = pkgs.runCommand "maxor-live-themes" { } ''
     mkdir -p $out
     for d in ${../../themes}/*/; do
@@ -32,7 +32,7 @@ let
   # a plainer kiosk compositor) because it can change the keyboard layout while it runs, which is what lets the
   # installer test the layout that is being chosen. When the installer ends, sway ends and greetd starts it again.
   swayConfig = pkgs.writeText "maxor-installer-sway.conf" ''
-    output * bg #120b12 solid_color
+    output * bg #050c38 solid_color
     default_border none
     default_floating_border none
     focus_follows_mouse no
@@ -79,9 +79,9 @@ in
   environment.etc."xdg/kitty/kitty.conf".text = ''
     font_family Red Hat Mono
     font_size 15
-    background #120b12
-    foreground #fbe9f2
-    cursor #ff86b8
+    background #050c38
+    foreground #eef0ff
+    cursor #c084ff
     cursor_blink_interval 0
     window_padding_width 12
     hide_window_decorations yes
@@ -122,7 +122,7 @@ in
     squashfsCompression = "zstd -Xcompression-level 15";
     makeEfiBootable = true;
     makeUsbBootable = true;
-    # the boot menu: dark, with the mark in Krona One and the entries in Red Hat Mono
+    # the boot menu: the brand gradient, with the mark in Cinzel and the entries in Red Hat Mono
     grubTheme = pkgs.callPackage ./grub-theme.nix { };
   };
   # ZFS comes with the base image; it does not need to force-import the root (and it avoids a warning).

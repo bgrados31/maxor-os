@@ -114,7 +114,7 @@ cmd_doctor() {
   sec @doctor.sec_identity
   local f fams
   fams="$(fc-list : family 2> /dev/null || true)"
-  for f in "Figtree" "Red Hat Mono" "Krona One"; do
+  for f in "Figtree" "Red Hat Mono" "Cinzel"; do
     if grep -q -i -F "$f" <<< "$fams"; then ok @doctor.font_ok "$f"; else warn @doctor.font_warn "$f"; fi
   done
   if [ -f "$state/current" ]; then

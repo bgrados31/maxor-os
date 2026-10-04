@@ -1,15 +1,21 @@
 { config, pkgs, lib, ... }:
 
 # Identidad de Maxor OS: nombre del sistema, arranque silencioso y splash.
-# Paleta "Sakura nocturna": fondo #120b12, texto #fbe9f2, acento #ff86b8.
+# Paleta de Maxor Dark (themes/maxor-dark): azul marino #050c38, índigo #1b2062, texto #eef0ff,
+# acento violeta #c084ff y coral #ff5a57.
 let
-  # Tema Plymouth "barra de carga": MAXOR OS en Krona One y una barra fina
-  # que avanza con el progreso del arranque.
+  fonts = pkgs.callPackage ../packages/fonts.nix { };
+
+  # Tema Plymouth "barra de carga": MAXOR OS en Cinzel sobre un degradado índigo → azul marino, y una barra
+  # fina, del violeta al coral, que avanza con el progreso del arranque. El nombre se dibuja aquí como imagen:
+  # Plymouth no sabe espaciar letras, y la marca va con las letras abiertas.
   maxorPlymouth = pkgs.runCommand "maxor-plymouth" { nativeBuildInputs = [ pkgs.imagemagick ]; } ''
     d=$out/share/plymouth/themes/maxor
     mkdir -p $d
-    magick -size 320x6 xc:none -fill 'rgba(251,233,242,0.14)' -draw 'roundrectangle 0,0 319,5 3,3' $d/track.png
-    magick -size 320x6 xc:none -fill '#ff86b8' -draw 'roundrectangle 0,0 319,5 3,3' $d/fill.png
+    magick -background none -fill '#eef0ff' -font ${fonts.cinzel} -pointsize 64 -kerning 22 label:"MAXOR OS" $d/title.png
+    magick -size 320x6 xc:none -fill 'rgba(238,240,255,0.14)' -draw 'roundrectangle 0,0 319,5 3,3' $d/track.png
+    magick -size 6x320 gradient:'#c084ff-#ff5a57' -rotate -90 \
+      \( -size 320x6 xc:none -fill white -draw 'roundrectangle 0,0 319,5 3,3' \) -compose CopyOpacity -composite $d/fill.png
     cat > $d/maxor.plymouth <<EOT
     [Plymouth Theme]
     Name=Maxor OS
@@ -21,13 +27,13 @@ let
     ScriptFile=$d/maxor.script
     EOT
     cat > $d/maxor.script <<'EOT'
-    Window.SetBackgroundTopColor(0.071, 0.043, 0.071);
-    Window.SetBackgroundBottomColor(0.071, 0.043, 0.071);
+    Window.SetBackgroundTopColor(0.106, 0.125, 0.384);
+    Window.SetBackgroundBottomColor(0.020, 0.047, 0.220);
 
     sw = Window.GetWidth();
     sh = Window.GetHeight();
 
-    title = Image.Text("MAXOR OS", 0.984, 0.914, 0.949, 1, "Krona One 40");
+    title = Image("title.png");
     title_sprite = Sprite(title);
     title_sprite.SetX(sw / 2 - title.GetWidth() / 2);
     title_sprite.SetY(sh / 2 - title.GetHeight() - 16);

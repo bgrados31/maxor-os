@@ -1,7 +1,7 @@
-"""Genera el símbolo de Maxor (la «M» de Krona One) como SVG, a partir de la
+"""Genera el símbolo de Maxor (la «M» de Cinzel) como SVG, a partir de la
 propia fuente, para no depender de que la fuente esté instalada al dibujarlo.
 
-uso: make-mark.py <KronaOne.ttf> <directorio de salida>
+uso: make-mark.py <Cinzel.ttf> <directorio de salida>
 """
 import sys
 
@@ -40,7 +40,7 @@ out = sys.argv[2]
 # En blanco: DMS lo tiñe con el color primario del tema activo.
 with open(f"{out}/mark.svg", "w") as f:
     f.write(svg(506.50931, 569.94629, "#ffffff", 0.80))
-# Icono de aplicación: cuadrado redondeado con los colores por defecto (Sakura).
+# Icono de aplicación: cuadrado redondeado con los colores por defecto (Maxor Dark).
 with open(f"{out}/icon.svg", "w") as f:
-    bg = '<rect width="256" height="256" rx="56" fill="#1d121d"/>'
-    f.write(svg(256, 256, "#ff86b8", 0.46, bg))
+    bg = '<rect width="256" height="256" rx="56" fill="#0d1550"/>'
+    f.write(svg(256, 256, "#c084ff", 0.46, bg))

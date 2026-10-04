@@ -5,19 +5,19 @@
 # pantalla por inactividad). Todo se edita en este archivo; los colores
 # viven arriba para cambiarlos de un solo lugar.
 let
-  # Paleta por defecto (Sakura nocturna). El motor de temas usa la misma función
+  # Paleta por defecto (Maxor Dark). El motor de temas usa la misma función
   # con marcadores @..@ para generar la plantilla que `maxor theme apply` rellena.
-  sakura = {
-    text = "rgba(251, 233, 242, 1.0)";
-    muted = "rgba(251, 233, 242, 0.60)";
-    accent = "rgba(255, 134, 184, 1.0)";
-    inner = "rgba(18, 11, 18, 0.55)";
-    hint = "##fbe9f2a0";
+  maxorDark = {
+    text = "rgba(238, 240, 255, 1.0)";
+    muted = "rgba(238, 240, 255, 0.60)";
+    accent = "rgba(192, 132, 255, 1.0)";
+    inner = "rgba(5, 12, 56, 0.55)";
+    hint = "##eef0ffa0";
     fail = "rgba(255, 107, 129, 1.0)";
     check = "rgba(140, 255, 190, 1.0)";
     brightness = "0.60";
   };
-  placeholders = sakura // {
+  placeholders = maxorDark // {
     text = "rgba(@FG_RGB@, 1.0)";
     muted = "rgba(@FG_RGB@, 0.60)";
     accent = "rgba(@AC_RGB@, 1.0)";
@@ -27,7 +27,7 @@ let
   };
   font = "Figtree";
   mono = "Red Hat Mono";
-  word = "Krona One";
+  word = "Cinzel";
 
   mkSettings = c: {
       general = {
@@ -153,7 +153,7 @@ in
 {
   programs.hyprlock = {
     enable = true;
-    settings = mkSettings sakura;
+    settings = mkSettings maxorDark;
   };
 
   # Plantilla con marcadores: `maxor theme apply` la rellena con la paleta del tema

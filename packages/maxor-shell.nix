@@ -17,7 +17,7 @@ let
     { nativeBuildInputs = [ (python3.withPackages (p: [ p.fonttools ])) ]; }
     ''
       mkdir -p $out
-      python3 ${./make-mark.py} ${fonts.kronaOne} $out
+      python3 ${./make-mark.py} ${fonts.cinzel} $out
     '';
 in
 dmsShell.overrideAttrs (old: {
