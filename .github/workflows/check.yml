@@ -22,7 +22,9 @@ jobs:
         run: |
           if git grep -nIE "BEGIN [A-Z ]*PRIVATE KEY|gh[pousr]_[A-Za-z0-9]{30,}|github_pat_[A-Za-z0-9_]{30,}" -- . ':!tests'; then echo "secret-looking content found"; exit 1; fi
       - name: nix flake check
-        run: nix flake check --no-build
+        # Without import from derivation: it passes on a machine whose store already holds the derivation and fails
+        # on a clean one, so it is forbidden here and the check does not depend on what is built.
+        run: nix flake check --no-build --option allow-import-from-derivation false
       - name: Evaluate the nitro system
         run: nix eval --raw .#nixosConfigurations.nitro.config.system.build.toplevel.drvPath
       - name: CLI tests (bats, shellcheck, message catalog)

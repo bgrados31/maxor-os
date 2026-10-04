@@ -23,14 +23,7 @@ in
     fullname = "Maxor live session";
   };
   # El sistema vivo arranca en cualquier equipo: sin informe de hardware concreto, los drivers genéricos de la ISO.
-  maxor.hardware.report = pkgs.writeText "hardware.json" (builtins.toJSON {
-    version = 1;
-    cpu = { vendor = "other"; model = "generic"; };
-    gpus = [ ];
-    laptop = false;
-    virt = "none";
-    bluetooth = true;
-  });
+  maxor.hardware.report = ./hardware.json; # un archivo del repositorio: se lee al evaluar, no puede ser una derivación (IFD)
 
   # ── Sesión viva: entra sola, sin contraseña ─────────────────────────
   users.users.live = {

@@ -31,44 +31,20 @@ let
   # compilado (la misma derivación) y nixos-install no tiene que construir nada, solo copiar. Son las opciones
   # MAXOR_INSTALL_HWJSON y MAXOR_INSTALL_HWCONFIG del motor.
   hwJson = ../../hosts/vm/hardware.json;
-  hwConfig = pkgs.writeText "hardware-configuration.nix" ''
-    { lib, ... }: {
-      boot.initrd.availableKernelModules = [ "virtio_pci" "virtio_blk" "virtio_net" "ahci" "xhci_pci" "sd_mod" "sr_mod" ];
-      fileSystems."/" = { device = "/dev/disk/by-label/maxor-root"; fsType = "btrfs"; options = [ "subvol=@" "compress=zstd" "noatime" ]; };
-      fileSystems."/home" = { device = "/dev/disk/by-label/maxor-root"; fsType = "btrfs"; options = [ "subvol=@home" "compress=zstd" "noatime" ]; };
-      fileSystems."/.snapshots" = { device = "/dev/disk/by-label/maxor-root"; fsType = "btrfs"; options = [ "subvol=@snapshots" "compress=zstd" "noatime" ]; };
-      fileSystems."/boot" = { device = "/dev/disk/by-label/MAXOR-ESP"; fsType = "vfat"; options = [ "umask=0077" ]; };
-      nixpkgs.hostPlatform = lib.mkDefault "x86_64-linux";
-    }
-  '';
-  maxorJson = pkgs.writeText "maxor.json" ''{ "profiles": ["dev"] }'';
-  bootNix = pkgs.writeText "boot.nix" ''
-    { ... }: {
-      boot.loader.systemd-boot.enable = true;
-      boot.loader.systemd-boot.configurationLimit = 10;
-      boot.loader.efi.canTouchEfiVariables = true;
-      system.stateVersion = "26.05";
-    }
-  '';
-
-  # Para que el sistema instalado hable con el arnés de pruebas (shell por el puerto virtual) hace falta su
-  # módulo de instrumentación: se añade por el punto de extensión host/local.nix.
-  localNix = pkgs.writeText "local.nix" ''
-    { lib, ... }: {
-      imports = [ "${pkgs.path}/nixos/modules/testing/test-instrumentation.nix" ];
-      nix.settings.substituters = lib.mkForce [ ];
-      # el arnés necesita ver los mensajes del arranque; el arranque silencioso de Maxor los oculta
-      boot.consoleLogLevel = lib.mkForce 7;
-    }
-  '';
+  # These are files of the repository, not derivations: the modules read them while evaluating, and a
+  # derivation there would need building during evaluation (import from derivation), which CI forbids.
+  hwConfig = ./installer-full/hardware-configuration.nix;
+  maxorJson = ./installer-full/maxor.json;
+  bootNix = ./installer-full/boot.nix;
+  localNix = ./installer-full/local.nix;
 
   # El sistema que producirá el instalador, evaluado aquí con los mismos archivos.
   representative = self.lib.mkSystem {
     inherit machine;
     modules = [
-      "${hwConfig}"
-      "${bootNix}"
-      "${localNix}"
+      hwConfig
+      bootNix
+      localNix
       ({ ... }: {
         maxor.hardware.report = hwJson;
         maxor.settings = maxorJson;
