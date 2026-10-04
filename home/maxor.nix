@@ -52,6 +52,32 @@ in
     Install.WantedBy = [ "timers.target" ];
   };
 
+  # Cada hora pregunta, con una petición condicional (ETag: si no hay nada nuevo, el servidor
+  # responde 304 sin cuerpo), si hay una release de Maxor OS. La respuesta solo vale si su
+  # firma es de la clave de release; avisa una vez por versión. El mismo chequeo corre
+  # al iniciar sesión y cuando se abre la pantalla completa. Sin red no es un fallo (código 4).
+  systemd.user.services.maxor-release-check = {
+    Unit = {
+      Description = "Look for a new signed Maxor OS release";
+      After = [ "network-online.target" ];
+    };
+    Service = {
+      Type = "oneshot";
+      ExecStart = "${maxor}/bin/maxor release check --notify --quiet";
+      SuccessExitStatus = [ 4 ];
+      Nice = 15;
+    };
+  };
+  systemd.user.timers.maxor-release-check = {
+    Unit.Description = "Hourly look for a new Maxor OS release";
+    Timer = {
+      OnStartupSec = "2min";
+      OnUnitActiveSec = "1h";
+      RandomizedDelaySec = "5min";
+    };
+    Install.WantedBy = [ "timers.target" ];
+  };
+
   # Temas oficiales: carpetas de solo lectura junto a los tuyos, y sus
   # wallpapers en ~/Pictures/Wallpapers para el selector de DMS.
   home.file = (lib.mapAttrs'

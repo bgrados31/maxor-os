@@ -1,4 +1,5 @@
-{ lib, writeShellApplication, jq, coreutils, gnused, gnugrep, gawk, gnutar, gzip, findutils, procps, ncurses }:
+{ lib, writeShellApplication, jq, coreutils, gnused, gnugrep, gawk, gnutar, gzip, findutils, procps, ncurses
+, curl, openssh, git, util-linux, libnotify }:
 
 # La CLI `maxor`. Los scripts reales viven en home/maxor/ (lib/ y cmd/) y se
 # ensamblan en este orden; shellcheck revisa el resultado al compilar.
@@ -26,6 +27,7 @@ let
     "lib/registry.sh"
     "cmd/theme.sh"
     "cmd/update.sh"
+    "cmd/release.sh"
     "cmd/doctor.sh"
     "cmd/hardware.sh"
     "cmd/apps.sh"
@@ -37,9 +39,11 @@ let
 in
 writeShellApplication {
   name = "maxor";
-  runtimeInputs = [ jq coreutils gnused gnugrep gawk gnutar gzip findutils procps ncurses ];
+  runtimeInputs = [ jq coreutils gnused gnugrep gawk gnutar gzip findutils procps ncurses curl openssh git util-linux libnotify ];
   runtimeEnv = {
     MAXOR_PROFILES = ../modules/profiles-catalog.json;
+    # Las claves de confianza van dentro del paquete: no se pueden cambiar sin cambiar el sistema.
+    MAXOR_RELEASE_KEYS = ../keys/allowed_signers;
     MAXOR_VERSION = lib.removeSuffix "\n" (builtins.readFile ../VERSION);
   };
   excludeShellChecks = [ "SC2034" "SC2001" "SC2155" "SC2086" "SC2012" "SC2015" "SC2016" ];

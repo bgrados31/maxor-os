@@ -1,0 +1,8 @@
+# Claves en las que Maxor OS confía para sus releases (formato allowed_signers de OpenSSH).
+#
+# Una release solo se acepta si su manifiesto y su etiqueta de git están firmados por una
+# de estas claves. Mientras no haya ninguna, `maxor release` se niega a confiar en nada.
+# La clave privada vive solo en el equipo de quien publica (~/.ssh/maxor-release) y nunca
+# entra en el repositorio. Para crearla y registrar aquí la pública: scripts/release-key.sh
+#
+# Formato:  maxor-release namespaces="git,maxor-release" ssh-ed25519 AAAA…

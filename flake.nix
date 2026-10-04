@@ -30,7 +30,7 @@
       let pkgs = nixpkgs.legacyPackages.x86_64-linux; in
       pkgs.runCommand "maxor-cli-tests"
         {
-          nativeBuildInputs = with pkgs; [ bats shellcheck jq gnugrep gnused gawk coreutils findutils gnutar ncurses git ];
+          nativeBuildInputs = with pkgs; [ bats shellcheck jq gnugrep gnused gawk coreutils findutils gnutar ncurses git openssh curl util-linux ];
           MAXOR_BIN = "${self.packages.x86_64-linux.maxor}/bin/maxor";
         } ''
         cp -r ${self} src

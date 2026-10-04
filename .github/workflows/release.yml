@@ -1,27 +1,49 @@
 name: Release
 
-# Al subir una etiqueta vX.Y.Z se crea la GitHub Release con las notas de esa
-# versión, tomadas de CHANGELOG.md. La etiqueta la crea scripts/release.sh.
+# A vX.Y.Z tag is created and signed on the maintainer's machine by
+# scripts/release.sh, which also publishes the GitHub Release with the signed
+# manifest. This workflow does not publish anything: it checks, from the outside,
+# that what was published can be trusted, so a mistake or a tampered release
+# fails loudly instead of reaching users.
+#   1. the tag is signed by the key in keys/allowed_signers
+#   2. the tag matches VERSION and has CHANGELOG notes
+#   3. the release carries manifest.json + manifest.json.sig, the signature
+#      verifies, and the manifest names exactly the commit the tag points at
 on:
   push:
     tags: ["v*"]
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
-  release:
-    name: Publicar la release
+  verify:
+    name: Verify the signed release
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Notas desde el CHANGELOG
-        run: scripts/release-notes.sh "${GITHUB_REF_NAME#v}" > notes.md
-      - name: Crear la release
+        with:
+          fetch-depth: 0
+      - name: The tag is signed by the release key
+        run: |
+          git -c gpg.format=ssh -c gpg.ssh.allowedSignersFile=keys/allowed_signers verify-tag "$GITHUB_REF_NAME"
+      - name: The tag matches VERSION and the CHANGELOG
+        run: |
+          ver="${GITHUB_REF_NAME#v}"
+          [ "$(git show "$GITHUB_REF_NAME:VERSION")" = "$ver" ] || { echo "VERSION in the tag is not $ver"; exit 1; }
+          scripts/release-notes.sh "$ver" > /dev/null
+      - name: The release has a signed manifest for this exact commit
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          gh release create "$GITHUB_REF_NAME" \
-            --title "Maxor OS ${GITHUB_REF_NAME#v}" \
-            --notes-file notes.md \
-            --verify-tag
+          # scripts/release.sh uploads the release right after the tag: wait for it.
+          for i in $(seq 1 30); do
+            gh release view "$GITHUB_REF_NAME" --json assets --jq '.assets[].name' 2>/dev/null | grep -qx manifest.json.sig && break
+            sleep 20
+          done
+          mkdir dl && cd dl
+          gh release download "$GITHUB_REF_NAME" -p manifest.json -p manifest.json.sig
+          ssh-keygen -Y verify -f ../keys/allowed_signers -I maxor-release -n maxor-release -s manifest.json.sig < manifest.json
+          [ "$(jq -r .tag manifest.json)" = "$GITHUB_REF_NAME" ] || { echo "manifest tag mismatch"; exit 1; }
+          [ "$(jq -r .commit manifest.json)" = "$(git rev-parse "$GITHUB_REF_NAME^{commit}")" ] || { echo "manifest commit does not match the tag"; exit 1; }
+          echo "Manifest signature and commit verified."
