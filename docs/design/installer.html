@@ -1,0 +1,320 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Maxor OS installer · design prototype</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600&family=Krona+One&family=Red+Hat+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+/* Maxor OS — Sakura nocturna. One palette, three fonts, shapes from the theme engine. */
+:root {
+  --bg: #120b12; --s: #1b121b; --s2: #251a25; --fg: #fbe9f2; --mu: #a58a99; --line: #3a2a3a;
+  --ac: #ff86b8; --ac2: #c58bff; --ok: #8be0a8; --warn: #ffc47a; --bad: #ff6f8e;
+  --r: 14px;
+  --mono: "Red Hat Mono", ui-monospace, monospace; --sans: "Figtree", system-ui, sans-serif; --logo: "Krona One", var(--sans);
+  --ease: cubic-bezier(.22,.8,.2,1);
+}
+* { box-sizing: border-box; margin: 0; }
+html, body { height: 100%; }
+body { background: var(--bg); color: var(--fg); font-family: var(--mono); font-size: 14px; overflow: hidden; }
+
+/* ── Living background: two slow blobs of the accent colors ───────── */
+.bg { position: fixed; inset: 0; z-index: 0; overflow: hidden; }
+.bg i { position: absolute; width: 60vmax; height: 60vmax; border-radius: 50%; filter: blur(110px); opacity: .22;
+  transition: background 1.2s var(--ease); }
+.bg i:nth-child(1) { background: var(--ac); left: -20vmax; top: -25vmax; animation: drift1 26s ease-in-out infinite alternate; }
+.bg i:nth-child(2) { background: var(--ac2); right: -25vmax; bottom: -30vmax; animation: drift2 32s ease-in-out infinite alternate; }
+@keyframes drift1 { to { transform: translate(18vmax, 12vmax) scale(1.15); } }
+@keyframes drift2 { to { transform: translate(-16vmax, -10vmax) scale(.9); } }
+.grain { position: fixed; inset: 0; z-index: 1; pointer-events: none; opacity: .05;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence baseFrequency='.9' numOctaves='2'/></filter><rect width='160' height='160' filter='url(%23n)'/></svg>"); }
+
+/* ── The mark: Krona One with a moving gradient ───────────────────── */
+.mark { font-family: var(--logo); letter-spacing: .12em; text-transform: uppercase; line-height: 1;
+  background: linear-gradient(100deg, var(--ac), var(--ac2), #ffd1a8, var(--ac));
+  background-size: 300% 100%; -webkit-background-clip: text; background-clip: text; color: transparent;
+  animation: flow 7s linear infinite; }
+@keyframes flow { to { background-position: 300% 0; } }
+
+/* ── Stage and scenes ─────────────────────────────────────────────── */
+#stage { position: fixed; inset: 0; z-index: 2; display: grid; place-items: center; }
+.scene { position: absolute; inset: 0; display: grid; place-items: center; opacity: 0; pointer-events: none;
+  transition: opacity .7s var(--ease), transform .7s var(--ease), filter .7s var(--ease); transform: scale(1.03); filter: blur(8px); }
+.scene.on { opacity: 1; pointer-events: auto; transform: none; filter: none; }
+
+/* Boot */
+#boot .wrap { text-align: center; }
+#boot .mark { font-size: clamp(36px, 7vw, 76px); opacity: 0; transform: translateY(8px) scale(.96); animation: flow 7s linear infinite, rise 1.4s .3s var(--ease) forwards; }
+#boot .tag { margin-top: 18px; color: var(--mu); font-family: var(--sans); letter-spacing: .08em; opacity: 0; animation: rise 1.2s 1s var(--ease) forwards; }
+#boot .track { width: 220px; height: 3px; margin: 34px auto 0; border-radius: 3px; background: rgba(251,233,242,.12); overflow: hidden; opacity: 0; animation: rise .8s 1.2s forwards; }
+#boot .fill { height: 100%; width: 0; background: linear-gradient(90deg, var(--ac), var(--ac2)); border-radius: 3px; transition: width .5s linear; }
+#boot .ready { margin-top: 14px; font-size: 12px; color: var(--ok); height: 16px; opacity: 0; transition: opacity .5s; }
+#boot .ready.show { opacity: 1; }
+@keyframes rise { to { opacity: 1; transform: none; } }
+
+/* Notice (welcome) */
+#welcome .wrap { display: grid; justify-items: center; gap: 30px; }
+#welcome .mark { font-size: clamp(30px, 5vw, 54px); }
+.notice { max-width: 520px; padding: 26px 30px; border: 1px solid var(--line); border-radius: var(--r); background: rgba(27,18,27,.72);
+  backdrop-filter: blur(12px); box-shadow: 0 30px 80px rgba(0,0,0,.45); }
+.notice h2 { font-family: var(--sans); font-weight: 600; font-size: 18px; margin-bottom: 12px; }
+.notice p { color: #d9c4cf; line-height: 1.65; font-family: var(--sans); font-size: 15px; }
+.notice b { color: var(--ac); font-weight: 600; }
+.hint { color: var(--mu); font-size: 12px; display: flex; gap: 18px; justify-content: center; }
+kbd { font-family: var(--mono); color: var(--ac); }
+
+/* Setup frame */
+#setup { grid-template-rows: auto 1fr auto; padding: 22px 28px; }
+.top { display: grid; justify-items: center; gap: 12px; padding-top: 6px; }
+.top .mark { font-size: 22px; }
+.meter { display: flex; align-items: center; gap: 12px; color: var(--mu); font-size: 11px; }
+.meter .bar { width: 240px; height: 3px; border-radius: 3px; background: rgba(251,233,242,.1); overflow: hidden; }
+.meter .bar b { display: block; height: 100%; width: 0; background: linear-gradient(90deg, var(--ac), var(--ac2)); border-radius: 3px; transition: width .7s var(--ease); }
+.body { display: flex; gap: 22px; align-items: center; justify-content: center; min-height: 0; }
+.rail { width: 190px; padding: 16px 14px; border: 1px solid var(--line); border-radius: var(--r); background: rgba(27,18,27,.6); backdrop-filter: blur(10px); align-self: center; }
+.rail h4 { font-weight: 500; color: var(--mu); font-size: 11px; letter-spacing: .1em; text-transform: uppercase; margin-bottom: 12px; }
+.rail li { list-style: none; display: grid; grid-template-columns: 14px 1fr; gap: 8px; padding: 5px 0; color: #6f5a69; transition: color .4s; }
+.rail li .d { width: 7px; height: 7px; margin-top: 5px; border-radius: 50%; border: 1px solid currentColor; transition: all .4s var(--ease); }
+.rail li.done { color: var(--fg); } .rail li.done .d { background: var(--ok); border-color: var(--ok); }
+.rail li.cur { color: var(--ac); } .rail li.cur .d { background: var(--ac); border-color: var(--ac); box-shadow: 0 0 12px var(--ac); }
+.rail li small { display: block; color: var(--mu); font-size: 11px; margin-top: 1px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 130px; }
+.card { width: min(560px, 92vw); min-height: 360px; padding: 26px 28px; border: 1px solid var(--line); border-radius: var(--r);
+  background: rgba(27,18,27,.78); backdrop-filter: blur(14px); box-shadow: 0 30px 80px rgba(0,0,0,.45); position: relative; overflow: hidden; }
+.card.wide { width: min(760px, 94vw); }
+.card::before { content: ""; position: absolute; left: 0; right: 0; top: 0; height: 2px; background: linear-gradient(90deg, transparent, var(--ac), var(--ac2), transparent); opacity: .7; }
+.step { animation: stepin .55s var(--ease) both; }
+.step.out { animation: stepout .3s ease-in both; }
+.step.back { animation-name: stepinback; }
+@keyframes stepin { from { opacity: 0; transform: translateX(26px); } }
+@keyframes stepinback { from { opacity: 0; transform: translateX(-26px); } }
+@keyframes stepout { to { opacity: 0; transform: translateX(-18px); } }
+.card h3 { font-family: var(--logo); font-weight: 400; font-size: 17px; letter-spacing: .06em; margin-bottom: 6px; }
+.card .sub { color: var(--mu); margin-bottom: 18px; font-family: var(--sans); font-size: 14px; }
+.foot { display: flex; justify-content: center; gap: 22px; color: var(--mu); font-size: 11.5px; padding: 6px 0 2px; }
+
+/* Controls */
+.filter { width: 100%; padding: 10px 12px; margin-bottom: 10px; background: var(--s2); border: 1px solid var(--line); color: var(--fg); border-radius: 10px; font: inherit; outline: none; transition: border-color .25s; }
+.filter:focus { border-color: var(--ac); }
+.list { display: grid; gap: 2px; max-height: 232px; overflow: auto; scrollbar-width: thin; scrollbar-color: var(--line) transparent; }
+.opt { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 9px 12px; border-radius: 10px; cursor: pointer; border: 1px solid transparent; transition: background .2s, border-color .2s, transform .2s var(--ease); }
+.opt:hover { background: rgba(255,134,184,.07); }
+.opt.sel { background: rgba(255,134,184,.14); border-color: color-mix(in srgb, var(--ac) 55%, transparent); }
+.opt .r { color: var(--mu); font-size: 12px; }
+.opt .t { display: flex; align-items: center; gap: 10px; }
+.sw { width: 12px; height: 12px; border-radius: 50%; }
+.row { display: grid; grid-template-columns: 120px 1fr; gap: 12px; align-items: center; margin-bottom: 12px; }
+.row label { color: var(--mu); }
+.toggle { display: flex; align-items: center; gap: 12px; padding: 10px 12px; border-radius: 10px; background: var(--s2); cursor: pointer; margin-bottom: 8px; border: 1px solid transparent; transition: border-color .25s; }
+.toggle:hover { border-color: var(--line); }
+.toggle .sw2 { width: 36px; height: 20px; border-radius: 20px; background: #3a2a3a; position: relative; transition: background .3s; flex: none; }
+.toggle .sw2::after { content: ""; position: absolute; left: 3px; top: 3px; width: 14px; height: 14px; border-radius: 50%; background: var(--fg); transition: transform .3s var(--ease); }
+.toggle.on .sw2 { background: var(--ac); } .toggle.on .sw2::after { transform: translateX(16px); }
+.toggle small { color: var(--mu); display: block; font-family: var(--sans); }
+.diskbar { display: flex; height: 26px; border-radius: 8px; overflow: hidden; gap: 2px; margin: 10px 0 6px; }
+.diskbar b { display: block; transition: flex-grow .8s var(--ease); min-width: 3px; }
+.legend { display: flex; flex-wrap: wrap; gap: 4px 16px; color: var(--mu); font-size: 12px; margin-bottom: 14px; }
+.legend span::before { content: ""; display: inline-block; width: 8px; height: 8px; border-radius: 2px; margin-right: 6px; background: var(--c); }
+.kv { display: grid; grid-template-columns: 110px 1fr; gap: 6px 14px; margin-bottom: 14px; }
+.kv span { color: var(--mu); }
+.warn { color: var(--warn); margin: 10px 0; }
+.btn { padding: 10px 20px; border-radius: 10px; border: 1px solid var(--line); background: var(--s2); color: var(--fg); font: inherit; cursor: pointer; transition: transform .2s var(--ease), background .25s, border-color .25s, opacity .25s; }
+.btn:hover { transform: translateY(-1px); border-color: var(--ac); }
+.btn.primary { background: linear-gradient(100deg, var(--ac), var(--ac2)); color: #1a0f19; border: 0; font-weight: 600; }
+.btn[disabled] { opacity: .35; pointer-events: none; }
+.meter-pw { display: flex; gap: 4px; margin: -4px 0 12px 132px; }
+.meter-pw i { flex: 1; height: 3px; border-radius: 3px; background: var(--line); transition: background .3s; }
+
+/* Install */
+.stages { display: grid; gap: 7px; margin: 14px 0; }
+.stage { display: flex; align-items: center; gap: 10px; color: #6f5a69; transition: color .4s; }
+.stage .ic { width: 16px; text-align: center; }
+.stage.cur { color: var(--fg); } .stage.done { color: var(--mu); } .stage.done .ic { color: var(--ok); }
+.stage.cur .ic { color: var(--ac); animation: spin 1s linear infinite; display: inline-block; }
+@keyframes spin { to { transform: rotate(360deg); } }
+.big { height: 8px; border-radius: 8px; background: rgba(251,233,242,.1); overflow: hidden; margin: 6px 0 4px; position: relative; }
+.big b { display: block; height: 100%; width: 0; background: linear-gradient(90deg, var(--ac), var(--ac2), #ffd1a8); background-size: 200% 100%; animation: flow 3s linear infinite; border-radius: 8px; transition: width .6s var(--ease); }
+.pct { text-align: right; color: var(--mu); font-size: 12px; }
+.log { margin-top: 12px; padding-top: 10px; border-top: 1px solid var(--line); height: 112px; overflow: hidden; color: #7f6a79; font-size: 11.5px; display: flex; flex-direction: column; justify-content: flex-end; }
+.log div { animation: stepin .3s both; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.done-mark { font-family: var(--logo); font-size: 28px; margin-bottom: 8px; }
+.pop { animation: pop .8s var(--ease) both; }
+@keyframes pop { from { opacity: 0; transform: scale(.9); } }
+
+/* Side controls of the prototype */
+.proto { position: fixed; right: 14px; bottom: 12px; z-index: 5; display: flex; gap: 8px; align-items: center; color: var(--mu); font-size: 11px; font-family: var(--sans); }
+.proto button { background: rgba(27,18,27,.8); color: var(--fg); border: 1px solid var(--line); border-radius: 8px; padding: 5px 10px; font: inherit; cursor: pointer; }
+@media (max-width: 860px) { .rail { display: none; } }
+@media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; } }
+</style>
+</head>
+<body>
+<div class="bg"><i></i><i></i></div><div class="grain"></div>
+
+<div id="stage">
+  <section class="scene" id="boot">
+    <div class="wrap">
+      <div class="mark">Maxor OS</div>
+      <div class="tag">power with calm</div>
+      <div class="track"><div class="fill"></div></div>
+      <div class="ready">ready</div>
+    </div>
+  </section>
+
+  <section class="scene" id="welcome">
+    <div class="wrap">
+      <div class="mark">Maxor OS</div>
+      <div class="notice">
+        <h2>Let's install Maxor OS</h2>
+        <p>This medium starts the installer directly: there is no demo session to try first.
+        You will answer a few questions, review them, and <b>nothing is written to any disk until you confirm</b>.</p>
+      </div>
+      <div class="hint"><span><kbd>enter</kbd> continue</span><span><kbd>?</kbd> help</span></div>
+    </div>
+  </section>
+
+  <section class="scene" id="setup">
+    <div class="top"><div class="mark">Maxor OS</div>
+      <div class="meter"><span id="mtxt">install</span><div class="bar"><b id="mbar"></b></div><span id="mnum">1/13</span></div></div>
+    <div class="body"><aside class="rail"><h4>install steps</h4><ul id="rail"></ul></aside><div class="card" id="card"></div></div>
+    <div class="foot" id="foot"></div>
+  </section>
+</div>
+
+<div class="proto"><span>prototype · keys: enter / esc</span><button id="restart">restart</button><button id="skip">skip boot</button></div>
+
+<script>
+const $ = (s, r = document) => r.querySelector(s);
+const el = (h) => { const t = document.createElement("template"); t.innerHTML = h.trim(); return t.content.firstChild; };
+const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+/* ── State: the same answers the real engine takes ──────────────── */
+const S = { locale: "English (United States)", layout: "US (QWERTY)", tz: "America/Lima", net: "Wired connection 1",
+  disk: "/dev/nvme0n1", method: "whole", fs: "btrfs", enc: false, swap: "zram", name: "", user: "", host: "", pw: "", pw2: "",
+  theme: "Sakura", auto: false };
+const THEMES = { Sakura: ["#ff86b8", "#c58bff"], Brisa: ["#7fd4ff", "#8ba7ff"], Ceniza: ["#ffb38a", "#ff8a8a"], Bosque: ["#8be0a8", "#7fd4c4"], Dorado: ["#ffd37f", "#ffa27f"] };
+const LOCALES = ["English (United States)","English (United Kingdom)","Español (España)","Español (México)","Español (Argentina)","Español (Perú)","Español (Colombia)","Português (Brasil)","Français (France)","Deutsch (Deutschland)","Italiano (Italia)","日本語 (日本)"];
+const LAYOUTS = ["US (QWERTY)","Spanish","Spanish (Latin America)","Portuguese (Brazil)","French (AZERTY)","German","Italian","Dvorak","Colemak","United Kingdom"];
+const ZONES = ["America/Lima","America/Mexico_City","America/Bogota","America/Argentina/Buenos_Aires","America/Sao_Paulo","America/New_York","America/Los_Angeles","Europe/Madrid","Europe/London","Europe/Berlin","Europe/Paris","Asia/Tokyo","Asia/Kolkata","Australia/Sydney","UTC"];
+
+/* ── Scenes: boot → welcome → setup, with a blur/scale crossfade ── */
+const scenes = { boot: $("#boot"), welcome: $("#welcome"), setup: $("#setup") };
+let scene = "";
+const go = (n) => { Object.entries(scenes).forEach(([k, v]) => v.classList.toggle("on", k === n)); scene = n; };
+let bootTimers = [];
+function runBoot() {
+  bootTimers.forEach(clearTimeout); bootTimers = [];
+  go("boot"); const f = $("#boot .fill"), r = $("#boot .ready"); f.style.width = "0"; r.classList.remove("show");
+  [[1400, 25], [2300, 55], [3200, 82], [4000, 100]].forEach(([t, w]) => bootTimers.push(setTimeout(() => (f.style.width = w + "%"), t)));
+  bootTimers.push(setTimeout(() => r.classList.add("show"), 4300));
+  bootTimers.push(setTimeout(() => go("welcome"), 5400));
+}
+
+/* ── Steps ───────────────────────────────────────────────────────── */
+const filterable = (items, key, extra) => (host) => {
+  host.innerHTML = `<input class="filter" placeholder="type to filter…" autofocus><div class="list"></div>`;
+  const inp = $(".filter", host), list = $(".list", host);
+  const draw = () => {
+    const q = inp.value.toLowerCase();
+    list.innerHTML = ""; items.filter((x) => x.toLowerCase().includes(q)).forEach((x) => {
+      const o = el(`<div class="opt ${S[key] === x ? "sel" : ""}"><span class="t">${x}</span><span class="r">${extra ? extra(x) : ""}</span></div>`);
+      o.onclick = () => { S[key] = x; draw(); updateRail(); }; list.append(o);
+    });
+    const s = $(".sel", list); if (s) s.scrollIntoView({ block: "nearest" });
+  };
+  inp.oninput = draw; draw(); setTimeout(() => inp.focus(), 60);
+};
+
+const steps = [
+  { id: "language", t: "Language", sub: "The language of the system and its formats.", val: () => S.locale.replace(/ \(.*/, ""), draw: filterable(LOCALES, "locale", (x) => ({ "English (United States)": "en_US", "Español (Perú)": "es_PE" }[x] || "")) },
+  { id: "keyboard", t: "Keyboard", sub: "Pick a layout and try your keys right here.", val: () => S.layout.split(" ")[0],
+    draw: (h) => { filterable(LAYOUTS, "layout")(h); h.append(el(`<input class="filter" style="margin-top:12px" placeholder="type here to test your keys: ñ á ü ç">`)); } },
+  { id: "timezone", t: "Time zone", sub: "Where is this computer? It sets the clock.", val: () => S.tz.split("/").pop().replace(/_/g, " "),
+    draw: (h) => { h.innerHTML = `<div class="toggle on" id="ip"><span class="sw2"></span><span>Detect automatically<small>by IP address — also sets the clock now</small></span></div>`; const t = $("#ip", h); t.onclick = () => t.classList.toggle("on"); const d = el("<div></div>"); h.append(d); filterable(ZONES, "tz", (z) => z.split("/")[0])(d); } },
+  { id: "network", t: "Network", sub: "Updates are downloaded when there is a connection. The installer also works without one.", val: () => S.net === "none" ? "offline" : "online",
+    draw: (h) => { h.innerHTML = `<div class="list"></div><div class="warn" style="margin-top:12px;color:var(--ok)">✓ Connected to the internet</div>`; const l = $(".list", h);
+      ["Wired connection 1", "Casa-5G  ·  WPA2  ·  82%", "Cafe Luna  ·  open  ·  54%", "Install without a network"].forEach((n, i) => { const o = el(`<div class="opt ${S.net.startsWith(n.split("  ")[0]) || (i === 3 && S.net === "none") ? "sel" : ""}"><span class="t">${n}</span><span class="r">${i === 0 ? "ethernet" : i === 3 ? "offline" : "wifi"}</span></div>`); o.onclick = () => { S.net = i === 3 ? "none" : n.split("  ")[0]; $$(".opt", l).forEach((x) => x.classList.remove("sel")); o.classList.add("sel"); updateRail(); }; l.append(o); }); } },
+  { id: "disk", t: "Disk", sub: "Where should Maxor OS go? Nothing is written yet.", val: () => S.disk.replace("/dev/", ""),
+    draw: (h) => { const disks = [["/dev/nvme0n1", "Samsung SSD 980 · 512 GB", "2 partitions · Windows", true], ["/dev/sda", "Kingston USB · 16 GB", "removable · in use", false]];
+      h.innerHTML = `<div class="list"></div><div class="warn" id="dw" style="min-height:20px"></div>`; const l = $(".list", h);
+      disks.forEach(([p, n, c, ok]) => { const o = el(`<div class="opt ${S.disk === p ? "sel" : ""}" style="opacity:${ok ? 1 : .45}"><span class="t"><b>${p}</b> ${n}</span><span class="r">${c}</span></div>`);
+        o.onclick = () => { if (!ok) { $("#dw", h).textContent = "This disk cannot be used: it is mounted."; return; } $("#dw", h).textContent = ""; S.disk = p; $$(".opt", l).forEach((x) => x.classList.remove("sel")); o.classList.add("sel"); updateRail(); }; l.append(o); }); } },
+  { id: "method", t: "How to install", sub: "Use the whole disk, or share it with what is already there.", val: () => S.method === "whole" ? "whole disk" : "alongside",
+    draw: (h) => { h.innerHTML = `<div class="list"></div><div class="legend" id="lg"></div><div class="diskbar" id="db"></div>`; const l = $(".list", h);
+      const bar = () => { const w = S.method === "whole"; $("#db", h).innerHTML = w ? `<b style="flex:1;background:var(--ac)"></b>` : `<b style="flex:.3;background:#6f5a69"></b><b style="flex:3;background:#8a7a85"></b><b style="flex:2.2;background:var(--ac)"></b>`;
+        $("#lg", h).innerHTML = w ? `<span style="--c:var(--ac)">Maxor OS 476 GB</span>` : `<span style="--c:#6f5a69">EFI 100 MB</span><span style="--c:#8a7a85">Windows 280 GB</span><span style="--c:var(--ac)">Maxor OS 196 GB (free space)</span>`; };
+      [["whole", "Erase the disk and install Maxor OS", "Everything on /dev/nvme0n1 will be deleted."], ["alongside", "Install alongside what is already there", "Only free space is used. Nothing that exists is changed."]].forEach(([k, a, b]) => { const o = el(`<div class="opt ${S.method === k ? "sel" : ""}"><span class="t"><span>${a}<br><span class="r">${b}</span></span></span></div>`); o.onclick = () => { S.method = k; $$(".opt", l).forEach((x) => x.classList.remove("sel")); o.classList.add("sel"); bar(); updateRail(); }; l.append(o); }); bar(); } },
+  { id: "storage", t: "Storage", sub: "How the disk is organised and protected.", val: () => S.fs + (S.enc ? " · luks" : ""),
+    draw: (h) => { h.innerHTML = ""; const mk = (k, a, b, on) => { const t = el(`<div class="toggle ${on() ? "on" : ""}"><span class="sw2"></span><span>${a}<small>${b}</small></span></div>`); t.onclick = () => { on(true); t.classList.toggle("on", on()); updateRail(); }; h.append(t); };
+      mk("fs", "btrfs with snapshots", "roll back after a bad update · recommended", (f) => (f ? (S.fs = S.fs === "btrfs" ? "ext4" : "btrfs") : S.fs === "btrfs"));
+      mk("enc", "Encrypt the system disk (LUKS2)", "protects your data if the computer is lost", (f) => (f ? (S.enc = !S.enc) : S.enc));
+      mk("swap", "Compressed memory (zram)", "instead of a swap file", (f) => (f ? (S.swap = S.swap === "zram" ? "none" : "zram") : S.swap === "zram")); } },
+  { id: "account", t: "Your account", sub: "Who will use this computer?", val: () => S.user || "—", wide: true,
+    gate: () => !S.name ? "Tell us your name." : S.pw.length < 8 ? "Password: at least 8 characters." : S.pw !== S.pw2 ? "The passwords do not match." : "",
+    draw: (h) => { const f = (k, l, ph, type = "text") => `<div class="row"><label>${l}</label><input class="filter" style="margin:0" data-k="${k}" type="${type}" placeholder="${ph}" value="${S[k] || ""}"></div>`;
+      h.innerHTML = f("name", "Your name", "Ana Pérez") + f("user", "Login name", "ana") + f("host", "Computer name", "ana-pc") + f("pw", "Password", "at least 8 characters", "password") + `<div class="meter-pw" id="pm"><i></i><i></i><i></i><i></i></div>` + f("pw2", "Again", "", "password");
+      let ue = false, he = false; $$("input", h).forEach((i) => i.oninput = () => { S[i.dataset.k] = i.value; const k = i.dataset.k;
+        if (k === "name" && !ue) { S.user = i.value.trim().split(" ")[0].toLowerCase().normalize("NFD").replace(/[^a-z0-9]/g, ""); $('[data-k=user]', h).value = S.user; }
+        if (k === "user") ue = true; if (k === "host") he = true;
+        if ((k === "name" || k === "user") && !he) { S.host = S.user ? S.user + "-pc" : ""; $('[data-k=host]', h).value = S.host; }
+        const sc = Math.min(4, (S.pw.length > 7) + (/[A-Z]/.test(S.pw) && /[a-z]/.test(S.pw)) + /\d/.test(S.pw) + /[^\w]/.test(S.pw)); $$("#pm i", h).forEach((b, n) => (b.style.background = n < sc ? ["", "var(--bad)", "var(--warn)", "var(--ok)", "var(--ok)"][sc] : "")); updateRail(); }); } },
+  { id: "look", t: "Look", sub: "Move through the themes: the whole screen follows. You can change it, or make your own, later.", val: () => S.theme,
+    draw: (h) => { h.innerHTML = `<div class="list"></div>`; const l = $(".list", h);
+      Object.entries(THEMES).forEach(([n, [a, b]]) => { const o = el(`<div class="opt ${S.theme === n ? "sel" : ""}"><span class="t"><span class="sw" style="background:linear-gradient(135deg,${a},${b})"></span>${n}</span><span class="r">${n === "Sakura" ? "default" : "dark"}</span></div>`);
+        o.onclick = () => { setTheme(n); $$(".opt", l).forEach((x) => x.classList.remove("sel")); o.classList.add("sel"); updateRail(); }; l.append(o); }); } },
+  { id: "hardware", t: "Your hardware", sub: "This is what was found. Maxor OS picks the drivers for it.", val: () => "laptop",
+    draw: (h) => { h.innerHTML = `<div class="kv"><span>Processor</span>13th Gen Intel Core i5-13500H<span>Type</span>laptop<span>Graphics</span>Intel 8086:a7a0 · NVIDIA 10de:28e1<span>Firmware</span>UEFI</div><h3 style="font-size:13px;margin:6px 0">What Maxor OS will set up</h3><p class="sub" style="font-size:13.5px">Hybrid graphics: the integrated GPU runs the desktop and the NVIDIA GPU is there on demand. If the NVIDIA driver cannot be fetched, the installed system falls back to the integrated GPU. Power profiles, Bluetooth.</p>`; } },
+  { id: "review", t: "Review", sub: "This is exactly what will happen. Nothing has been written yet.", val: () => "", wide: true, review: true,
+    draw: (h) => { const w = S.method === "whole", word = w ? "ERASE" : "INSTALL";
+      h.innerHTML = `<div class="kv"><span>Disk</span>${S.disk}<span>Method</span>${w ? "Erase the whole disk" : "Alongside the existing system"}<span>Storage</span>${S.fs}, ${S.enc ? "encrypted (LUKS2)" : "not encrypted"}, ${S.swap}<span>Account</span>${S.user || "ana"} (${S.name || "Ana Pérez"}) on ${S.host || "ana-pc"}<span>Region</span>${S.tz} · ${S.locale}<span>Look</span>${S.theme}</div>
+      ${w ? `<div class="warn">Everything on ${S.disk} will be erased.</div>` : `<div class="warn" style="color:var(--ok)">✓ Windows stays untouched and keeps its place in the boot menu.</div>`}
+      <div class="row" style="grid-template-columns:auto 1fr"><label>Type ${word}</label><input class="filter" style="margin:0" id="cf" autocomplete="off"></div>
+      <button class="btn primary" id="go" disabled>Install Maxor OS</button>`;
+      const cf = $("#cf", h), go = $("#go", h); cf.oninput = () => (go.disabled = cf.value !== word); go.onclick = () => next(); setTimeout(() => cf.focus(), 60); } },
+  { id: "install", t: "Installing", sub: "Please do not turn the computer off.", val: () => "", wide: true, lock: true,
+    draw: (h) => { const names = ["Checking the machine", "Partitioning the disk", "Creating filesystems and subvolumes", "Installing Maxor OS", "Writing the bootloader", "Finishing"];
+      h.innerHTML = `<div class="stages">${names.map((n) => `<div class="stage"><span class="ic">·</span>${n}</div>`).join("")}</div><div class="big"><b></b></div><div class="pct">0%</div><div class="log"></div>`;
+      const st = $$(".stage", h), bar = $(".big b", h), pct = $(".pct", h), log = $(".log", h);
+      const lines = ["wipefs --all /dev/nvme0n1", "sfdisk: GPT, ESP 1 GiB + root", "mkfs.btrfs -L maxor-root", "btrfs subvolume create @ @home @snapshots", "copying 1,204 store paths…", "building the system closure…", "activating home-manager…", "bootctl install", "writing the user's configuration repository", "done"];
+      let i = 0; const tick = () => { if (i > names.length) { next(); return; } st.forEach((s, n) => { s.classList.toggle("done", n < i); s.classList.toggle("cur", n === i); $(".ic", s).textContent = n < i ? "✓" : n === i ? "◜" : "·"; });
+        const p = Math.min(100, Math.round((i / names.length) * 100)); bar.style.width = p + "%"; pct.textContent = p + "%";
+        for (let k = 0; k < 2; k++) { const d = el(`<div>${lines[(i * 2 + k) % lines.length]}</div>`); log.append(d); while (log.children.length > 7) log.firstChild.remove(); }
+        i++; timer = setTimeout(tick, reduce ? 300 : 1300); }; tick(); } },
+  { id: "done", t: "All done", sub: "", val: () => "", final: true,
+    draw: (h) => { h.innerHTML = `<div class="pop"><div class="done-mark mark">Installed</div><p class="sub" style="font-size:15px">Maxor OS is on ${S.disk}.<br>Remove the installation medium, restart, and sign in as <b style="color:var(--ac)">${S.user || "ana"}</b>.</p>
+      <div class="kv"><span>Your config</span>~/nixos-config (a git repository, yours to change)<span>Log</span>/var/log/maxor-install.log</div><button class="btn primary" id="rb">Restart now</button> <button class="btn" id="sh">Stay in this session</button></div>`;
+      $("#rb", h).onclick = () => { $("#card").innerHTML = ""; go("boot"); runBoot(); }; $("#sh", h).onclick = () => alert("Prototype: a text shell would open here."); } },
+];
+const $$ = (s, r = document) => [...r.querySelectorAll(s)];
+let idx = 0, timer;
+
+function setTheme(n) { S.theme = n; const [a, b] = THEMES[n]; const r = document.documentElement.style; r.setProperty("--ac", a); r.setProperty("--ac2", b); }
+function updateRail() {
+  const ul = $("#rail"); ul.innerHTML = "";
+  steps.slice(0, -1).forEach((s, i) => { if (s.id === "install") return; const v = i < idx ? s.val() : "";
+    ul.append(el(`<li class="${i < idx ? "done" : i === idx ? "cur" : ""}"><span class="d"></span><span>${s.t}${v ? `<small>${v}</small>` : ""}</span></li>`)); });
+  const total = steps.length - 1; $("#mbar").style.width = Math.round((idx / (total - 1)) * 100) + "%"; $("#mnum").textContent = Math.min(idx + 1, total) + "/" + total; $("#mtxt").textContent = "install";
+  $("#foot").innerHTML = steps[idx].lock ? `<span>installing… · <kbd>ctrl+c</kbd> to abort</span>` : steps[idx].final ? `<span><kbd>enter</kbd> restart</span>` : `<span><kbd>enter</kbd> continue</span><span><kbd>esc</kbd> back</span>`;
+}
+function render(back) {
+  const s = steps[idx], card = $("#card"); clearTimeout(timer);
+  card.classList.toggle("wide", !!s.wide); $(".rail").style.display = s.final ? "none" : ""; $(".meter").style.opacity = s.final ? 0 : 1;
+  const old = $(".step", card), build = () => { card.innerHTML = ""; const w = el(`<div class="step ${back ? "back" : ""}"><h3>${s.t}</h3><div class="sub">${s.sub}</div><div class="host"></div></div>`); card.append(w); s.draw($(".host", w)); updateRail(); };
+  if (old && !reduce) { old.classList.add("out"); setTimeout(build, 240); } else build();
+}
+function next() { const s = steps[idx]; if (s.gate) { const m = s.gate(); if (m) return toast(m); } if (idx < steps.length - 1) { idx++; render(); } }
+function prev() { if (idx > 0 && !steps[idx].lock && !steps[idx].final) { idx--; render(true); } }
+function toast(m) { const t = el(`<div style="position:fixed;left:50%;bottom:64px;transform:translateX(-50%);background:var(--s2);border:1px solid var(--warn);color:var(--warn);padding:9px 16px;border-radius:10px;z-index:9;animation:pop .4s both">${m}</div>`); document.body.append(t); setTimeout(() => t.remove(), 2200); }
+
+addEventListener("keydown", (e) => {
+  if (scene === "welcome" && e.key === "Enter") { go("setup"); idx = 0; render(); return; }
+  if (scene !== "setup") return;
+  if (e.key === "Enter") { if (document.activeElement && document.activeElement.id === "cf") return; if (steps[idx].review) return; next(); }
+  if (e.key === "Escape") prev();
+});
+$("#restart").onclick = () => { idx = 0; setTheme("Sakura"); runBoot(); };
+$("#skip").onclick = () => { bootTimers.forEach(clearTimeout); go("welcome"); };
+runBoot();
+</script>
+</body>
+</html>

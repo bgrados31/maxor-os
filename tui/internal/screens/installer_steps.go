@@ -391,7 +391,14 @@ func (s *networkStep) Lines(w *Installer, env *core.Env, width int) []ui.Line {
 		lines = append(lines, gap(), l)
 	}
 	if s.msg != "" {
-		lines = append(lines, gap(), ui.Of(ui.S(p.Bad, ui.G.Bad+"  "), ui.S(p.Text, oneLine(s.msg))))
+		lines = append(lines, gap())
+		for i, l := range ui.Wrap(oneLine(s.msg), width-3) {
+			mark := "   "
+			if i == 0 {
+				mark = ui.G.Bad + "  "
+			}
+			lines = append(lines, ui.Of(ui.S(p.Bad, mark), ui.S(p.Text, l)))
+		}
 	}
 	return append(lines, gap(), muted(env, "r looks again"))
 }
@@ -1106,6 +1113,13 @@ func (s *lookStep) Lines(w *Installer, env *core.Env, width int) []ui.Line {
 	p := env.P
 	themes := ordered(env)
 	if len(themes) == 0 {
+		if err := env.Data.Err["themes"]; err != nil {
+			lines := []ui.Line{ui.Of(ui.S(p.Warn, ui.G.Warn+"  "), ui.S(p.Text, "The themes could not be loaded; Maxor OS will use Sakura."))}
+			for _, l := range ui.Wrap(oneLine(err.Error()), width-3) {
+				lines = append(lines, muted(env, "   "+l))
+			}
+			return append(lines, gap(), muted(env, "You can pick or create another theme once Maxor OS is installed."))
+		}
 		return []ui.Line{muted(env, "Loading the themes…")}
 	}
 	lines := []ui.Line{heading(env, "Theme")}

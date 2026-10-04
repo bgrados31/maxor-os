@@ -14,6 +14,18 @@ let
   # installer/offline-overrides.nix). The installer reads them from /etc/maxor-install/overrides.
   overrides = pkgs.writeText "maxor-install-overrides" (import ../offline-overrides.nix { inherit lib self inputs; });
 
+  # The official themes, where the CLI looks for them ($HOME/.local/share/maxor/themes). An installed system gets them
+  # from home-manager; the installation medium has none, so they are linked here. Sakura is the default.
+  themes = pkgs.runCommand "maxor-live-themes" { } ''
+    mkdir -p $out
+    for d in ${../../themes}/*/; do
+      id=$(basename $d)
+      mkdir -p $out/$id
+      cp $d/colors.json $d/theme.toml $out/$id/
+      [ -f $d/style.json ] && cp $d/style.json $out/$id/ || true
+    done
+  '';
+
   # What cage runs. A system service starts with a minimal PATH, so the programs the installer calls (maxor-install,
   # nmcli, sudo, timedatectl) are put on it here.
   session = pkgs.writeShellScript "maxor-installer-session" ''
@@ -68,6 +80,12 @@ in
   environment.etc."maxor-install/overrides".source = overrides;
   # Marks the installation medium: whatever only makes sense here asks for this file.
   environment.etc."maxor-live".text = "${version}\n";
+  systemd.tmpfiles.rules = [
+    "d /home/nixos/.local 0755 nixos users -"
+    "d /home/nixos/.local/share 0755 nixos users -"
+    "d /home/nixos/.local/share/maxor 0755 nixos users -"
+    "L+ /home/nixos/.local/share/maxor/themes - - - - ${themes}"
+  ];
 
   # ── Image and boot ──────────────────────────────────────────────────
   # A quiet, dark boot: the installer is the first thing on screen.

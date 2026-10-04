@@ -151,7 +151,7 @@ func (m *Model) setToast(kind, text string) {
 
 // ensureTick mantiene la animación solo mientras haya algo que animar.
 func (m *Model) ensureTick() tea.Cmd {
-	if m.ticking || !(m.env.Tasks.Busy() || m.toastActive()) {
+	if m.ticking || !(m.env.Tasks.Busy() || m.toastActive() || m.animated()) {
 		return nil
 	}
 	m.ticking = true
@@ -398,4 +398,10 @@ func (m *Model) blocked() bool {
 		}
 	}
 	return false
+}
+
+// animated: the current screen keeps moving (the installer's gradient and transitions).
+func (m *Model) animated() bool {
+	a, ok := m.screens[m.active].(core.Animated)
+	return ok && a.Animated()
 }

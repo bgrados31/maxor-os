@@ -124,3 +124,14 @@ type Data struct {
 
 // SearchMsg lanza una búsqueda en la Tienda (viene de la paleta de comandos).
 type SearchMsg struct{ Query string }
+
+// Framed is optional: a screen that draws the whole window itself, with no tab bar and no footer. The
+// installer is one. Frame returns exactly h rows of exactly w cells.
+type Framed interface {
+	Frame(env *Env, w, h int) []string
+}
+
+// Animated is optional: a screen that keeps moving (a gradient, a transition) asks for steady frames.
+type Animated interface {
+	Animated() bool
+}

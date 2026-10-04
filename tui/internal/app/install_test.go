@@ -156,7 +156,7 @@ func TestInstallerOpensWithoutTabsAtTheWelcome(t *testing.T) {
 		t.Fatal("the installer is a single screen with no tabs")
 	}
 	out := view(m)
-	for _, want := range []string{"maxor", "install", "Welcome", "UEFI firmware", "Connected to the internet", "System language", "English (United States)"} {
+	for _, want := range []string{"M A X O R", "install", "Welcome", "UEFI firmware", "Connected to the internet", "System language", "English (United States)"} {
 		if !has(out, want) {
 			t.Fatalf("missing %q:\n%s", want, out)
 		}

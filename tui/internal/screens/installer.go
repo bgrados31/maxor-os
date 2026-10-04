@@ -26,6 +26,8 @@ type Installer struct {
 	running bool   // the engine is installing: nothing can be left
 	failed  bool
 
+	changed int // the animation frame at which the current step started
+
 	mu     sync.Mutex
 	events []install.Event
 }
@@ -79,6 +81,7 @@ func (w *Installer) goTo(env *core.Env, i int) tea.Cmd {
 		return nil
 	}
 	w.idx, w.notice = i, ""
+	w.changed = env.Frame
 	return w.cur().Enter(w, env)
 }
 

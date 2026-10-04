@@ -198,3 +198,13 @@ func UserHint(full string) string {
 	return s
 }
 
+
+// LocaleName is the readable name of a locale code ("es_PE.UTF-8" → "Español (Perú)"), or the code itself.
+func LocaleName(code string) string {
+	for _, l := range Locales {
+		if l.Code == code {
+			return l.Name
+		}
+	}
+	return code
+}

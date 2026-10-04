@@ -24,6 +24,9 @@ func (m *Model) View() string {
 	if w < minW || h < minH {
 		return m.tooSmall(page, w, h)
 	}
+	if f, ok := m.screens[m.active].(core.Framed); ok && m.overlay == ovNone {
+		return strings.Join(f.Frame(m.env, w, h), "\n")
+	}
 	rows := make([]string, 0, h)
 	rows = append(rows, m.topBar(page, w), blankRow(page, w))
 	rows = append(rows, m.body(page, w, h-4)...)

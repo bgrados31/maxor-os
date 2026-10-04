@@ -193,7 +193,13 @@ func typeText(m *Model, s string) {
 	}
 }
 
-func view(m *Model) string { return ansi.Strip(m.View()) }
+// view draws the screen once its transitions are over: a test has no clock to run them.
+func view(m *Model) string {
+	if m.animated() {
+		m.env.Frame += 20
+	}
+	return ansi.Strip(m.View())
+}
 
 // has compara sin distinguir mayúsculas: los encabezados se dibujan en mayúsculas.
 func has(out, want string) bool { return strings.Contains(strings.ToLower(out), strings.ToLower(want)) }
