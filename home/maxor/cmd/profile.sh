@@ -63,7 +63,12 @@ profile_set() { # enable|disable nombre [opciones de update]
     return 0
   fi
   mkdir -p "$(dirname "$f")"
-  jq -n --argjson p "$new" '{profiles: $p}' > "$f"
+  # solo cambia los perfiles: el resto de maxor.json (el tema del primer arranque) se queda como estaba
+  if [ -f "$f" ]; then
+    jq --argjson p "$new" '.profiles = $p' "$f" > "$f.tmp" && mv "$f.tmp" "$f"
+  else
+    jq -n --argjson p "$new" '{profiles: $p}' > "$f"
+  fi
   track_file "$f"
   ui_say ok @profile.changed "$name" "$word" "${f/#$HOME/~}"
   # --no-apply: solo se guarda la elección; se aplica con `maxor update`

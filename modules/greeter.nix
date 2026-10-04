@@ -11,7 +11,7 @@
 # Si el login no arrancara, elige una generación anterior en el menú de
 # arranque (con SDDM) o entra por una TTY con Ctrl+Alt+F3.
 let
-  defaultBg = (builtins.fromJSON (builtins.readFile ../themes/sakura/colors.json)).bg;
+  defaultBg = (builtins.fromJSON (builtins.readFile ../themes/maxor-dark/colors.json)).bg;
 in
 {
   services.displayManager.dms-greeter = {

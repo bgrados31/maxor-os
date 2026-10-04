@@ -1,0 +1,7 @@
+name = "Dawn"
+id = "dawn"
+author = "Maxor OS"
+version = "1.0.0"
+license = "CC0-1.0"
+description = "Pale rose with raspberry: the daytime side of Sakura."
+mode = "light"

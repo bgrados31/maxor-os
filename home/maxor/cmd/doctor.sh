@@ -11,8 +11,8 @@ doctor_fix() {
   case "$id" in
     hw_changed | hw_missing) printf 'maxor hardware detect --write\t0\tfix' ;;
     git_dirty) printf "git -C '%s' status\t0\tinspect" "$flake_dir" ;;
-    theme_none) printf 'maxor theme apply sakura\t0\tfix' ;;
-    dms_warn) printf 'maxor theme apply %s\t0\tfix' "$(cat "$state/current" 2> /dev/null || echo sakura)" ;;
+    theme_none) printf 'maxor theme apply maxor-dark\t0\tfix' ;;
+    dms_warn) printf 'maxor theme apply %s\t0\tfix' "$(cat "$state/current" 2> /dev/null || echo maxor-dark)" ;;
     flatpak_env) printf 'maxor apps repair\t0\tfix' ;;
     sys_bad) printf 'systemctl --failed\t0\tinspect' ;;
     usr_bad) printf 'systemctl --user --failed\t0\tinspect' ;;

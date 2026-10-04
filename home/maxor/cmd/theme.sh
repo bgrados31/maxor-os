@@ -28,7 +28,7 @@ theme_list() {
   [ -d "$themes" ] || die_code "$EX_NEEDS" @theme.none "$themes"
   local json=0 a cur="" rows file mode s2 ac ac2 fg dir n name mark m label l
   for a in "$@"; do [ "$a" = "--json" ] && json=1; done
-  [ -f "$state/current" ] && cur="$(cat "$state/current")"
+  [ -f "$state/current" ] && cur="$(theme_alias "$(cat "$state/current")")"
   if [ "$json" = 1 ]; then
     local f d id nm lines="" names
     for f in "$themes"/*/colors.json; do
@@ -72,8 +72,20 @@ theme_list() {
   ui_outro "${E_MU}${l}${E_RST}"
 }
 
+# theme_alias NOMBRE → el nombre actual de un tema oficial que se renombró (antes estaban en español), o el mismo.
+# Quien aplicó «brasa» sigue pudiendo escribirlo y conserva su tema. La TUI tiene la misma tabla (theme.Renamed).
+theme_alias() {
+  case "$1" in
+    alba) echo dawn ;; ambar) echo amber ;; brasa) echo ember ;; brisa) echo breeze ;; escarcha) echo frost ;;
+    glaciar) echo glacier ;; obsidiana) echo obsidian ;; papel) echo paper ;; ultravioleta) echo ultraviolet ;;
+    *) printf '%s\n' "$1" ;;
+  esac
+}
+
 theme_apply() {
-  local name="$1" dir="$themes/$1" err
+  local name dir err
+  name="$(theme_alias "$1")"
+  dir="$themes/$name"
   [ -f "$dir/colors.json" ] || die_code "$EX_NEEDS" @theme.missing "$name"
   err="$(theme_check "$dir/colors.json")" || die @theme.invalid "$name" "$err"
 
@@ -285,7 +297,7 @@ cmd_theme() {
   case "$sub" in
     list) theme_list "$@" ;;
     current)
-      if [ -f "$state/current" ]; then cat "$state/current"; else t theme.none_applied; echo; fi
+      if [ -f "$state/current" ]; then theme_alias "$(cat "$state/current")"; else t theme.none_applied; echo; fi
       ;;
     apply)
       [ -n "${1:-}" ] || die_code "$EX_USAGE" @theme.apply_usage

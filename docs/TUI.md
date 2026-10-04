@@ -44,7 +44,7 @@ La pantalla **no reimplementa nada**: llama a la CLI y lee su JSON (el contrato 
 | `r` / `c` | Update: repetir el escaneo / buscar versiones nuevas. Doctor: comprobar otra vez |
 | `/` o `↑` | Buscar (Tienda). Con `↑` y `↓` se recorren la caja, las pestañas Results/Installed/origen y la lista; `←` `→` cambian de pestaña dentro de la Tienda |
 | `D` | Mostrar u ocultar los detalles (al lado, o abajo si la ventana es estrecha); se recuerda |
-| `:` | **Paleta de comandos**: escribe `go store`, `theme alba`, `search brave`, `update check`… |
+| `:` | **Paleta de comandos**: escribe `go store`, `theme dawn`, `search brave`, `update check`… |
 | `?` | Ayuda con todas las teclas |
 | `q`, `Ctrl-C` | Volver a tu terminal (la pestaña **Exit** enseña lo pendiente y sale con `⏎`; también `exit` en la paleta) |
 
@@ -84,7 +84,7 @@ Se imprime en tu terminal normal un resumen de 2 a 4 líneas, con los mismos gli
 
 ```
 ◇  Installed brave
-◇  Applied theme alba
+◇  Applied theme dawn
 ·  Profiles saved: apply them with maxor update --no-lock
 ```
 
@@ -100,7 +100,7 @@ una cara más, igual que lo serán las apps gráficas.
 tui/
 ├── main.go                  banderas, comprobación de terminal, resumen al salir
 └── internal/
-    ├── theme/               lee el tema activo (el mismo que la CLI) o Sakura
+    ├── theme/               lee el tema activo (el mismo que la CLI) o Maxor Dark
     ├── maxor/               cliente de la CLI: cada llamada con --json, con tipos
     ├── task/                el cargador único
     ├── ui/                  glifos (con respaldo ASCII), estilos, filas, paneles, campo de texto

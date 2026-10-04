@@ -45,7 +45,7 @@ msgs_en() {
   MSG[cmd.debug]='write a report to attach to a bug'
   MSG[cmd.completions]='print shell completions (fish, bash, zsh)'
   MSG[cmd.version]='print the version'
-  MSG[help.theme]=$'Usage: maxor theme <command>\n\n  list [--json]             installed themes\n  current                   active theme\n  apply <name>              apply a theme\n  undo                      go back to the previous theme\n  install <path> [--force]  install from a folder or .tar.gz\n  export <name>             pack a theme into <name>.maxortheme\n\n  Examples:\n    maxor theme apply sakura\n    maxor theme undo\n    maxor theme list --json'
+  MSG[help.theme]=$'Usage: maxor theme <command>\n\n  list [--json]             installed themes\n  current                   active theme\n  apply <name>              apply a theme\n  undo                      go back to the previous theme\n  install <path> [--force]  install from a folder or .tar.gz\n  export <name>             pack a theme into <name>.maxortheme\n\n  Examples:\n    maxor theme apply maxor-dark\n    maxor theme undo\n    maxor theme list --json'
   MSG[help.search]=$'Usage: maxor search [text] [--json] [--list]\n\n  In a terminal, with the full-screen app installed, it opens the Store\n  (mark apps, install them, see details). With --list, --json or without\n  a terminal it prints the results as a list.\n\n  --json    print JSON and nothing else\n  --list    print the list instead of opening the Store\n\n  Examples:\n    maxor search brave\n    maxor search --list firefox'
   MSG[help.install]=$'Usage: maxor install <app...> [--nix|--flatpak] [--json]\n\n  Installs without sudo or rebuild. An id with dots (org.mozilla.firefox)\n  is Flatpak; any other name is nixpkgs. Force the source with the flags.\n\n  Examples:\n    maxor install btop\n    maxor install org.mozilla.firefox\n    maxor install --nix vlc'
   MSG[help.remove]=$'Usage: maxor remove <app...> [--purge] [--list-data] [--json]\n\n  Removes apps installed with maxor. Folders the app left in your home\n  (named exactly like the app) are listed; --purge deletes them too, and\n  also cleans up after an app that is already gone. --list-data only lists them.\n\n  Examples:\n    maxor remove btop\n    maxor remove atlauncher --purge'
@@ -175,7 +175,7 @@ msgs_en() {
   MSG[release.applied]='Maxor OS %s is installed'
 
   # ── firstrun ──
-  MSG[help.firstrun]=$'Usage: maxor firstrun\n\n  Writes the default Maxor look once: the sakura theme and its wallpaper. It runs by itself when\n  the computer starts, before the first login, so the login screen and your first session already\n  look like Maxor. It never overrides a theme, shell settings or a wallpaper you already chose.\n\n  Examples:\n    maxor firstrun'
+  MSG[help.firstrun]=$'Usage: maxor firstrun\n\n  Writes the Maxor look once: the theme chosen when installing and its wallpaper. It runs by itself when\n  the computer starts, before the first login, so the login screen and your first session already\n  look like Maxor. It never overrides a theme, shell settings or a wallpaper you already chose.\n\n  Examples:\n    maxor firstrun'
   MSG[firstrun.title]='Welcome to Maxor OS'
   MSG[firstrun.already]='The default look was already applied'
   MSG[firstrun.done]='Default look applied. Change it any time with: maxor theme'
@@ -227,7 +227,7 @@ msgs_en() {
   MSG[doctor.theme_ok]='active theme: %s'
   MSG[doctor.dms_ok]='DMS theme generated'
   MSG[doctor.dms_warn]='DMS theme missing: apply a theme again'
-  MSG[doctor.theme_none]='no theme applied yet: maxor theme apply sakura'
+  MSG[doctor.theme_none]='no theme applied yet: maxor theme apply maxor-dark'
   MSG[doctor.flake_ok]='flake at %s'
   MSG[doctor.git_dirty]='uncommitted changes in the repository'
   MSG[doctor.git_clean]='the repository has no pending changes'

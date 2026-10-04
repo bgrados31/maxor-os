@@ -61,11 +61,12 @@ func From(name string, p Palette) Theme {
 	return t
 }
 
-// Sakura es el tema por defecto.
-func Sakura() Theme {
-	return From("sakura", Palette{
-		Bg: "#120b12", S: "#1d121d", S2: "#2a1a2a", Fg: "#fbe9f2", Mu: "#a88a9d",
-		Ac: "#ff86b8", Ac2: "#ffc2a6", On: "#1b0b14", Mode: "dark",
+// Default es el tema por defecto, Maxor Dark (themes/maxor-dark/colors.json): lo usan el instalador y
+// cualquier pantalla sin un tema aplicado.
+func Default() Theme {
+	return From("maxor-dark", Palette{
+		Bg: "#050c38", S: "#0d1550", S2: "#1b2062", Fg: "#eef0ff", Mu: "#9ea3d1",
+		Ac: "#b266ff", Ac2: "#ff5a57", On: "#050c38", Mode: "dark",
 	})
 }
 
@@ -81,31 +82,41 @@ func dirOr(env, rel string) string {
 func DataDir() string  { return filepath.Join(dirOr("XDG_DATA_HOME", ".local/share"), "maxor") }
 func StateDir() string { return filepath.Join(dirOr("XDG_STATE_HOME", ".local/state"), "maxor") }
 
-// Load lee el tema activo; ante cualquier problema devuelve Sakura.
+// Load lee el tema activo; ante cualquier problema devuelve el de por defecto.
 func Load() Theme { return LoadFrom(DataDir(), StateDir()) }
 
 // LoadFrom es Load con rutas explícitas (para pruebas).
 func LoadFrom(dataDir, stateDir string) Theme {
 	raw, err := os.ReadFile(filepath.Join(stateDir, "current"))
 	if err != nil {
-		return Sakura()
+		return Default()
 	}
 	name := strings.TrimSpace(string(raw))
 	if name == "" || strings.ContainsAny(name, "/\\") {
-		return Sakura()
+		return Default()
 	}
 	return LoadNamed(dataDir, name)
 }
 
+// Renamed son los temas oficiales que cambiaron de nombre (antes estaban en español): quien aplicó uno con su
+// nombre viejo sigue teniéndolo. La CLI tiene la misma tabla (theme_alias en home/maxor/cmd/theme.sh).
+var Renamed = map[string]string{
+	"alba": "dawn", "ambar": "amber", "brasa": "ember", "brisa": "breeze", "escarcha": "frost",
+	"glaciar": "glacier", "obsidiana": "obsidian", "papel": "paper", "ultravioleta": "ultraviolet",
+}
+
 // LoadNamed lee un tema por nombre.
 func LoadNamed(dataDir, name string) Theme {
+	if n, ok := Renamed[name]; ok {
+		name = n
+	}
 	raw, err := os.ReadFile(filepath.Join(dataDir, "themes", name, "colors.json"))
 	if err != nil {
-		return Sakura()
+		return Default()
 	}
 	var p Palette
 	if json.Unmarshal(raw, &p) != nil || !p.Valid() {
-		return Sakura()
+		return Default()
 	}
 	return From(name, p)
 }

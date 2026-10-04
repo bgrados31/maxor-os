@@ -1,0 +1,7 @@
+name = "Maxor Dark"
+id = "maxor-dark"
+author = "Maxor OS"
+version = "1.0.0"
+license = "CC0-1.0"
+description = "Deep navy and indigo with a violet accent: the Maxor OS default."
+mode = "dark"

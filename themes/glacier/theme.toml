@@ -1,0 +1,7 @@
+name = "Glacier"
+id = "glacier"
+author = "Maxor OS"
+version = "1.0.0"
+license = "CC0-1.0"
+description = "Deep navy with ice cyan."
+mode = "dark"

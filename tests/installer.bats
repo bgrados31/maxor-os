@@ -16,7 +16,7 @@ calls() { cat "$W/calls" 2> /dev/null || true; }
   ans_load "$W/a.json"
   [ "$(ans .disk.filesystem)" = btrfs ]
   [ "$(ans .disk.swap.kind)" = zram ]
-  [ "$(ans .look.theme)" = sakura ]
+  [ "$(ans .look.theme)" = maxor-dark ]
   [ "$(ans .locale)" = en_US.UTF-8 ]
   [ "$(ans .hardware.report)" = auto ]
 }
@@ -825,4 +825,15 @@ EOF
   host_boot_nix | grep -q 'boot.loader.timeout = 3;'
   mk
   ! host_boot_nix | grep -q 'boot.loader.timeout'
+}
+
+@test "host: el tema elegido al instalar queda en maxor.json para el primer arranque" {
+  mk '.look.theme = "maxor-light"'
+  ans_load "$W/a.json"
+  IN_MAXOR="$W/bin/maxor"
+  shim maxor 'echo "{}"'
+  shim nixos-generate-config 'echo "{ ... }: { }"'
+  shim nix 'touch "${@: -1}/flake.lock"'
+  stage_host
+  [ "$(jq -r .theme "$(host_dir)/host/maxor.json")" = maxor-light ]
 }

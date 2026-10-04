@@ -55,7 +55,7 @@ func Default() State {
 	return State{
 		Locale: "en_US.UTF-8", Keymap: "us", XKBLayout: "us", Timezone: "UTC",
 		Strategy: "whole", Filesystem: "btrfs", SwapKind: "zram",
-		Hostname: "maxor", Theme: "sakura", GPU: "auto",
+		Hostname: "maxor", Theme: "maxor-dark", GPU: "auto",
 	}
 }
 

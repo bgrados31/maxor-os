@@ -16,21 +16,28 @@ maxor theme export <nombre>       # empaquetar un tema como <nombre>.maxortheme
 
 ## Temas oficiales
 
-Cinco oscuros y cinco claros. Todos superan el contraste AA de WCAG (4.5:1) entre el texto y el
+Seis oscuros y seis claros. Todos superan el contraste AA de WCAG (4.5:1) entre el texto y el
 fondo, y entre el acento y su texto.
 
 | Tema | Modo | Carácter | Acento |
 |---|---|---|---|
-| `sakura` · Sakura nocturna (por defecto) | oscuro | Ciruela oscura con rosa y durazno | `#ff86b8` |
-| `glaciar` · Glaciar | oscuro | Azul marino profundo con cian hielo | `#5fd4f4` |
-| `obsidiana` · Obsidiana | oscuro | Casi negro con índigo y lila | `#8c99ff` |
-| `brasa` · Brasa | oscuro | Carbón cálido con naranja fuego | `#ff6a3d` |
-| `ultravioleta` · Ultravioleta | oscuro | Negro violáceo con magenta y cian eléctricos | `#b84dff` |
-| `alba` · Alba | claro | Rosa pálido con frambuesa; el día de Sakura | `#c2255c` |
-| `escarcha` · Escarcha | claro | Blanco azulado con azul océano | `#0a6f94` |
-| `papel` · Papel frío | claro | Gris azulado con azul tinta | `#3b4cff` |
-| `brisa` · Brisa | claro | Verde humo claro con esmeralda | `#1a7f50` |
-| `ambar` · Ámbar | claro | Arena clara con naranja quemado | `#c2410c` |
+| `maxor-dark` · Maxor Dark (por defecto) | oscuro | Azul marino e índigo con acento violeta | `#b266ff` |
+| `maxor-light` · Maxor Light | claro | Blanco suave con rosa y violeta | `#d42a6e` |
+| `sakura` · Sakura | oscuro | Ciruela oscura con rosa y durazno | `#ff86b8` |
+| `glacier` · Glacier | oscuro | Azul marino profundo con cian hielo | `#5fd4f4` |
+| `obsidian` · Obsidian | oscuro | Casi negro con índigo y lila | `#8c99ff` |
+| `ember` · Ember | oscuro | Carbón cálido con naranja fuego | `#ff6a3d` |
+| `ultraviolet` · Ultraviolet | oscuro | Negro violáceo con magenta y cian eléctricos | `#b84dff` |
+| `dawn` · Dawn | claro | Rosa pálido con frambuesa; el día de Sakura | `#c2255c` |
+| `frost` · Frost | claro | Blanco azulado con azul océano | `#0a6f94` |
+| `paper` · Paper | claro | Gris azulado con azul tinta | `#3b4cff` |
+| `breeze` · Breeze | claro | Verde humo claro con esmeralda | `#1a7f50` |
+| `amber` · Amber | claro | Arena clara con naranja quemado | `#c2410c` |
+
+El instalador solo ofrece Maxor Dark y Maxor Light; los demás se eligen después con `maxor theme` o en la app
+Maxor. Los temas que antes tenían nombre en español (`brasa`, `alba`…) se siguen aceptando por ese nombre.
+`gradient.json` (opcional, una lista de colores) hace que el wallpaper del tema sea un degradado diagonal por
+esos colores en vez del halo por defecto.
 
 ## Qué cambia al aplicar un tema
 
@@ -118,7 +125,7 @@ Si el tema no trae `style.json`, valen los valores por defecto de Maxor.
 ### `theme.toml`
 
 ```toml
-name = "Sakura nocturna"
+name = "Sakura"
 id = "sakura"
 author = "Maxor OS"
 version = "1.0.0"
@@ -180,13 +187,13 @@ código. Comprueba el contraste antes de proponerlo (ver [CONTRIBUTING.md](../CO
 
 | Tema | Esquinas | Espacios (dentro / fuera) | Animaciones |
 |---|---|---|---|
-| Sakura nocturna | 8 px | 5 / 10 | 100 % |
-| Glaciar | 6 px | 4 / 8 | 90 % |
-| Obsidiana | 12 px | 5 / 12 | 100 % |
-| Brasa | 4 px | 4 / 8 | 60 % (rápidas) |
-| Ultravioleta | 14 px | 6 / 14 | 120 % (más suaves) |
-| Alba | 10 px | 5 / 12 | 100 % |
-| Escarcha | 8 px | 4 / 10 | 90 % |
-| Papel frío | 6 px | 4 / 8 | 80 % |
-| Brisa | 12 px | 6 / 12 | 110 % |
-| Ámbar | 8 px | 5 / 10 | 100 % |
+| Sakura | 8 px | 5 / 10 | 100 % |
+| Glacier | 6 px | 4 / 8 | 90 % |
+| Obsidian | 12 px | 5 / 12 | 100 % |
+| Ember | 4 px | 4 / 8 | 60 % (rápidas) |
+| Ultraviolet | 14 px | 6 / 14 | 120 % (más suaves) |
+| Dawn | 10 px | 5 / 12 | 100 % |
+| Frost | 8 px | 4 / 10 | 90 % |
+| Paper | 6 px | 4 / 8 | 80 % |
+| Breeze | 12 px | 6 / 12 | 110 % |
+| Amber | 8 px | 5 / 10 | 100 % |

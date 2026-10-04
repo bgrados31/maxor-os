@@ -88,7 +88,7 @@ sudo nixos-rebuild switch --flake .#<your-host>
 
 1. Reboot. The Maxor login (the DMS greeter) goes straight into Hyprland.
 2. Open the DMS settings with `SUPER + ,` and set up the bar and the wallpaper.
-3. Apply a theme: `maxor theme apply sakura`.
+3. Apply a theme: `maxor theme apply maxor-dark`.
 4. Run `maxor setup` once to pick a look, usage profiles and see what was detected.
 5. Optional: open `qt6ct` once and pick the DMS color scheme for Qt apps.
 

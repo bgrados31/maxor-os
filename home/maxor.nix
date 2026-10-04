@@ -1,4 +1,4 @@
-{ config, pkgs, lib, maxorVersion ? null, ... }:
+{ config, pkgs, lib, maxorVersion ? null, osConfig ? { }, ... }:
 
 # Motor de temas y CLI de Maxor OS.
 #
@@ -13,13 +13,24 @@ let
     let
       colors = builtins.fromJSON (builtins.readFile (themesDir + "/${id}/colors.json"));
       styleFile = themesDir + "/${id}/style.json";
+      # El wallpaper: un degradado en diagonal por los colores de gradient.json (la paleta de la marca), o, sin
+      # él, un halo de la segunda superficie sobre el fondo.
+      gradientFile = themesDir + "/${id}/gradient.json";
+      stops = builtins.fromJSON (builtins.readFile gradientFile);
+      last = builtins.length stops - 1;
+      points = lib.imap0 (i: c: "${toString (i * 2560 / last)},${toString (i * 1600 / last)} ${c}") stops;
+      wallpaper =
+        if builtins.pathExists gradientFile && last > 0 then
+          "magick -size 2560x1600 xc: -sparse-color Shepards '${lib.concatStringsSep " " points}' -colorspace sRGB $out/wallpaper.png"
+        else
+          "magick -size 2560x1600 radial-gradient:'${colors.s2}'-'${colors.bg}' -colorspace sRGB $out/wallpaper.png";
     in
     pkgs.runCommand "maxor-theme-${id}" { nativeBuildInputs = [ pkgs.imagemagick ]; } ''
       mkdir -p $out
       cp ${themesDir + "/${id}/colors.json"} $out/colors.json
       cp ${themesDir + "/${id}/theme.toml"} $out/theme.toml
       ${lib.optionalString (builtins.pathExists styleFile) "cp ${styleFile} $out/style.json"}
-      magick -size 2560x1600 radial-gradient:'${colors.s2}'-'${colors.bg}' -colorspace sRGB $out/wallpaper.png
+      ${wallpaper}
     '';
 
   officialThemes = lib.genAttrs themeIds mkTheme;
@@ -78,11 +89,12 @@ in
     Install.WantedBy = [ "timers.target" ];
   };
 
-  # Aspecto de Maxor (tema sakura y su wallpaper) escrito una sola vez, al arrancar el equipo y antes
+  # Aspecto de Maxor (el tema elegido al instalar y su wallpaper) escrito una sola vez, al arrancar el equipo y antes
   # del login (machine.nix hace esperar a greetd): el login y la primera sesión ya salen con él, sin
   # recargas. No pisa un tema ya aplicado. Nunca rompe la activación.
   home.activation.maxorFirstRun = lib.hm.dag.entryAfter [ "linkGeneration" ] ''
-    run ${maxor}/bin/maxor firstrun > /dev/null 2>&1 || true
+    MAXOR_FIRSTRUN_THEME=${lib.escapeShellArg (osConfig.maxor.theme or "maxor-dark")} \
+      run ${maxor}/bin/maxor firstrun > /dev/null 2>&1 || true
   '';
 
   # Temas oficiales: carpetas de solo lectura junto a los tuyos, y sus

@@ -26,7 +26,7 @@ backup_manifest() { # backup_manifest → JSON
   apps="$(app_list_json 2> /dev/null | jq -c '[.[] | {source, id}]' 2> /dev/null || echo '[]')"
   themes="$(backup_user_themes | jq -R -s -c 'split("\n") | map(select(length > 0))')"
   profiles="$(profile_enabled 2> /dev/null || echo '[]')"
-  cur="$(cat "$state/current" 2> /dev/null || echo sakura)"
+  cur="$(cat "$state/current" 2> /dev/null || echo maxor-dark)"
   jq -cn --arg v "$MAXOR_VERSION" --arg host "$host" --arg at "$(date -u +%Y-%m-%dT%H:%M:%SZ)" --arg theme "$cur" \
     --argjson apps "$apps" --argjson themes "$themes" --argjson profiles "$profiles" \
     '{schema: 1, maxor: $v, host: $host, created: $at, theme: $theme, profiles: $profiles, themes: $themes, apps: $apps}'

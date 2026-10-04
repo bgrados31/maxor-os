@@ -136,7 +136,7 @@ func (w *Installer) value(id string) string {
 	case "account":
 		return st.Username
 	case "look":
-		return st.Theme
+		return strings.ToLower(lookName(st.Theme))
 	case "hardware":
 		if st.GPU == "" || st.GPU == "auto" {
 			return "detected"

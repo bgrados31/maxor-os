@@ -764,3 +764,29 @@ func TestTheReviewEditsAStepByItsNumberAndComesBackToTheReview(t *testing.T) {
 		t.Fatalf("the install carries the edited answer: %v\n%s", e.eng.runs, e.eng.answers)
 	}
 }
+
+func TestTheLookIsLightOrDarkAndTheChoiceReachesTheEngine(t *testing.T) {
+	e := newInstallEnv(emptyDisk())
+	m := installModel(t, e)
+	walkToAccount(m)
+	fillAccount(m, "Ana", "ana", "pc", "correct-horse-1")
+	send(m, key("enter")) // account → look
+	out := view(m)
+	for _, want := range []string{"Appearance", "Dark", "Light"} {
+		if !has(out, want) {
+			t.Fatalf("missing %q:\n%s", want, out)
+		}
+	}
+	if has(out, "Sakura") || has(out, "Ember") {
+		t.Fatalf("the other themes are for later, not for the installer:\n%s", out)
+	}
+	send(m, key("right"), key("enter"), key("enter")) // Light → hardware → review
+	if !has(view(m), "Light") {
+		t.Fatalf("the review says which look:\n%s", view(m))
+	}
+	typeText(m, "ERASE")
+	send(m, key("enter"))
+	if !strings.Contains(string(e.eng.answers), `"theme": "maxor-light"`) {
+		t.Fatalf("the answers carry the look:\n%s", e.eng.answers)
+	}
+}

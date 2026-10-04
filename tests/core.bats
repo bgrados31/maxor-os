@@ -146,3 +146,10 @@ fake_flatpak_app() { # fake_flatpak_app id Nombre
   MAXOR_SUDO_STDIN=1 run maxor_sudo nixos-rebuild switch
   [ "$output" = "sudo -S -p  nixos-rebuild switch" ]
 }
+
+@test "los temas renombrados (antes en español) se siguen reconociendo por su nombre viejo" {
+  load_lib
+  [ "$(theme_alias brasa)" = ember ]
+  [ "$(theme_alias alba)" = dawn ]
+  [ "$(theme_alias maxor-dark)" = maxor-dark ]
+}

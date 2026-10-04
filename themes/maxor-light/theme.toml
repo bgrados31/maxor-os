@@ -1,0 +1,7 @@
+name = "Maxor Light"
+id = "maxor-light"
+author = "Maxor OS"
+version = "1.0.0"
+license = "CC0-1.0"
+description = "Soft white with pink and violet: the light side of Maxor OS."
+mode = "light"

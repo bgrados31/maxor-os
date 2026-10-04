@@ -12,7 +12,7 @@ import (
 	"github.com/bgrados31/maxor-os/tui/internal/theme"
 )
 
-func painter() Painter { return NewPainter(theme.Sakura(), theme.Sakura().P.S) }
+func painter() Painter { return NewPainter(theme.Default(), theme.Default().P.S) }
 
 func TestLineRenderEsSiempreDelAnchoPedido(t *testing.T) {
 	p := painter()

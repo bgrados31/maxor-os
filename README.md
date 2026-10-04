@@ -74,12 +74,12 @@ sudo nixos-rebuild switch --rollback
 
 ```sh
 maxor theme list              # 5 dark and 5 light
-maxor theme apply glaciar     # bar, kitty, Hyprland, GTK and lock screen change together
+maxor theme apply glacier     # bar, kitty, Hyprland, GTK and lock screen change together
 maxor theme undo              # back to the previous theme
 ```
 
-Ten official themes (five dark and five light): Sakura (the default), Glaciar, Obsidiana, Brasa,
-Ultravioleta, Alba, Escarcha, Papel, Brisa and Ámbar. A theme is a folder of data
+Twelve official themes: Maxor Dark (the default) and Maxor Light, then Sakura, Glacier, Obsidian, Ember,
+Ultraviolet, Dawn, Frost, Paper, Breeze and Amber. A theme is a folder of data
 (`colors.json`, `theme.toml`, `wallpaper.png`) and never runs code. Details and how to make your
 own in [docs/THEMING.md](docs/THEMING.md).
 

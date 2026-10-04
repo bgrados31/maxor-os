@@ -23,6 +23,14 @@ in
       default = settings.profiles or [ ];
       description = "Perfiles activos. Por defecto salen de maxor.json.";
     };
+    theme = lib.mkOption {
+      type = lib.types.strMatching "[a-z0-9-]{1,32}";
+      default = if (settings.theme or null) == null then "maxor-dark" else settings.theme;
+      description = ''
+        Tema del primer arranque (el que se eligió al instalar: maxor-dark o maxor-light). Solo se aplica una
+        vez; después el tema lo cambia cada usuario con `maxor theme`. Por defecto sale de maxor.json.
+      '';
+    };
   };
 
   config = lib.mkMerge [

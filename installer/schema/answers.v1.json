@@ -68,7 +68,7 @@
     "look": {
       "type": "object",
       "properties": {
-        "theme": { "type": "string", "pattern": "^[a-z0-9-]{1,32}$", "default": "sakura" },
+        "theme": { "type": "string", "pattern": "^[a-z0-9-]{1,32}$", "default": "maxor-dark" },
         "profiles": { "type": "array", "items": { "type": "string", "pattern": "^[a-z0-9-]{1,32}$" }, "default": [] },
         "extra_apps": { "type": "array", "items": { "type": "string", "pattern": "^[A-Za-z0-9._+-]{1,80}$" }, "default": [] }
       },

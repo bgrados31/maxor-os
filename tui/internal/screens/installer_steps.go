@@ -1263,9 +1263,15 @@ func (s *accountStep) Lines(w *Installer, env *core.Env, width int) []ui.Line {
 
 // ── 9 · Look ─────────────────────────────────────────────────────────
 
+// The installer offers the two faces of Maxor OS, light and dark; the other themes are for later, from the Maxor
+// app or `maxor theme`, where they can be tried at leisure.
+const (
+	lookDark  = "maxor-dark"
+	lookLight = "maxor-light"
+)
+
 type lookStep struct {
 	stepBase
-	themes listState
 	profs  listState
 	onProf bool
 	chosen map[string]bool
@@ -1273,7 +1279,9 @@ type lookStep struct {
 
 func (*lookStep) ID() string    { return "look" }
 func (*lookStep) Title() string { return "Look and tools" }
-func (*lookStep) Intro() string { return "Pick a theme (the screen shows it as you move) and what you will use the computer for." }
+func (*lookStep) Intro() string {
+	return "Light or dark: the screen shows it as you choose. Other themes are in the Maxor app after installing."
+}
 
 func (s *lookStep) Enter(w *Installer, env *core.Env) tea.Cmd {
 	s.chosen = map[string]bool{}
@@ -1281,43 +1289,28 @@ func (s *lookStep) Enter(w *Installer, env *core.Env) tea.Cmd {
 		s.chosen[p] = true
 	}
 	s.onProf = false
-	var cmds []tea.Cmd
+	if w.st.Theme != lookLight {
+		w.st.Theme = lookDark
+	}
+	cmds := []tea.Cmd{s.preview(w)}
 	if !env.Data.ThemesLoaded {
 		cmds = append(cmds, LoadThemes(env, false))
 	}
 	if len(env.Data.Profiles) == 0 {
 		cmds = append(cmds, LoadProfiles(env, false))
 	}
-	for i, t := range ordered(env) {
-		if t.ID == w.st.Theme {
-			s.themes.sel = i
-		}
-	}
 	return tea.Batch(cmds...)
 }
 
 func (s *lookStep) Done(w *Installer, env *core.Env, d task.DoneMsg) tea.Cmd {
 	if d.ID == "data.themes" {
-		for i, t := range ordered(env) {
-			if t.ID == w.st.Theme {
-				s.themes.sel = i
-			}
-		}
-		return s.preview(env)
+		return s.preview(w) // the themes arrived: now the preview can find the one chosen
 	}
 	return nil
 }
 
-func (s *lookStep) current(env *core.Env) string {
-	l := ordered(env)
-	if s.themes.sel >= 0 && s.themes.sel < len(l) {
-		return l[s.themes.sel].ID
-	}
-	return ""
-}
-
-func (s *lookStep) preview(env *core.Env) tea.Cmd {
-	id := s.current(env)
+func (s *lookStep) preview(w *Installer) tea.Cmd {
+	id := w.st.Theme
 	return func() tea.Msg { return core.PreviewThemeMsg{ID: id} }
 }
 
@@ -1331,27 +1324,36 @@ func (s *lookStep) Key(w *Installer, env *core.Env, k tea.KeyMsg) (bool, tea.Cmd
 	}
 	switch k.String() {
 	case "tab":
-		s.onProf = !s.onProf
-	case "up", "down":
-		d := 1
-		if k.String() == "up" {
-			d = -1
+		s.onProf = !s.onProf && len(profs) > 0
+	case "left", "right", "h", "l":
+		if !s.onProf {
+			if w.st.Theme == lookDark {
+				w.st.Theme = lookLight
+			} else {
+				w.st.Theme = lookDark
+			}
+			return false, s.preview(w)
 		}
-		if s.onProf {
-			s.profs.move(d, len(profs), pickRows)
+	case "down", "j":
+		if !s.onProf {
+			s.onProf = len(profs) > 0
 		} else {
-			s.themes.move(d, len(ordered(env)), pickRows)
-			return false, s.preview(env)
+			s.profs.move(1, len(profs), pickRows)
+		}
+	case "up", "k":
+		if s.onProf && s.profs.sel == 0 {
+			s.onProf = false
+		} else if s.onProf {
+			s.profs.move(-1, len(profs), pickRows)
 		}
 	case " ":
 		if s.onProf && s.profs.sel < len(profs) {
 			id := profs[s.profs.sel].ID
 			s.chosen[id] = !s.chosen[id]
+		} else if !s.onProf {
+			return s.Key(w, env, tea.KeyMsg{Type: tea.KeyRight})
 		}
 	case "enter":
-		if id := s.current(env); id != "" {
-			w.st.Theme = id
-		}
 		w.st.Profiles = w.st.Profiles[:0]
 		if w.st.Offline {
 			return true, nil // no profiles without a network
@@ -1368,33 +1370,24 @@ func (s *lookStep) Key(w *Installer, env *core.Env, k tea.KeyMsg) (bool, tea.Cmd
 
 func (s *lookStep) Lines(w *Installer, env *core.Env, width int) []ui.Line {
 	p := env.P
-	themes := ordered(env)
-	if len(themes) == 0 {
-		if err := env.Data.Err["themes"]; err != nil {
-			lines := []ui.Line{ui.Of(ui.S(p.Warn, ui.G.Warn+"  "), ui.S(p.Text, "The themes could not be loaded; Maxor OS will use Sakura."))}
-			for _, l := range ui.Wrap(oneLine(err.Error()), width-3) {
-				lines = append(lines, muted(env, "   "+l))
-			}
-			return append(lines, gap(), muted(env, "You can pick or create another theme once Maxor OS is installed."))
-		}
-		return []ui.Line{muted(env, "Loading the themes…")}
+	lines := []ui.Line{choice(env, "Appearance", []string{lookDark, lookLight}, []string{"Dark", "Light"}, w.st.Theme, !s.onProf)}
+	// a strip in the colours of the theme being shown: the screen around it already is that theme
+	t := env.Theme.P
+	var strip []ui.Seg
+	for _, c := range []string{t.Ac, t.Ac2, t.S2, t.Fg} {
+		strip = append(strip, ui.S(p.Fill.Foreground(lipgloss.Color(c)), ui.G.Swatch+" "))
 	}
-	lines := []ui.Line{heading(env, "Theme")}
-	from, to := s.themes.window(len(themes), 6)
-	for i := from; i < to; i++ {
-		t := themes[i]
-		sel := i == s.themes.sel && !s.onProf
-		dot := p.Fill.Foreground(lipgloss.Color(t.Colors.Ac)).Bold(true)
-		lines = append(lines, ui.Line{L: []ui.Seg{ui.S(p.Ac, pad(i == s.themes.sel)), ui.S(dot, ui.G.Swatch+" "), ui.S(p.Text, t.Name)}, R: []ui.Seg{ui.S(p.Mu, t.Mode+" ")}, Sel: sel})
-	}
+	what := map[string]string{lookDark: "navy and violet", lookLight: "soft white, pink and violet"}[w.st.Theme]
+	lines = append(lines, ui.Of(append(append([]ui.Seg{{T: strings.Repeat(" ", optCol)}}, strip...), ui.S(p.Mu, " "+what))...))
+
 	if w.st.Offline {
 		lines = append(lines, gap(), heading(env, "Tools for what you do"))
-		for _, l := range ui.Wrap("Gaming, development and the other profiles download their packages, so they need a network. Add them after installing with `maxor profile`.", width-3) {
+		for _, l := range ui.Wrap("Gaming, development and the other profiles download their packages, so they need a network. Add them after installing with `maxor profile`.", width) {
 			lines = append(lines, muted(env, l))
 		}
 		return lines
 	}
-	lines = append(lines, gap(), heading(env, "What will you use it for?  (space to choose, tab to switch)"))
+	lines = append(lines, gap(), heading(env, "What will you use it for?  (space to choose)"))
 	for i, pr := range env.Data.Profiles {
 		sel := s.onProf && i == s.profs.sel
 		lines = append(lines, radio(env, s.chosen[pr.ID], sel, pr.Title, strings.Join(pr.Includes, ", ")))
@@ -1742,7 +1735,7 @@ func (s *summaryStep) Lines(w *Installer, env *core.Env, width int) []ui.Line {
 		kv("Account", fmt.Sprintf("%s (%s) on %s", w.st.Username, w.st.Fullname, w.st.Hostname)),
 		kv("Region", w.st.Timezone+" · "+w.st.Locale),
 		kv("Keyboard", install.FindLayout(w.st.XKBLayout, w.st.XKBVariant).Name),
-		kv("Look", w.st.Theme+profilesText(w.st.Profiles)),
+		kv("Look", lookName(w.st.Theme)+profilesText(w.st.Profiles)),
 		kv("Graphics", map[string]string{"auto": "recommended for this machine", "hybrid": "hybrid (integrated + NVIDIA on demand)", "nvidia": "NVIDIA only", "integrated": "integrated only"}[w.st.GPU]),
 		kv("Network", map[bool]string{true: "none: installing without internet", false: "online"}[w.st.Offline]))
 	if d, ok := w.currentDisk(); ok && w.st.Strategy == "alongside" && d.Windows {
@@ -2011,4 +2004,15 @@ func virtName(v string) string {
 		return n
 	}
 	return v
+}
+
+// lookName is how the review and the list of steps call the chosen look.
+func lookName(id string) string {
+	switch id {
+	case lookDark:
+		return "Dark"
+	case lookLight:
+		return "Light"
+	}
+	return id
 }

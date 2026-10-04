@@ -114,7 +114,7 @@ stage_host() {
     host_local_nix | write_file "$dir/host/local.nix" 644
   fi
 
-  prof="$(jq '{profiles: .look.profiles}' "$IN_ANSWERS")"
+  prof="$(jq '{profiles: .look.profiles, theme: (.look.theme // "maxor-dark")}' "$IN_ANSWERS")"
   printf '%s\n' "$prof" | write_file "$dir/host/maxor.json" 644
 
   # El hardware se detecta aquí, en la máquina que se instala. Para imágenes reproducibles o instalaciones sobre

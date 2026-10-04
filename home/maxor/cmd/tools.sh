@@ -119,15 +119,18 @@ cmd_completions() {
 # ── Primer arranque ──────────────────────────────────────────────────
 # Un usuario nuevo no tiene tema: el tema solo se aplica con `maxor theme apply`. La activación de
 # home-manager llama a esto al arrancar el equipo, ANTES del login, hasta que lo hace una vez (marca
-# en $state/firstrun): deja escritos los ajustes de DMS con el tema sakura y su wallpaper. Así el
+# en $state/firstrun): deja escritos los ajustes de DMS con el tema elegido al instalar y su wallpaper. Así el
 # login (que copia esos archivos al arrancar) y la primera sesión salen ya con el aspecto de Maxor,
 # sin recargas ni parpadeos. No pisa nada ya elegido: un tema aplicado o unos ajustes de DMS se quedan.
 # El logo de Maxor en el lanzador ya es el valor por defecto de Maxor Shell (packages/maxor-shell.nix).
 maxor_cmd firstrun system ""
+# El tema del primer arranque: el que se eligió al instalar (maxor.theme en la configuración del equipo).
+MAXOR_FIRSTRUN_THEME="${MAXOR_FIRSTRUN_THEME:-maxor-dark}"
 dms_session="${XDG_STATE_HOME:-$HOME/.local/state}/DankMaterialShell/session.json"
 
 cmd_firstrun() {
-  local marker="$state/firstrun" did=0 wall="$themes/sakura/wallpaper.png"
+  local marker="$state/firstrun" did=0 theme="$MAXOR_FIRSTRUN_THEME"
+  local wall="$themes/$theme/wallpaper.png"
   [ "$#" = 0 ] || usage_error firstrun
   if [ -f "$marker" ]; then
     ui_say info @firstrun.already
@@ -141,7 +144,7 @@ cmd_firstrun() {
     printf '{}\n' > "$dms_settings"
   fi
   if [ ! -f "$state/current" ]; then
-    cmd_theme apply sakura || return $?
+    cmd_theme apply "$theme" || return $?
     did=1
   fi
   # Sin DMS en marcha `theme apply` no puede poner el wallpaper: se deja en los datos de sesión de DMS.

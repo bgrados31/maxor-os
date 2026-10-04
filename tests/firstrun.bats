@@ -4,19 +4,20 @@ load helper
 
 setup() {
   load_lib
-  mkdir -p "$state" "$themes/sakura"
-  : > "$themes/sakura/wallpaper.png"
+  mkdir -p "$state" "$themes/maxor-dark" "$themes/maxor-light"
+  : > "$themes/maxor-dark/wallpaper.png"
+  : > "$themes/maxor-light/wallpaper.png"
   # el tema se simula: aquí solo importa cuándo se pide
   cmd_theme() { echo "THEME $*" >> "$BATS_TEST_TMPDIR/theme.log"; }
 }
 
-@test "firstrun deja los ajustes de DMS, el tema sakura y su wallpaper antes de que DMS arranque" {
+@test "firstrun deja los ajustes de DMS, el tema por defecto y su wallpaper antes de que DMS arranque" {
   rm -f "$dms_settings" "$dms_session"
   run cmd_firstrun
   [ "$status" = 0 ]
   [ "$(cat "$dms_settings")" = "{}" ]
-  [ "$(cat "$BATS_TEST_TMPDIR/theme.log")" = "THEME apply sakura" ]
-  [ "$(jq -r .wallpaperPath "$dms_session")" = "$themes/sakura/wallpaper.png" ]
+  [ "$(cat "$BATS_TEST_TMPDIR/theme.log")" = "THEME apply maxor-dark" ]
+  [ "$(jq -r .wallpaperPath "$dms_session")" = "$themes/maxor-dark/wallpaper.png" ]
   [ -f "$state/firstrun" ]
 }
 
@@ -53,4 +54,12 @@ setup() {
 @test "firstrun con argumentos es un error de uso" {
   run cmd_firstrun --ahora
   [ "$status" = "$EX_USAGE" ]
+}
+
+@test "firstrun aplica el tema elegido al instalar, con su wallpaper" {
+  rm -f "$dms_settings" "$dms_session"
+  MAXOR_FIRSTRUN_THEME=maxor-light run cmd_firstrun
+  [ "$status" = 0 ]
+  [ "$(cat "$BATS_TEST_TMPDIR/theme.log")" = "THEME apply maxor-light" ]
+  [ "$(jq -r .wallpaperPath "$dms_session")" = "$themes/maxor-light/wallpaper.png" ]
 }

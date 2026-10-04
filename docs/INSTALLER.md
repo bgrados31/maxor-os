@@ -65,7 +65,7 @@ plain text. The engine validates it against the schema and refuses to start on a
   },
   "machine": {"hostname": "maxor"},
   "user": {"name": "bryan", "fullname": "Bryan", "password_hash": "$6$…", "autologin": false},
-  "look": {"theme": "sakura", "profiles": ["dev"], "extra_apps": []},
+  "look": {"theme": "maxor-dark", "profiles": ["dev"], "extra_apps": []},
   "hardware": {"report": "auto"},   // auto = detect at install time; or an inline hardware.json
   "release": {"channel": "stable"}
 }

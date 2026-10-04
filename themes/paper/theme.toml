@@ -1,0 +1,7 @@
+name = "Paper"
+id = "paper"
+author = "Maxor OS"
+version = "1.0.0"
+license = "CC0-1.0"
+description = "Bluish grey with ink blue."
+mode = "light"
