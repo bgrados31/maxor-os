@@ -7,7 +7,7 @@
 PF_EFI="${MAXOR_INSTALL_EFI:-/sys/firmware/efi}"
 PF_MEMINFO="${MAXOR_INSTALL_MEMINFO:-/proc/meminfo}"
 
-PF_NEED_TOOLS=(sfdisk wipefs lsblk findmnt blockdev mkfs.fat mount umount nixos-install nixos-enter nixos-generate-config jq git curl)
+PF_NEED_TOOLS=(sfdisk ip wipefs lsblk findmnt blockdev mkfs.fat mount umount nixos-install nixos-enter nixos-generate-config jq git curl)
 
 # pf_fail MENSAJE → anota un motivo.
 PF_FAILS=()

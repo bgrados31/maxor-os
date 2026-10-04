@@ -201,3 +201,17 @@ exit 0`)
 		t.Fatalf("log lines: %q", logs)
 	}
 }
+
+// The engine runs as root through sudo and appends to the events file the installer created: inside a sticky,
+// world-writable directory like /tmp the kernel forbids that, so the files go in a private directory.
+func TestNewCLIKeepsItsFilesOutOfStickyDirectories(t *testing.T) {
+	c := NewCLI()
+	defer os.RemoveAll(c.Dir)
+	info, err := os.Stat(c.Dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !info.IsDir() || info.Mode()&os.ModeSticky != 0 || info.Mode().Perm()&0o077 != 0 {
+		t.Fatalf("Dir %s is %v, want a private directory", c.Dir, info.Mode())
+	}
+}

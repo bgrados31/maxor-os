@@ -4,6 +4,7 @@
 # demás como entrada de flake. Actualizar es después subir esa entrada (`maxor release apply`).
 IN_OS_URL="${MAXOR_INSTALL_OS_URL:-github:bgrados31/maxor-os}"
 IN_MAXOR="${MAXOR_BIN:-maxor}"
+IN_OVERRIDES_FILE="${MAXOR_INSTALL_OVERRIDES_FILE:-/etc/maxor-install/overrides}"
 
 # nixstr TEXTO → TEXTO como cadena de Nix, entre comillas y con lo especial escapado.
 nixstr() { jq -nr --arg v "$1" '$v | @json | gsub("\\$\\{"; "\\${")'; }
@@ -133,15 +134,16 @@ stage_host() {
   in_run git -C "$dir" add .
   in_run git -C "$dir" -c user.name=Maxor -c user.email=maxor@localhost commit --quiet -m "Initial Maxor OS configuration"
 
-  # Fija las versiones (flake.lock). Sin red, MAXOR_INSTALL_OVERRIDES trae una línea «entrada=referencia» por cada
-  # entrada del flake (maxor-os, maxor-os/nixpkgs, …) con su copia local en el disco (ver offline-overrides.nix);
-  # con red, se resuelven desde internet.
-  local args=() line
-  if [ -n "${MAXOR_INSTALL_OVERRIDES:-}" ]; then
+  # Fija las versiones (flake.lock). La ISO trae en /etc/maxor-install/overrides (o MAXOR_INSTALL_OVERRIDES)
+  # una línea «entrada=referencia» por cada entrada del flake (maxor-os, maxor-os/nixpkgs, …) con su copia local en el disco (ver offline-overrides.nix);
+  # sin ese archivo (instalar desde un sistema ya hecho), se resuelven desde internet.
+  local args=() line overrides="${MAXOR_INSTALL_OVERRIDES:-}"
+  if [ -z "$overrides" ] && [ -r "$IN_OVERRIDES_FILE" ]; then overrides="$(cat "$IN_OVERRIDES_FILE")"; fi
+  if [ -n "$overrides" ]; then
     while IFS= read -r line; do
       [ -n "$line" ] || continue
       args+=(--override-input "${line%%=*}" "${line#*=}")
-    done <<< "$MAXOR_INSTALL_OVERRIDES"
+    done <<< "$overrides"
   fi
   in_run nix flake lock "${args[@]}" "$dir"
   in_run git -C "$dir" add flake.lock

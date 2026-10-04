@@ -73,7 +73,15 @@ engine_run() {
   fi
 
   if [ "$IN_DRY" != 1 ]; then
-    if [ "$reset" = 1 ]; then rm -rf "$IN_STATE/stages" "$IN_STATE/devices.json"; fi
+    if [ "$reset" = 1 ]; then
+      # Un intento que falló deja el disco montado en $IN_ROOT (y el contenedor cifrado abierto): sin soltarlos,
+      # la comprobación previa no deja volver a empezar.
+      if findmnt -n "$IN_ROOT" > /dev/null 2>&1; then
+        in_run umount -R "$IN_ROOT" || in_die "$IN_EX_FAIL" "could not unmount $IN_ROOT left by the previous run"
+      fi
+      if [ -e /dev/mapper/maxor-root ]; then in_run cryptsetup close maxor-root || true; fi
+      rm -rf "$IN_STATE/stages" "$IN_STATE/devices.json"
+    fi
     if [ -d "$IN_STATE/stages" ] && [ "$resume" != 1 ] && [ -n "$(ls -A "$IN_STATE/stages" 2> /dev/null)" ]; then
       in_die "$IN_EX_USAGE" "a previous run left progress in $IN_STATE: use --resume to continue it or --reset to forget it"
     fi

@@ -23,5 +23,15 @@ stage_install() {
     read -ra extra <<< "$MAXOR_INSTALL_EXTRA_ARGS"
     args+=("${extra[@]}")
   fi
-  in_run nixos-install "${args[@]}"
+  # Nix cree que no hay internet si no ve otra dirección IPv4 que 127.0.0.1, y entonces apaga TODOS los
+  # sustituidores, también `auto`: sin red, nixos-install querría compilarlo todo. Una segunda dirección en lo
+  # basta para que siga tomando lo del almacén local; se quita al terminar, salga bien o mal.
+  local lo_alias=0 rc=0
+  if ans_true '.network.offline' && ! ip -4 -o addr show dev lo 2> /dev/null | grep -q ' 127\.0\.0\.2/'; then
+    in_run ip addr add 127.0.0.2/32 dev lo || in_die "$IN_EX_FAIL" "could not add a loopback address for the offline install"
+    lo_alias=1
+  fi
+  in_run nixos-install "${args[@]}" || rc=$?
+  if [ "$lo_alias" = 1 ]; then in_run ip addr del 127.0.0.2/32 dev lo || true; fi
+  return "$rc"
 }

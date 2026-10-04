@@ -58,12 +58,19 @@ type CLI struct {
 	Bin  string // path or name of maxor-install
 	Sudo bool   // run the destructive commands through `sudo -n`
 	Env  []string
-	Dir  string // where the answers and events files are created (default: the temp dir)
+	Dir  string // where the answers and events files are created (default: the temp dir; NewCLI makes a private one)
 }
 
 // NewCLI returns the engine to use on a real machine.
 func NewCLI() *CLI {
-	return &CLI{Bin: "maxor-install", Sudo: os.Geteuid() != 0}
+	c := &CLI{Bin: "maxor-install", Sudo: os.Geteuid() != 0}
+	// Not /tmp itself: there the kernel stops root from opening with O_CREAT a file another user created
+	// (fs.protected_regular), so the engine, run with sudo, could not write its events. A private directory
+	// inside it is not sticky, so root may.
+	if d, err := os.MkdirTemp("", "maxor-install-"); err == nil {
+		c.Dir = d
+	}
+	return c
 }
 
 func (c *CLI) command(ctx context.Context, sudo bool, args ...string) *exec.Cmd {

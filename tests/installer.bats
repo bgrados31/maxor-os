@@ -758,3 +758,45 @@ EOF
   [[ "$output" != *"--option substituters 'auto?trusted=1'"* ]]
   [[ "$output" != *"always-allow-substitutes"* ]]
 }
+
+@test "host: en la ISO lee las copias locales de /etc/maxor-install/overrides" {
+  mk
+  ans_load "$W/a.json"
+  IN_MAXOR="$W/bin/maxor"
+  shim maxor 'echo "{}"'
+  shim nixos-generate-config 'echo "{ ... }: { }"'
+  shim nix 'touch "${@: -1}/flake.lock"'
+  unset MAXOR_INSTALL_OVERRIDES
+  printf 'maxor-os=path:/store/os\nmaxor-os/nixpkgs=path:/store/np\n' > "$W/overrides"
+  stage_host
+  calls | grep -q 'nix flake lock --override-input maxor-os path:/store/os --override-input maxor-os/nixpkgs path:/store/np '
+}
+
+@test "install: sin red añade una dirección a lo mientras dura nixos-install, y la quita aunque falle" {
+  mk '.network.offline = true'
+  ans_load "$W/a.json"
+  shim ip
+  shim nixos-install 'exit 1'
+  run stage_install
+  [ "$status" = 1 ]
+  [ "$(calls | grep -E '^(ip|nixos-install)' | cut -d' ' -f1-4 | tr '\n' ';')" = "ip -4 -o addr;ip addr add 127.0.0.2/32;nixos-install --root $W/mnt --flake;ip addr del 127.0.0.2/32;" ]
+}
+
+@test "install: con red no toca lo" {
+  mk '.network.offline = false'
+  ans_load "$W/a.json"
+  shim ip
+  shim nixos-install
+  stage_install
+  [[ "$(calls)" != *"ip addr add"* ]]
+}
+
+@test "--reset desmonta lo que dejó un intento anterior antes de volver a empezar" {
+  mk
+  stub_stages
+  shim findmnt 'exit 0'
+  shim umount
+  run main run --answers "$W/a.json" --reset
+  [ "$status" = 0 ]
+  calls | grep -q "^umount -R $W/mnt$"
+}
