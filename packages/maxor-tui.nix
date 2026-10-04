@@ -11,7 +11,13 @@ in
 buildGoModule {
   pname = "maxor-tui";
   inherit version;
-  src = lib.cleanSource ../tui;
+  # El módulo de Go está en tui/; themes/ va al lado porque las pruebas comprueban los colores de los temas
+  # Maxor (contraste y que el tema de reserva sea Maxor Dark).
+  src = lib.fileset.toSource {
+    root = ../.;
+    fileset = lib.fileset.unions [ ../tui ../themes ];
+  };
+  modRoot = "tui";
   vendorHash = "sha256-2ZMkFBbvQQ/hDavxKgO6XMz7I6zqhwKqd0AuuXCX8zU=";
   env.CGO_ENABLED = "0"; # binario estático, sin depender de gcc ni de libc
   nativeBuildInputs = [ makeWrapper ];

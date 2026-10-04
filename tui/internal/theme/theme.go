@@ -66,7 +66,7 @@ func From(name string, p Palette) Theme {
 func Default() Theme {
 	return From("maxor-dark", Palette{
 		Bg: "#050c38", S: "#0d1550", S2: "#1b2062", Fg: "#eef0ff", Mu: "#9ea3d1",
-		Ac: "#b266ff", Ac2: "#ff5a57", On: "#050c38", Mode: "dark",
+		Ac: "#c084ff", Ac2: "#ff5a57", On: "#050c38", Mode: "dark",
 	})
 }
 

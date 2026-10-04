@@ -246,7 +246,12 @@ func (w *Installer) Frame(env *core.Env, width, height int) []string {
 	}
 	// the row with the focus is tinted with the accent, and keeps its own colours: calmer than a solid bar
 	ctx := env.P.Ctx()
-	ctx.SelBg = lipgloss.Color(ui.Mix(string(env.P.Bg), env.Theme.P.Ac, 0.16))
+	// (softer on a light theme: there the tint darkens the row, and the text on it must keep 5:1)
+	tint := 0.16
+	if env.Theme.P.Mode == "light" {
+		tint = 0.10
+	}
+	ctx.SelBg = lipgloss.Color(ui.Mix(string(env.P.Bg), env.Theme.P.Ac, tint))
 	// A new card comes in from the side it was reached from (the right going forward, the left going back),
 	// a few cells away, easing out while it fades in from the card's colour.
 	if t := ui.EaseOut(ui.Progress(env.Clock-w.changedAt, slideIn)); t < 1 {

@@ -21,8 +21,8 @@ fondo, y entre el acento y su texto.
 
 | Tema | Modo | Carácter | Acento |
 |---|---|---|---|
-| `maxor-dark` · Maxor Dark (por defecto) | oscuro | Azul marino e índigo con acento violeta | `#b266ff` |
-| `maxor-light` · Maxor Light | claro | Blanco suave con rosa y violeta | `#d42a6e` |
+| `maxor-dark` · Maxor Dark (por defecto) | oscuro | Azul marino e índigo con acento violeta | `#c084ff` |
+| `maxor-light` · Maxor Light | claro | Blanco suave con rosa y violeta | `#bc1f5f` |
 | `sakura` · Sakura | oscuro | Ciruela oscura con rosa y durazno | `#ff86b8` |
 | `glacier` · Glacier | oscuro | Azul marino profundo con cian hielo | `#5fd4f4` |
 | `obsidian` · Obsidian | oscuro | Casi negro con índigo y lila | `#8c99ff` |
