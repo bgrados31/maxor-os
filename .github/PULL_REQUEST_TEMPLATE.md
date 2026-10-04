@@ -1,21 +1,22 @@
-## Qué cambia
+## What changes
 
-<!-- Describe el cambio y por qué es necesario. -->
+<!-- Describe the change and why it is needed. -->
 
-## Tipo
+## Type
 
-- [ ] Corrección
-- [ ] Función nueva
-- [ ] Tema
-- [ ] Documentación
-- [ ] Refactorización o mantenimiento
+- [ ] Fix
+- [ ] New feature
+- [ ] Theme
+- [ ] Documentation
+- [ ] Refactor or maintenance
 
-## Cómo se probó
+## How it was tested
 
-- [ ] `nix flake check --no-build` pasa
-- [ ] El sistema compila (`nix build .#nixosConfigurations.nitro.config.system.build.toplevel`)
-- [ ] Probado en una máquina o VM (indica cuál)
+- [ ] `nix flake check --no-build` passes
+- [ ] The system builds (`nix build .#nixosConfigurations.nitro.config.system.build.toplevel`)
+- [ ] CLI and full-screen app tests pass (`nix build .#checks.x86_64-linux.cli-tests .#checks.x86_64-linux.tui`)
+- [ ] Tried on a machine or VM (say which)
 
-## Notas
+## Notes
 
-<!-- Capturas, limitaciones, cambios que afectan a quien ya lo usa. -->
+<!-- Screenshots, limitations, changes that affect people who already use it. -->

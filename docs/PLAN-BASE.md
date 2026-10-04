@@ -1,95 +1,97 @@
-# Plan de la base
+# Base plan
 
-Qué hay que construir para que Maxor OS sea sólido antes de la tienda, el instalador y la
-comunidad. Complementa la [hoja de ruta](ROADMAP.md): ella dice *qué fases hay*, este plan dice
-*en qué orden y con qué decisiones*.
+What has to be built so that Maxor OS is solid before the store, the installer and the
+community. It complements the [roadmap](ROADMAP.md): the roadmap says *which phases there are*,
+this plan says *in what order and with what decisions*.
 
-## Principios
+## Principles
 
-1. **Todo pasa por la CLI.** Cada app gráfica es una cara de `maxor …`; la lógica vive en un
-   solo sitio y toda orden gráfica tiene su equivalente en terminal. Para ello la CLI gana
-   `--json` en cada subcomando.
-2. **Una sola tecnología de interfaz.** Quickshell (QML), la misma base de DMS. Lo que se
-   escriba para las apps sirve después para el shell propio.
-3. **Una sola fuente de identidad.** Los colores, fuentes, formas y logos salen de *design
-   tokens* (un JSON); el shell, las apps, el greeter, Plymouth y la web los consumen. Cambiar
-   la marca es tocar un archivo.
-4. **Nunca se rompe.** Todo cambio se compila antes de pedir el `switch`; hay generaciones de
-   respaldo; lo que el usuario toca (`~/.config/maxor/`) no lo pisa el sistema.
-5. **Reemplazar, no reescribir.** El shell propio nace pieza a pieza sobre el actual.
+1. **Everything goes through the CLI.** Every graphical app is a face of `maxor …`; the logic
+   lives in a single place and every graphical command has a terminal equivalent. For that the CLI
+   gets `--json` on every subcommand.
+2. **A single interface technology per layer.** The CLI is bash with `--json` as the boundary; the
+   full-screen app is Go (Bubble Tea) and calls the CLI; graphical apps will be Quickshell (QML),
+   the same base as DMS. What is written for the apps is reused for the own shell later.
+3. **A single source of identity.** Colors, fonts, shapes and logos come from *design tokens* (a
+   JSON); the shell, the apps, the greeter, Plymouth and the web consume them. Changing the brand
+   is touching one file.
+4. **It never breaks.** Every change is built before asking for the `switch`; there are fallback
+   generations; what the user touches (`~/.config/maxor/`) is not overwritten by the system.
+5. **Replace, do not rewrite.** The own shell is born piece by piece on top of the current one.
 
-## M1. Base sólida (optimización y salud)
+## M1. Solid base (optimization and health)
 
-Hecho: zram, TRIM, thermald, power-profiles, journald acotado, GC y optimise de Nix, arranque
-y apagado silenciosos, sesión limpia, Thunar.
+Done: zram, TRIM, thermald, power-profiles, bounded journald, Nix GC and optimise, quiet boot and
+shutdown, clean session, Thunar.
 
-- [x] `maxor update` con resumen del diff (actualizados, nuevos, eliminados) y aviso de reinicio si cambia el kernel.
-- [ ] Caché binaria propia (Cachix) y sustituyentes configurados desde el flake.
-- [x] `nix-ld` + AppImage (`programs.appimage`) para que los binarios ajenos funcionen sin pelear con Nix.
-- [x] Flatpak y Flathub activos desde el primer arranque (los usará la tienda).
-- [x] `earlyoom`. Pendiente: evaluar un kernel más reciente o `zen` y un planificador `scx`.
-- [x] Perfiles `maxor profile enable|disable` (gaming, dev, creator, office) con catálogo propio ([APPS.md](APPS.md)).
-- [x] Drivers por equipo: detección de CPU/GPU/portátil/VM con `maxor hardware` y `modules/hardware.nix` ([HARDWARE.md](HARDWARE.md)).
-- [ ] Gráficos: conmutación PRIME guiada con `maxor gpu` y modo «sin GPU dedicada».
-- [ ] `maxor doctor --fix` para lo corregible, y `maxor doctor --json`.
-- [ ] `maxor backup` (config de usuario) y `maxor restore`.
-- [x] Apps de usuario sin editar `.nix`: `maxor search|install|remove|apps`, nixpkgs y Flathub, con `--json` ([APPS.md](APPS.md)).
-- [ ] Sesión por UWSM (servicios de usuario ordenados, cierre limpio).
-- [ ] Firmware (`fwupd`), impresión (CUPS) y códecs: lo que «simplemente debe funcionar».
-- [ ] Pruebas: `nix flake check` con una prueba de arranque en VM de la configuración.
+- [x] `maxor update` with a diff summary (updated, new, removed) and a reboot notice if the kernel changes.
+- [ ] Own binary cache (Cachix) and substituters configured from the flake.
+- [x] `nix-ld` + AppImage (`programs.appimage`) so that foreign binaries work without fighting Nix.
+- [x] Flatpak and Flathub active from the first boot (the store uses them).
+- [x] `earlyoom`. Pending: evaluate a newer or `zen` kernel and an `scx` scheduler.
+- [x] Profiles `maxor profile enable|disable` (gaming, dev, creator, office) with their own catalog ([APPS.md](APPS.md)).
+- [x] Per-machine drivers: CPU/GPU/laptop/VM detection with `maxor hardware` and `modules/hardware.nix` ([HARDWARE.md](HARDWARE.md)).
+- [ ] Graphics: guided PRIME switching with `maxor gpu` and a "no dedicated GPU" mode.
+- [x] `maxor doctor --json`, with a suggested command per check. Pending: `maxor doctor --fix` to run them unattended.
+- [x] `maxor backup` (user configuration) and `maxor restore`.
+- [x] User apps without editing `.nix`: `maxor search|install|remove|apps`, nixpkgs and Flathub, with `--json` ([APPS.md](APPS.md)).
+- [x] Full-screen app (`maxor-tui`) with store, themes, update (with rollback), doctor and profiles.
+- [ ] UWSM session (ordered user services, clean shutdown).
+- [ ] Firmware (`fwupd`), printing (CUPS) and codecs: what "simply must work".
+- [ ] Tests: `nix flake check` with a VM boot test of the configuration.
 
-## M2. Biblioteca de interfaz y apps propias
+## M2. Interface library and own apps
 
-Biblioteca `maxor-ui` (QML): ventana, tarjetas, botones, listas, interruptores, diálogos,
-iconos, tipografía y animaciones, todo leyendo los design tokens y el tema activo.
+`maxor-ui` library (QML): window, cards, buttons, lists, switches, dialogs, icons, typography and
+animations, all reading the design tokens and the active theme.
 
-Apps, en orden:
+Apps, in order:
 
-| App | Para qué | Habla con |
+| App | What for | Talks to |
 |---|---|---|
-| **Maxor Welcome** | Primer arranque: idioma, tema, perfil, GPU, cuentas, tour de atajos | `maxor profile`, `maxor theme` |
-| **Maxor Settings** | Centro de ajustes: temas, atajos, pantallas, perfil, gráficos, actualizaciones, copias | toda la CLI |
-| **Maxor Update / Recovery** | Actualizar, ver cambios, volver a una generación, modo seguro | `maxor update`, `rollback` |
-| **Maxor Theme Studio** | Editar un tema en vivo (paleta, forma, wallpaper) y exportarlo | `maxor theme` |
-| **Maxor Store** (fase 5) | Apps (Flatpak/Nix), temas, extras | `maxor install`, `theme install` |
-| **Maxor Installer** (fase 6) | Instalar el sistema | `nixos-install` + `maxor` |
+| **Maxor Welcome** | First boot: language, theme, profile, GPU, accounts, shortcut tour | `maxor profile`, `maxor theme` |
+| **Maxor Settings** | Settings center: themes, shortcuts, displays, profile, graphics, updates, backups | the whole CLI |
+| **Maxor Update / Recovery** | Update, see changes, go back to a generation, safe mode | `maxor update`, `rollback` |
+| **Maxor Theme Studio** | Edit a theme live (palette, shape, wallpaper) and export it | `maxor theme` |
+| **Maxor Store** (phase 5) | Apps (Flatpak/Nix), themes, extras | `maxor install`, `theme install` |
+| **Maxor Installer** (phase 6) | Install the system | `nixos-install` + `maxor` |
 
-## M3. Branding perfecto
+## M3. Perfect branding
 
-Un solo pase que cubre cada punto de contacto, con la identidad ya fijada en
+A single pass that covers every touch point, with the identity already set in
 [IDENTITY.md](IDENTITY.md):
 
-- [ ] Suite de logos: marca de texto, versión pequeña, monocromo, iconos de aplicación, favicon.
-- [ ] Design tokens (`branding/tokens.json`) y un generador que produce CSS/QML/Nix/Lua desde ellos.
-- [ ] Tema de iconos y de cursor propios (o selección curada con la paleta del tema).
-- [ ] Coherencia GTK/Qt/libadwaita con el tema activo, sin ventanas «de otro sistema».
-- [ ] Arranque completo con una sola paleta: menú de arranque, Plymouth, greeter, escritorio.
-- [ ] `os-release` completo (`LOGO`, `ANSI_COLOR`, `HOME_URL`, `SUPPORT_URL`), fastfetch y `issue`.
-- [ ] Krona One y la marca dentro de la interfaz de DMS; ajustes con marca; traducciones.
-- [ ] Sonidos del sistema (inicio, notificación, error) con el mismo carácter.
-- [ ] Wallpapers oficiales por tema y capturas para el README.
-- [ ] Sitio y documentación con el mismo sistema de diseño.
+- [ ] Logo suite: text mark, small version, monochrome, app icons, favicon.
+- [ ] Design tokens (`branding/tokens.json`) and a generator that produces CSS/QML/Nix/Lua from them.
+- [ ] Own icon and cursor themes (or a curated selection with the theme's palette).
+- [ ] GTK/Qt/libadwaita consistency with the active theme, no "windows from another system".
+- [ ] Complete boot with a single palette: boot menu, Plymouth, greeter, desktop.
+- [ ] Complete `os-release` (`LOGO`, `ANSI_COLOR`, `HOME_URL`, `SUPPORT_URL`), fastfetch and `issue`.
+- [ ] Krona One and the brand inside DMS's interface; settings with the brand; translations.
+- [ ] System sounds (startup, notification, error) with the same character.
+- [ ] Official wallpapers per theme and screenshots for the README.
+- [ ] Site and documentation with the same design system.
 
-## M4. Shell propio
+## M4. Own shell
 
-Decisión: **estrangulación gradual**, no reescritura total.
+Decision: **gradual strangling**, not a total rewrite.
 
-1. Mientras tanto, Maxor Shell sigue siendo la capa de parches sobre DMS (ya funciona).
-2. Las apps de M2 construyen `maxor-ui`, que es el cimiento del shell propio.
-3. Se reemplaza una pieza por vez, empezando por las más visibles y aisladas: **lockscreen**,
-   **OSD** (volumen/brillo), **launcher**, **notificaciones**, **centro de control**, **barra**.
-   Cada pieza propia convive con DMS vía el mismo IPC hasta que el último componente se
-   sustituye y DMS deja de ser dependencia.
-4. Criterio de salida de cada pieza: igual de estable que la de DMS, con los tokens y el tema.
+1. Meanwhile, Maxor Shell remains the patch layer on DMS (it already works).
+2. The M2 apps build `maxor-ui`, which is the foundation of the own shell.
+3. One piece is replaced at a time, starting with the most visible and isolated ones: **lock
+   screen**, **OSD** (volume/brightness), **launcher**, **notifications**, **control center**,
+   **bar**. Each own piece coexists with DMS through the same IPC until the last component is
+   replaced and DMS stops being a dependency.
+4. Exit criterion for each piece: as stable as DMS's, with the tokens and the theme.
 
-Riesgo: mantener ambos durante la transición. Mitigación: piezas pequeñas, una a la vez, cada
-una detrás de una opción (`maxor.shell.<pieza> = "dms" | "maxor"`).
+Risk: maintaining both during the transition. Mitigation: small pieces, one at a time, each behind
+an option (`maxor.shell.<piece> = "dms" | "maxor"`).
 
-## Orden propuesto
+## Proposed order
 
-1. M1 (base) y capturas del README: pocas sesiones, el sistema queda sano y presentable.
-2. Design tokens (primer paso de M3), porque todo lo demás los consume.
+1. M1 (base) and README screenshots: a few sessions, the system ends up healthy and presentable.
+2. Design tokens (first step of M3), because everything else consumes them.
 3. `maxor-ui` + Welcome + Settings (M2).
-4. Resto de M3 (branding) con las apps ya existentes.
-5. Primeras piezas del shell propio (M4) y, en paralelo, la tienda (fase 5).
-6. Boot menu, ISO e instalador (fase 6) al final, con la base estable.
+4. The rest of M3 (branding) with the apps that already exist.
+5. First pieces of the own shell (M4) and, in parallel, the store (phase 5).
+6. Boot menu, ISO and installer (phase 6) at the end, with the base stable.

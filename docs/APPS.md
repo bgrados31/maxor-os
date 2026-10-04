@@ -1,93 +1,109 @@
-# Apps y perfiles
+# Apps and profiles
 
-Instalar software en Maxor OS no exige editar `.nix` ni reconstruir el sistema. Hay dos vías,
-las dos desde `maxor`, y una tercera —los perfiles— para configurar el equipo por tipo de uso.
+Installing software on Maxor OS does not require editing `.nix` or rebuilding the system. There are
+two ways, both from `maxor`, and a third (profiles) to set the machine up by kind of use.
 
-## Apps de usuario (sin sudo, sin rebuild)
+## User apps (no sudo, no rebuild)
 
 ```
-maxor search <texto>              buscar en nixpkgs y Flathub
-maxor install <app…>              instalar
-maxor remove <app…> [--purge]     quitar (con --purge, también sus carpetas en tu casa)
-maxor apps                        listar lo instalado con maxor
-maxor apps update                 actualizar nixpkgs y Flatpak
+maxor search <text>               search nixpkgs and Flathub
+maxor install <app…>              install
+maxor remove <app…> [--purge]     remove (with --purge, also the folders it left in your home)
+maxor apps                        list what was installed with maxor
+maxor apps updates                apps that have a newer version
+maxor apps update [app…]          update everything, or just the ones you name
+maxor apps open <app>             open an installed app
+maxor apps repair                 show Flatpak apps in the app menu and the terminal
 ```
 
-| Origen | Cómo se instala | Dónde |
+| Source | How it is installed | Where |
 |---|---|---|
-| `nix` | `nix profile add nixpkgs#<paquete>` | perfil del usuario |
+| `nix` | `nix profile add nixpkgs#<package>` | the user profile |
 | `flatpak` | `flatpak install --user flathub <id>` | `~/.local/share/flatpak` |
 
-Sin indicarlo, un ID con tres partes o más separadas por puntos (`org.mozilla.firefox`) es
-Flatpak y cualquier otro nombre (`btop`) es nixpkgs. Se fuerza con `--nix` o `--flatpak`.
-Los paquetes con licencia no libre (Steam, Spotify…) se pueden instalar.
+Unless told otherwise, an ID with three or more dot-separated parts (`org.mozilla.firefox`) is
+Flatpak and any other name (`btop`) is nixpkgs. Force it with `--nix` or `--flatpak`.
+Packages with a non-free license (Steam, Spotify…) can be installed.
 
-## El buscador
+Only one package operation runs at a time (`apps.lock`): if another `maxor install`, `remove` or
+`apps update` is running, the next one waits its turn.
 
-`maxor search` busca en nixpkgs y Flathub a la vez (una barra de progreso por origen) y muestra una
-sola lista con casillas. Cada resultado trae el nombre y el origen en la primera línea, y su `id`
-(lo que se pasa a `maxor install`) en la segunda.
+## Search and the Store
 
-| Tecla | Acción |
-|---|---|
-| `↑` `↓` (o `k` `j`) | mover el cursor |
-| `espacio` | marcar o desmarcar |
-| `Intro` | instalar lo marcado (si no hay nada marcado, lo resaltado) |
-| `q` o `Esc` | salir sin instalar |
+In a terminal, `maxor search` opens the **Store** tab of the full-screen app
+([TUI.md](TUI.md)) with the search already launched. With `--list`, `--json` or when the output
+is not a terminal, it prints the results as a list instead.
 
-Las apps ya instaladas aparecen con `✓` y no se pueden marcar. Sin texto de búsqueda en una terminal,
-pregunta qué app buscas. Con `--list`, o si la salida no es una terminal, imprime la lista sin
-selección.
+Results are sorted by relevance: exact, starts with, contains and, at the end, the ones that only
+match the description (shown only when there are very few better ones). From nixpkgs only
+top-level packages come out; `tests.*`, `haskellPackages.*` and similar are internal pieces.
 
-Los resultados van ordenados por relevancia: exacto, empieza por, contiene y, al final, los que solo
-coinciden en la descripción (que solo se muestran si hay muy pocos mejores). De nixpkgs solo salen
-los paquetes de primer nivel; `tests.*`, `haskellPackages.*` y similares son piezas internas.
+What is installed this way is **the user's**: it does not enter the flake or the system
+generations, so `maxor rollback` does not undo it. For something you want in the system and in the
+repository, use a profile or edit your `configuration.nix`.
 
-Lo instalado así es **del usuario**: no entra en el flake ni en las generaciones del sistema, así
-que `maxor rollback` no lo deshace. Para algo que quieras en el sistema y en el repositorio, usa
-un perfil o edita tu `configuration.nix`.
+### Removing, and what an app leaves behind
 
-## Perfiles
+`maxor remove` uninstalls the app and then lists the folders it left in your home. A folder
+counts only if it is named exactly like the app (case-insensitively) inside `~/.config`,
+`~/.local/share`, `~/.cache`, `~/.local/state`, `~/.var/app`, `~/.<name>` or `~/logs/<name>.log`.
+Without `--purge` nothing is deleted; with it they are, and it also cleans up after an app that is
+already gone. `maxor remove <app> --list-data` only looks.
 
-Un perfil agrupa paquetes y servicios de sistema por tipo de uso.
+### Flatpak apps in the launcher and the terminal
+
+Flatpak keeps each app's menu entry, icons and command in `~/.local/share/flatpak/exports`, which
+a session only sees if it started with that folder in its environment. To make them show up
+always, `maxor install` links each Flatpak app into the user folders: the menu entry into
+`~/.local/share/applications`, the icons into `~/.local/share/icons` and a short command named
+after the app into `~/.local/bin` (it never overrides a command that already exists).
+`remove` undoes it and `maxor apps repair` fixes the ones that were installed before.
+
+After installing or removing, `maxor` tells the launcher (Super+Space) to re-read its entries.
+
+## Profiles
+
+A profile groups system packages and services by kind of use.
 
 ```
-maxor profile                     listar y ver cuáles están activos
-maxor profile enable <nombre>     activar (muestra los cambios y pide confirmar)
-maxor profile disable <nombre>    desactivar
+maxor profile                     list and see which are active
+maxor profile enable <name>       enable (shows the changes and asks to confirm)
+maxor profile disable <name>      disable
 ```
 
-| Perfil | Incluye |
+| Profile | Includes |
 |---|---|
 | `gaming` | Steam, Proton, GameMode, MangoHud, Gamescope, Lutris |
-| `dev` | C, Node, Python, Go, Rust, Git, GitHub CLI, Podman (con `docker`), direnv |
+| `dev` | C, Node, Python, Go, Rust, Git, GitHub CLI, Podman (with `docker`), direnv |
 | `creator` | OBS, GIMP, Inkscape, Krita, Kdenlive, Blender, Audacity, HandBrake |
-| `office` | LibreOffice, diccionarios es/en, Thunderbird, Okular |
+| `office` | LibreOffice, Spanish and English dictionaries, Thunderbird, Okular |
 
-Lo activo se guarda en `hosts/<equipo>/maxor.json` y `modules/profiles.nix` lo traduce a
-paquetes. `enable` y `disable` equivalen a editar ese archivo y ejecutar `maxor update --no-lock`;
-si cancelas la confirmación, el archivo ya cambió y se aplicará en la próxima actualización.
-Los nombres y descripciones viven en `modules/profiles-catalog.json`; añadir un perfil es una
-entrada ahí más su bloque en `modules/profiles.nix`.
+What is active is saved in `hosts/<host>/maxor.json` and `modules/profiles.nix` turns it into
+packages. `enable` and `disable` are equivalent to editing that file and running
+`maxor update --no-lock`; if you cancel the confirmation, the file has already changed and it will
+be applied on the next update. Names, descriptions and the list of what each one includes live in
+`modules/profiles-catalog.json`; adding a profile is an entry there plus its block in
+`modules/profiles.nix`.
 
-## Contrato JSON (para Maxor Store y otras apps)
+## JSON contract (for the Store and other apps)
 
-Los comandos que consultan aceptan `--json` y entonces **solo** escriben JSON en la salida
-estándar, sin colores ni mensajes.
+Commands that query accept `--json` and then write **only** JSON to standard output, with no
+colors or messages.
 
-| Comando | Salida |
+| Command | Output |
 |---|---|
-| `maxor search <texto> --json` | `[{source, id, name, version, description}]` en una sola lista por relevancia, nixpkgs y Flathub mezclados (máx. 14) |
+| `maxor search <text> --json` | `[{source, id, name, version, description}]` in a single list by relevance, nixpkgs and Flathub mixed (max. 14) |
 | `maxor apps --json` | `[{source, id, name, version}]` |
 | `maxor install <app…> --json` | `[{id, source, ok}]` |
-| `maxor apps updates` | `[{source, id, current, latest}]`: solo las apps con versión nueva (nix frente al nixpkgs del sistema; flatpak según Flathub). Se guarda 10 minutos en `apps-updates.json`; `--refresh` lo ignora |
-| `maxor apps repair --json` | `{repaired: n}`: enlaza las apps de flatpak instaladas a las carpetas del usuario (menú, iconos y comando) |
+| `maxor apps updates` | `[{source, id, current, latest}]`: only apps with a newer version (nix against the system's nixpkgs; flatpak according to Flathub). Kept for 10 minutes in `apps-updates.json`; `--refresh` ignores it; `--notify` also shows a desktop notification |
+| `maxor apps repair --json` | `{repaired: n}`: links the installed Flatpak apps into the user folders (menu, icons and command) |
 | `maxor apps update <app…> --json` | `[{id, source, ok}]` |
-| `maxor apps open <app> --json` | `[{id, ok}]`: la abre separada de la terminal |
-| `maxor remove <app> --list-data` | `[{path, bytes}]`: solo mira, no quita nada |
-| `maxor remove <app…> [--purge] --json` | `[{id, source, ok, purged, leftovers: [{path, bytes}]}]`. Las carpetas sobrantes son las que se llaman exactamente como la app (`~/.config`, `~/.local/share`, `~/.cache`, `~/.var/app`, `~/.nombre`); sin `--purge` no se borra nada. Una sola operación de paquetes a la vez (`apps.lock`) |
-| `maxor profile list --json` | `[{id, title, description, enabled}]` |
-| `maxor hardware detect` | el contenido de `hardware.json` ([HARDWARE.md](HARDWARE.md)) |
+| `maxor apps open <app> --json` | `[{id, ok}]`: opens it detached from the terminal |
+| `maxor remove <app> --list-data` | `[{path, bytes}]`: only looks, removes nothing |
+| `maxor remove <app…> [--purge] --json` | `[{id, source, ok, purged, leftovers: [{path, bytes}]}]`. Leftover folders are the ones named exactly like the app (`~/.config`, `~/.local/share`, `~/.cache`, `~/.var/app`, `~/.name`); without `--purge` nothing is deleted |
+| `maxor profile list --json` | `[{id, title, description, includes, enabled}]` |
+| `maxor hardware detect` | the contents of `hardware.json` ([HARDWARE.md](HARDWARE.md)) |
+| `maxor backup --json` | `{path, bytes, apps, themes, host}` ([CLI.md](CLI.md#maxor-backup-and-maxor-restore)) |
 
-`source` es `nix` o `flatpak`. El código de salida es 0 si todo salió bien y 1 si algo falló.
-Una app no debería reimplementar nada de esto: llama a `maxor` y lee el JSON.
+`source` is `nix` or `flatpak`. The exit code is 0 if everything went well and 1 if something
+failed. An app should not reimplement any of this: it calls `maxor` and reads the JSON.

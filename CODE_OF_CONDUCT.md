@@ -1,32 +1,31 @@
-# Código de conducta
+# Code of conduct
 
-## Nuestro compromiso
+## Our commitment
 
-Queremos que participar en Maxor OS sea una experiencia respetuosa y sin acoso para todas las
-personas, sin importar su edad, origen, identidad, nivel de experiencia, nacionalidad o
-creencias.
+We want taking part in Maxor OS to be a respectful, harassment-free experience for everyone,
+regardless of age, background, identity, level of experience, nationality or beliefs.
 
-## Comportamiento esperado
+## Expected behavior
 
-- Tratar a los demás con respeto y paciencia, sobre todo a quienes están aprendiendo Nix.
-- Dar y recibir críticas constructivas sobre el trabajo, no sobre las personas.
-- Asumir buena fe y preguntar antes de suponer.
+- Treat others with respect and patience, especially people who are learning Nix.
+- Give and receive constructive criticism about the work, not about the people.
+- Assume good faith and ask before assuming.
 
-## Comportamiento inaceptable
+## Unacceptable behavior
 
-- Insultos, burlas, ataques personales o lenguaje discriminatorio.
-- Acoso, público o privado, y publicar información privada de otras personas.
-- Cualquier conducta que razonablemente se considere inapropiada en un entorno profesional.
+- Insults, mockery, personal attacks or discriminatory language.
+- Harassment, public or private, and publishing other people's private information.
+- Any conduct that would reasonably be considered inappropriate in a professional setting.
 
-## Aplicación
+## Enforcement
 
-Quien mantiene el proyecto puede editar o eliminar comentarios, issues y contribuciones que no
-respeten este código, y restringir la participación de quien lo incumpla de forma reiterada.
+The maintainer may edit or remove comments, issues and contributions that do not follow this code,
+and may restrict the participation of anyone who repeatedly breaks it.
 
-Para informar de un problema, escribe de forma privada a quien mantiene el proyecto a través de su
-perfil de GitHub, [@bgrados31](https://github.com/bgrados31).
+To report a problem, write privately to the maintainer through their GitHub profile,
+[@bgrados31](https://github.com/bgrados31).
 
-## Atribución
+## Attribution
 
-Adaptado del [Contributor Covenant](https://www.contributor-covenant.org/es/version/2/1/code_of_conduct/),
-versión 2.1.
+Adapted from the [Contributor Covenant](https://www.contributor-covenant.org/version/2/1/code_of_conduct/),
+version 2.1.

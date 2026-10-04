@@ -1,85 +1,86 @@
-# Identidad visual
+# Visual identity
 
-Decisiones de diseño de Maxor OS. Sirven de referencia para temas, shell, instalador y sitio web.
+Maxor OS design decisions. They are the reference for themes, shell, installer and website.
 
-## Carácter
+## Character
 
-**Minimalista, elegante, limpio y con un punto gamer.** Superficies oscuras y calmadas, un solo
-acento por tema, tipografía geométrica y bordes suaves. Nada decorativo que no cumpla una función.
+**Minimalist, elegant, clean and with a gamer touch.** Dark, calm surfaces, a single accent per
+theme, geometric typography and soft edges. Nothing decorative that does not serve a purpose.
 
-## Nombre y marca
+## Name and brand
 
-- Nombre: **Maxor OS**. En identificadores y comandos: `maxor`.
-- El logotipo es **solo texto**: `MAXOR OS` en Krona One, en mayúsculas y con tracking amplio.
-  No hay símbolo gráfico.
-- `/etc/os-release`: `NAME="Maxor OS"`. `ID` se mantiene en `nixos` porque varias herramientas
-  dependen de ese valor.
+- Name: **Maxor OS**. In identifiers and commands: `maxor`.
+- The logotype is **text only**: `MAXOR OS` in Krona One, uppercase and widely tracked.
+  There is no graphic symbol.
+- `/etc/os-release`: `NAME="Maxor OS"`. `ID` stays `nixos` because several tools depend on that
+  value.
 
-## Paleta por defecto: Sakura nocturna
+## Default palette: Sakura (night)
 
-| Rol | Valor |
+| Role | Value |
 |---|---|
-| Fondo | `#120b12` |
-| Superficie | `#1d121d` |
-| Superficie elevada | `#2a1a2a` |
-| Texto | `#fbe9f2` |
-| Texto secundario | `#a88a9d` |
-| Acento | `#ff86b8` |
-| Acento secundario | `#ffc2a6` |
-| Texto sobre acento | `#1b0b14` |
+| Background | `#120b12` |
+| Surface | `#1d121d` |
+| Raised surface | `#2a1a2a` |
+| Text | `#fbe9f2` |
+| Secondary text | `#a88a9d` |
+| Accent | `#ff86b8` |
+| Secondary accent | `#ffc2a6` |
+| Text on accent | `#1b0b14` |
 
-Segundo tema oficial: **Glaciar** (`#07111a` de fondo, acento `#5fd4f4`). Los temas se
-describen en [THEMING.md](THEMING.md).
+Second official theme: **Glaciar** (glacier; `#07111a` background, `#5fd4f4` accent). Themes are
+described in [THEMING.md](THEMING.md).
 
-## Tipografía
+## Typography
 
-| Rol | Fuente | Dónde |
+| Role | Font | Where |
 |---|---|---|
-| Interfaz | **Figtree** | Barra, ajustes, menús, notificaciones, GTK |
-| Terminal | **Red Hat Mono** | kitty, editor, código |
-| Logo y títulos | **Krona One** | Wordmark, arranque, bloqueo |
-| Iconos en texto | Symbols Nerd Font | Respaldo para kitty y la barra |
+| Interface | **Figtree** | Bar, settings, menus, notifications, GTK |
+| Terminal | **Red Hat Mono** | kitty, editor, code |
+| Logo and titles | **Krona One** | Wordmark, boot, lock screen |
+| Icons in text | Symbols Nerd Font | Fallback for kitty and the bar |
 
-Las tres fuentes principales son libres (SIL OFL).
+The three main fonts are free (SIL OFL).
 
-## Forma y movimiento
+## Shape and motion
 
-| Aspecto | Decisión |
+| Aspect | Decision |
 |---|---|
-| Esquinas | Suaves, 8 px |
-| Transparencia | Translúcida: paneles al ~74 % con desenfoque moderado |
-| Barra | Isla flotante, centrada |
-| Fondo | Liso con viñeta suave, generado desde la paleta |
-| Movimiento | Fluido, `cubic-bezier(.4, 0, .2, 1)`, ~380 ms |
-| Iconos | Papirus |
+| Corners | Soft, 8 px |
+| Transparency | Translucent: panels at ~74 % with moderate blur |
+| Bar | Floating island, centered |
+| Background | Plain with a soft vignette, generated from the palette |
+| Motion | Fluid, `cubic-bezier(.4, 0, .2, 1)`, ~380 ms |
+| Icons | Papirus |
 | Cursor | Bibata Modern |
 
-## Pantallas
+## Screens
 
-- **Bloqueo:** reloj grande y centrado, fecha debajo, campo de contraseña redondeado y la marca
-  abajo. Fondo: captura de pantalla desenfocada.
-- **Arranque:** `MAXOR OS` en Krona One sobre el fondo de la paleta y una barra de progreso fina
-  con el color de acento.
-- **Login:** pendiente (greeter propio, fase 4).
+- **Lock screen:** large centered clock, date below, a rounded password field and the brand at the
+  bottom. Background: a blurred screenshot.
+- **Boot:** `MAXOR OS` in Krona One over the palette background and a thin progress bar in the
+  accent color.
+- **Login:** the DMS greeter with the Maxor Shell package (see [SHELL.md](SHELL.md)).
 
-## Principios
+## Principles
 
-1. Un acento por pantalla.
-2. El color de énfasis nunca es el de fondo ni el de texto.
-3. El tema decide los colores; el sistema decide la forma. Cambiar de tema no mueve nada de sitio.
-4. Todo debe verse bien en oscuro. El tema claro es una variante, no el valor por defecto.
+1. One accent per screen.
+2. The emphasis color is never the background or the text color.
+3. The theme decides the colors; the system decides the shape. Changing theme moves nothing.
+4. Everything must look good in dark. The light theme is a variant, not the default.
 
-## Temas oscuros y claros
+## Dark and light themes
 
-Maxor OS se diseña primero en oscuro, pero ofrece cinco temas claros con las mismas reglas:
-un solo acento, superficies tintadas hacia ese acento y contraste AA como mínimo. Los claros no
-son una inversión de los oscuros: cada uno parte de su propio matiz (rosa, azul océano, azul
-tinta, verde humo, arena). Lista completa en [THEMING.md](THEMING.md).
+Maxor OS is designed dark first, but it offers five light themes with the same rules: a single
+accent, surfaces tinted toward that accent and AA contrast at least. The light ones are not an
+inversion of the dark ones: each starts from its own hue (pink, ocean blue, ink blue, smoke green,
+sand). Full list in [THEMING.md](THEMING.md).
 
-## La CLI y la pantalla de `maxor`
+## The CLI and the `maxor` screen
 
-La CLI es lineal: un riel vertical con `┌ │ ◇ └`, el acento del tema en el riel y en los pasos, y
-verde, ámbar y rojo ajustados al modo del tema. Es sobria a propósito y no imita una terminal.
-Lo que necesita teclado y pantalla completa (la tienda, el instalador) es `maxor-tui`, la pantalla
-propia de Maxor, con superficies de tono (sin marcos) y los mismos glifos y estados. Un solo
-vocabulario visual para todo. Detalles en [CLI.md](CLI.md#la-interfaz) y [TUI.md](TUI.md).
+The CLI is linear: a vertical rail with `┌ │ ◇ └`, the theme's accent on the rail and on the
+steps, and green, amber and red adjusted to the theme's mode. It is sober on purpose and does not
+imitate a terminal. What needs a keyboard and the full screen (the store, the installer) is
+`maxor-tui`, Maxor's own screen, with tinted surfaces (no frames) and the same glyphs and states.
+One visual vocabulary for everything. Details in [CLI.md](CLI.md#the-interface) and
+[TUI.md](TUI.md).

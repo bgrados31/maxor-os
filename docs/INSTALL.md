@@ -1,48 +1,56 @@
-# Instalación
+# Installation
 
-Maxor OS aún no tiene instalador propio (está en la [fase 6](ROADMAP.md)). Hoy se instala
-aplicando el flake sobre una instalación existente de NixOS.
+Maxor OS does not have its own installer yet (it is in [phase 6](ROADMAP.md)). Today it is
+installed by applying the flake on top of an existing NixOS installation.
 
-## Requisitos
+## Requirements
 
-- NixOS 25.11 o posterior, arranque UEFI.
-- Flakes habilitados (`nix.settings.experimental-features = [ "nix-command" "flakes" ]`).
-- Conexión a Internet: la primera compilación descarga varios cientos de MB (fuentes, NVIDIA,
+- NixOS 25.11 or later, UEFI boot.
+- Flakes enabled (`nix.settings.experimental-features = [ "nix-command" "flakes" ]`).
+- An Internet connection: the first build downloads several hundred MB (fonts, NVIDIA,
   Hyprland, DMS).
-- Un usuario con permisos de `sudo`.
+- A user with `sudo` permissions.
 
-## Instalación en el equipo de referencia (`nitro`)
+## Installing on the reference machine (`nitro`)
 
-El host `nitro` está pensado para un Acer Nitro AN16 con Intel + NVIDIA RTX 4050, arranque dual
-con Windows y la partición XBOOTLDR descrita abajo. Si tu máquina es esa, o muy parecida:
+The `nitro` host is meant for an Acer Nitro AN16 with Intel + NVIDIA RTX 4050, dual boot with
+Windows and the XBOOTLDR partition described below. If your machine is that one, or very similar:
 
 ```sh
 git clone https://github.com/bgrados31/maxor-os ~/nixos-config
 cd ~/nixos-config
-sudo nixos-rebuild boot --flake .#nitro     # primera vez: déjalo para el próximo arranque
+sudo nixos-rebuild boot --flake .#nitro     # first time: leave it for the next boot
 reboot
 ```
 
-`boot` en lugar de `switch` aplica la nueva generación solo en el siguiente arranque y deja la
-actual intacta como respaldo.
+`boot` instead of `switch` applies the new generation only on the next boot and leaves the current
+one untouched as a fallback.
 
-## Adaptarlo a otro equipo
+## Adapting it to another machine
 
-Copia `hosts/nitro` a `hosts/<tu-equipo>` y ajusta lo siguiente.
+Copy `hosts/nitro` to `hosts/<your-host>` and adjust the following.
 
 ### 1. Hardware
 
-Regenera `hardware-configuration.nix` en tu máquina; no uses el del repositorio:
+Regenerate `hardware-configuration.nix` on your machine; do not use the one in the repository:
 
 ```sh
-sudo nixos-generate-config --show-hardware-config > hosts/<tu-equipo>/hardware-configuration.nix
+sudo nixos-generate-config --show-hardware-config > hosts/<your-host>/hardware-configuration.nix
 ```
 
-### 2. Arranque
+Then let Maxor detect the CPU, GPUs and whether it is a laptop:
 
-`hosts/nitro/configuration.nix` usa systemd-boot con la ESP en `/efi` y una partición XBOOTLDR
-en `/boot`. Si tu disco tiene la ESP montada en `/boot` (lo habitual), elimina estas líneas y
-deja el valor por defecto:
+```sh
+maxor hardware detect --write
+```
+
+See [HARDWARE.md](HARDWARE.md).
+
+### 2. Boot
+
+`hosts/nitro/configuration.nix` uses systemd-boot with the ESP at `/efi` and an XBOOTLDR partition
+at `/boot`. If your disk has the ESP mounted at `/boot` (the usual case), remove these lines and
+leave the default value:
 
 ```nix
 boot.loader.efi.efiSysMountPoint = "/efi";
@@ -51,48 +59,58 @@ boot.loader.systemd-boot.xbootldrMountPoint = "/boot";
 
 ### 3. GPU
 
-- **Solo Intel o AMD:** quita el bloque `hardware.nvidia` y `services.xserver.videoDrivers`.
-- **Intel + NVIDIA:** cambia los identificadores de bus por los tuyos:
+- **Intel or AMD only:** drivers are picked from the detected hardware; remove any leftover
+  `hardware.nvidia` block.
+- **Intel + NVIDIA:** replace the bus identifiers with yours:
 
   ```sh
   lspci | grep -E 'VGA|3D'
   ```
 
-  Convierte `00:02.0` en `PCI:0:2:0` y `01:00.0` en `PCI:1:0:0`.
+  Turn `00:02.0` into `PCI:0:2:0` and `01:00.0` into `PCI:1:0:0`.
 
-### 4. Usuario, zona horaria y teclado
+### 4. User, time zone and keyboard
 
-Edita en `hosts/<tu-equipo>/configuration.nix`: `networking.hostName`, `time.timeZone`,
-`console.keyMap`, `services.xserver.xkb` y `users.users.<nombre>`. En `home/bryan.nix` cambia
-`home.username`, `home.homeDirectory` y los datos de `programs.git`.
+Edit in `hosts/<your-host>/configuration.nix`: `networking.hostName`, `time.timeZone`,
+`console.keyMap`, `services.xserver.xkb` and `users.users.<name>`. In `home/bryan.nix` change
+`home.username`, `home.homeDirectory` and the `programs.git` data.
 
-### 5. Registrar el host en el flake
+### 5. Register the host in the flake
 
-En `flake.nix`, duplica el bloque `nixosConfigurations.nitro`, cámbiale el nombre y apunta
-`./hosts/<tu-equipo>/configuration.nix`. Luego:
+In `flake.nix`, duplicate the `nixosConfigurations.nitro` block, rename it and point it at
+`./hosts/<your-host>/configuration.nix`. Then:
 
 ```sh
-sudo nixos-rebuild switch --flake .#<tu-equipo>
+sudo nixos-rebuild switch --flake .#<your-host>
 ```
 
-## Después de instalar
+## After installing
 
-1. Reinicia. El login de Maxor (greeter de DMS) entra directo a Hyprland.
-2. Abre los ajustes de DMS con `SUPER + ,` y configura la barra y el wallpaper.
-3. Aplica un tema: `maxor theme apply sakura`.
-4. Opcional: abre `qt6ct` una vez y elige el esquema de colores de DMS para las apps Qt.
+1. Reboot. The Maxor login (the DMS greeter) goes straight into Hyprland.
+2. Open the DMS settings with `SUPER + ,` and set up the bar and the wallpaper.
+3. Apply a theme: `maxor theme apply sakura`.
+4. Run `maxor setup` once to pick a look, usage profiles and see what was detected.
+5. Optional: open `qt6ct` once and pick the DMS color scheme for Qt apps.
 
-## Actualizar
+## Updating
+
+```sh
+maxor update
+```
+
+It updates the inputs, builds without applying, shows what changes and asks before switching.
+The manual way is:
 
 ```sh
 nix flake update --flake ~/nixos-config
 sudo nixos-rebuild switch --flake ~/nixos-config#nitro
 ```
 
-Dentro de fish existen los alias `rebuild` y `update` para ambas cosas.
+Inside fish there are the `rebuild` and `update` aliases for both.
 
-## Desinstalar o volver atrás
+## Uninstalling or going back
 
-- **Una actualización rompió algo:** elige la generación anterior en el menú de arranque.
-- **Desde una TTY:** `sudo nixos-rebuild switch --rollback`.
-- **Liberar espacio:** el recolector de basura semanal borra generaciones de más de 14 días.
+- **An update broke something:** pick the previous generation in the boot menu.
+- **From a TTY:** `sudo nixos-rebuild switch --rollback`, or `maxor rollback`.
+- **From the full-screen app:** the Update tab, then `g`.
+- **Freeing space:** the weekly garbage collector deletes generations older than 14 days.

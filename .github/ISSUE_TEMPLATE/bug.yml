@@ -1,34 +1,34 @@
-name: Reportar un fallo
-description: Algo no funciona como debería
+name: Report a bug
+description: Something does not work as it should
 labels: [bug]
 body:
   - type: textarea
-    id: que
+    id: what
     attributes:
-      label: Qué pasa
-      description: Describe el problema y lo que esperabas que ocurriera.
+      label: What happens
+      description: Describe the problem and what you expected to happen.
     validations:
       required: true
   - type: textarea
-    id: pasos
+    id: steps
     attributes:
-      label: Cómo reproducirlo
+      label: How to reproduce it
       placeholder: |
-        1. Ejecuto `maxor theme apply glaciar`
+        1. I run `maxor theme apply glaciar`
         2. ...
     validations:
       required: true
   - type: textarea
-    id: entorno
+    id: environment
     attributes:
-      label: Entorno
-      description: Salida de `nixos-version`, y la GPU (`lspci | grep -E 'VGA|3D'`).
+      label: Environment
+      description: Output of `nixos-version`, `maxor version`, and the GPU (`lspci | grep -E 'VGA|3D'`).
       render: text
     validations:
       required: true
   - type: textarea
-    id: registros
+    id: logs
     attributes:
-      label: Registros
-      description: "`journalctl --user -b -p err --no-pager | tail -n 30`"
+      label: Logs
+      description: "`maxor logs --last` and `journalctl --user -b -p err --no-pager | tail -n 30`"
       render: text

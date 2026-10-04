@@ -1,53 +1,53 @@
-# Hardware: drivers según el equipo
+# Hardware: drivers for your machine
 
-Maxor OS elige microcódigo, drivers de vídeo y ajustes de portátil a partir del equipo real.
-Funciona igual en Intel, AMD, NVIDIA, gráficos híbridos y máquinas virtuales.
+Maxor OS picks the microcode, video drivers and laptop settings from the real machine.
+It works the same on Intel, AMD, NVIDIA, hybrid graphics and virtual machines.
 
-## Cómo funciona
+## How it works
 
-Nix evalúa la configuración sin mirar la máquina, así que la detección va en dos pasos:
+Nix evaluates the configuration without looking at the machine, so detection happens in two steps:
 
-1. **`maxor hardware detect --write`** lee `/sys` y `/proc` (no pide root) y guarda
-   `hosts/<equipo>/hardware.json`: fabricante de CPU, GPUs con su ID y bus PCI, si es portátil y
-   si es una máquina virtual.
-2. **`modules/hardware.nix`** lee ese archivo y activa lo que corresponde. El host solo apunta a él:
+1. **`maxor hardware detect --write`** reads `/sys` and `/proc` (it does not need root) and saves
+   `hosts/<host>/hardware.json`: CPU vendor, GPUs with their ID and PCI bus, whether it is a laptop
+   and whether it is a virtual machine.
+2. **`modules/hardware.nix`** reads that file and enables what fits. The host only points to it:
 
    ```nix
    maxor.hardware.report = ./hardware.json;
    ```
 
-`maxor hardware` muestra lo detectado y lo que Maxor usará. `maxor doctor` avisa si el equipo
-cambió respecto al `hardware.json` (otra GPU, otra máquina) para que lo regeneres.
+`maxor hardware` shows what was detected and what Maxor will use. `maxor doctor` warns when the
+machine no longer matches `hardware.json` (another GPU, another computer) so you can regenerate it.
 
-## Qué se configura
+## What gets configured
 
-| Detectado | Maxor activa |
+| Detected | Maxor enables |
 |---|---|
-| CPU Intel | microcódigo Intel y `thermald` (no en máquinas virtuales) |
-| CPU AMD | microcódigo AMD (el kernel gestiona `amd_pstate`) |
-| GPU AMD | `amdgpu`, KMS temprano (el splash sale a resolución nativa) y OpenCL |
-| GPU Intel | controlador `modesetting` y `intel-media-driver` (vídeo por hardware) |
-| GPU NVIDIA | controlador propietario con `modesetting`; módulos abiertos si la GPU es Turing (RTX 20 / GTX 16) o más nueva, cerrados en Pascal y Maxwell |
-| Portátil con iGPU + NVIDIA | PRIME offload: el escritorio va por la integrada y `nvidia-offload <app>` usa la NVIDIA; ahorra batería y calor |
-| Portátil | perfiles de energía (ahorro, equilibrado, rendimiento) |
-| Máquina virtual QEMU/VirtualBox/VMware | herramientas de invitado (portapapeles, resolución) |
-| Siempre | firmware redistribuible (Wi-Fi, GPU) y `fwupd` (BIOS, SSD, periféricos) |
+| Intel CPU | Intel microcode and `thermald` (not in virtual machines) |
+| AMD CPU | AMD microcode (the kernel handles `amd_pstate`) |
+| AMD GPU | `amdgpu`, early KMS (the splash comes up at native resolution) and OpenCL |
+| Intel GPU | the `modesetting` driver and `intel-media-driver` (hardware video) |
+| NVIDIA GPU | the proprietary driver with `modesetting`; open modules if the GPU is Turing (RTX 20 / GTX 16) or newer, closed ones on Pascal and Maxwell |
+| Laptop with iGPU + NVIDIA | PRIME offload: the desktop runs on the integrated GPU and `nvidia-offload <app>` uses the NVIDIA; it saves battery and heat |
+| Laptop | power profiles (power saver, balanced, performance) |
+| QEMU/VirtualBox/VMware virtual machine | guest tools (clipboard, resolution) |
+| Always | redistributable firmware (Wi-Fi, GPU) and `fwupd` (BIOS, SSD, peripherals) |
 
-Una GPU NVIDIA anterior a Maxwell (Kepler y más antiguas) no la soporta el controlador actual:
-la compilación avisa de que hace falta uno legacy.
+An NVIDIA GPU older than Maxwell (Kepler and earlier) is not supported by the current driver:
+the build warns that a legacy one is needed.
 
-## Ajustes a mano
+## Manual overrides
 
-Todo se puede pisar desde `hosts/<equipo>/configuration.nix`:
+Everything can be overridden from `hosts/<host>/configuration.nix`:
 
 ```nix
-maxor.hardware.nvidia.open = false;        # forzar módulos cerrados de NVIDIA
+maxor.hardware.nvidia.open = false;        # force closed NVIDIA modules
 services.thermald.enable = lib.mkForce false;
 ```
 
-## Límites actuales
+## Current limits
 
-- No se detectan portátiles con conmutador MUX ni modos de GPU de fabricante.
-- Solo se usa la primera GPU de cada fabricante.
-- Una GPU de otro fabricante (virtio, VMware, etc.) queda con los controladores genéricos de Mesa.
-- Lo detectado debe regenerarse al cambiar de equipo: no se detecta solo en cada arranque.
+- Laptops with a MUX switch and vendor GPU modes are not detected.
+- Only the first GPU of each vendor is used.
+- A GPU from another vendor (virtio, VMware, etc.) stays on the generic Mesa drivers.
+- What was detected must be regenerated when you change machines: it is not detected on every boot.

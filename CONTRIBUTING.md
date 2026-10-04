@@ -1,68 +1,74 @@
-# Cómo contribuir
+# How to contribute
 
-Gracias por querer mejorar Maxor OS. Este documento explica cómo proponer cambios.
+Thanks for wanting to improve Maxor OS. This document explains how to propose changes.
 
-## Antes de empezar
+## Before you start
 
-- Lee la [arquitectura](docs/ARCHITECTURE.md) y la [hoja de ruta](docs/ROADMAP.md) para ver
-  hacia dónde va el proyecto.
-- Para algo grande, abre primero un issue y describe la idea; evita trabajo perdido.
-- Sigue el [código de conducta](CODE_OF_CONDUCT.md).
+- Read the [architecture](docs/ARCHITECTURE.md) and the [roadmap](docs/ROADMAP.md) to see where
+  the project is going.
+- For anything big, open an issue first and describe the idea; it avoids wasted work.
+- Follow the [code of conduct](CODE_OF_CONDUCT.md).
 
-## Entorno
+## Environment
 
-Necesitas NixOS (o Nix con flakes) y Git.
+You need NixOS (or Nix with flakes) and Git.
 
 ```sh
 git clone https://github.com/bgrados31/maxor-os
 cd maxor-os
-nix flake check --no-build          # evalúa la configuración
-nix build .#nixosConfigurations.nitro.config.system.build.toplevel   # compila el sistema
+nix flake check --no-build          # evaluates the configuration
+nix build .#nixosConfigurations.nitro.config.system.build.toplevel   # builds the system
+nix build .#checks.x86_64-linux.cli-tests .#checks.x86_64-linux.tui  # CLI and full-screen app tests
 ```
 
-`nixos-rebuild switch` solo debe hacerse en una máquina de pruebas o una VM.
+`nixos-rebuild switch` should only be run on a test machine or a VM.
 
-## Flujo de trabajo
+## Workflow
 
-1. Haz un fork y crea una rama desde `development`: `feat/mi-cambio` o `fix/mi-arreglo`, y abre el Pull Request contra `development`. `main` solo recibe releases (ver [RELEASING.md](docs/RELEASING.md)).
-2. Haz cambios pequeños y enfocados. Un cambio, un propósito.
-3. Comprueba que `nix flake check --no-build` pasa y que el sistema compila.
-4. Abre un pull request y completa la plantilla.
+1. Fork and create a branch from `development`: `feat/my-change` or `fix/my-fix`, and open the
+   pull request against `development`. `main` only receives releases (see
+   [RELEASING.md](docs/RELEASING.md)).
+2. Keep changes small and focused. One change, one purpose.
+3. Check that `nix flake check --no-build` passes, that the system builds and that the tests pass.
+4. Open a pull request and fill in the template.
 
-## Mensajes de commit
+## Commit messages
 
-Usamos [Conventional Commits](https://www.conventionalcommits.org/es/v1.0.0/), en español o
-inglés, en modo imperativo y sin punto final.
+We use [Conventional Commits](https://www.conventionalcommits.org/en/v1.0.0/), in English, in the
+imperative mood and without a trailing period.
 
 ```
-feat(theming): añadir tema Obsidiana
-fix(lockscreen): usar la plantilla del tema activo al bloquear
-docs: explicar cómo adaptar el host a otra GPU
+feat(theming): add the Obsidiana theme
+fix(lockscreen): use the active theme template when locking
+docs: explain how to adapt the host to another GPU
 ```
 
-Tipos habituales: `feat`, `fix`, `docs`, `refactor`, `chore`, `ci`.
+Common types: `feat`, `fix`, `docs`, `refactor`, `chore`, `ci`.
 
-## Estilo
+## Style
 
-- **Nix:** indentación de dos espacios, un comentario breve sobre el *porqué* de cada bloque
-  no obvio y ningún valor específico de una máquina fuera de `hosts/`.
-- **Shell (CLI `maxor`):** debe pasar `shellcheck` (lo ejecuta `writeShellApplication`).
-- **Lua (Hyprland):** una responsabilidad por archivo cuando se modularice.
-- **Documentación:** en español, directa, con ejemplos que se puedan copiar y pegar.
+- **Nix:** two-space indentation, a short comment about the *why* of every non-obvious block, and
+  no machine-specific value outside `hosts/`.
+- **Shell (`maxor` CLI):** must pass `shellcheck` (`writeShellApplication` runs it). User-facing
+  text goes through the message catalog (`home/maxor/lib/lang/en.sh`) with `@key`, never inline.
+- **Go (full-screen app):** `go vet` and `go test ./...` must pass; they run on every build.
+- **Lua (Hyprland):** one responsibility per file once it is modularized.
+- **Documentation:** in English, direct, with examples that can be copied and pasted.
 
-## Contribuir un tema
+## Contributing a theme
 
-Un tema es una carpeta con `colors.json`, `theme.toml` y, opcionalmente, `style.json`; el formato está en
-[docs/THEMING.md](docs/THEMING.md). Los oficiales son las carpetas de `themes/`: añade una carpeta
-y el build se encarga del resto.
+A theme is a folder with `colors.json`, `theme.toml` and, optionally, `style.json`; the format is
+in [docs/THEMING.md](docs/THEMING.md). The official ones are the folders in `themes/`: add a
+folder and the build takes care of the rest.
 
-Requisitos:
+Requirements:
 
-- Los ocho colores de la paleta, en `#rrggbb`.
-- Contraste WCAG AA (4.5:1 o más) entre `fg` y `bg`, `mu` y `bg`, `ac` y `s`, y `on` y `ac`.
-- Una licencia que permita redistribuirlo (se recomienda CC0-1.0).
-- Un tema nunca incluye scripts ni ejecutables.
+- All eight palette colors, as `#rrggbb`.
+- WCAG AA contrast (4.5:1 or more) between `fg` and `bg`, `mu` and `bg`, `ac` and `s`, and `on`
+  and `ac`.
+- A license that allows redistribution (CC0-1.0 is recommended).
+- A theme never includes scripts or executables.
 
-## Seguridad
+## Security
 
-No abras un issue público por una vulnerabilidad. Sigue [SECURITY.md](SECURITY.md).
+Do not open a public issue for a vulnerability. Follow [SECURITY.md](SECURITY.md).

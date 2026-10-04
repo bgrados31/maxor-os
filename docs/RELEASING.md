@@ -1,52 +1,61 @@
-# Ramas y releases
+# Branches and releases
 
-## Ramas
+## Branches
 
-| Rama | Para qué |
+| Branch | Purpose |
 |---|---|
-| `development` | El trabajo diario. Es la rama predeterminada: aquí llegan los commits y las fusiones. |
-| `main` | Solo versiones publicadas. Nadie hace commits aquí; se mueve únicamente con un release. |
-| `feat/…`, `fix/…` | Cambios que tardan o son arriesgados. Salen de `development` y vuelven con una fusión o un Pull Request. |
+| `development` | Day-to-day work. It is the default branch: commits and merges land here. |
+| `main` | Published versions only. Nobody commits here; it only moves with a release. |
+| `feat/…`, `fix/…` | Changes that take long or are risky. They branch off `development` and come back with a merge or a pull request. |
 
-Un cambio pequeño puede ir directo a `development`. Lo que toque el arranque, el login o los
-gráficos va en una rama aparte y se prueba antes de fusionar.
+A small change can go straight to `development`. Anything that touches boot, login or graphics
+goes on its own branch and is tested before merging.
 
-## Versiones
+## Versions
 
-Numeración `0.N.0` hasta la 1.0, que llegará con el instalador. Mientras sea `0.x`, un cambio
-incompatible sube el segundo número; un arreglo o una mejora pequeña sube el tercero.
+Numbered `0.N.0` until 1.0, which will arrive with the installer. While it is `0.x`, an
+incompatible change bumps the second number; a fix or a small improvement bumps the third.
 
-## Commits y changelog
+## Commits and changelog
 
-Los commits siguen [Conventional Commits](https://www.conventionalcommits.org/es/v1.0.0/)
-(`feat:`, `fix:`, `perf:`, `docs:`…), lo que permite generar un borrador del changelog.
-`CHANGELOG.md` sigue el formato de «Keep a Changelog»: lo que aún no salió va en
-`## [Sin publicar]`, agrupado en Añadido, Cambiado y Corregido, escrito para quien usa Maxor y no
-para quien lee el código.
+Commits follow [Conventional Commits](https://www.conventionalcommits.org/en/v1.0.0/)
+(`feat:`, `fix:`, `perf:`, `docs:`…), which makes it possible to draft the changelog.
+`CHANGELOG.md` follows the "Keep a Changelog" format: what has not shipped yet goes under
+`## [Unreleased]`, grouped into Added, Changed and Fixed, written for people who use Maxor and not
+for people who read the code.
 
-## Sacar una versión
+## Cutting a version
 
 ```
-scripts/release.sh 0.1.0          muestra el plan y no cambia nada
-scripts/release.sh 0.1.0 --yes    lo ejecuta
+scripts/release.sh 0.1.0          shows the plan and changes nothing
+scripts/release.sh 0.1.0 --yes    runs it
 ```
 
-Hay que estar en `development`, sin cambios pendientes, al día con `origin` y con algo en
-«Sin publicar». El script entonces:
+You must be on `development`, with no pending changes, up to date with `origin` and with
+something under "Unreleased". The script then:
 
-1. comprueba el flake (`nix flake check --no-build` y la evaluación de `nitro`);
-2. mueve «Sin publicar» a la sección `## [0.1.0] - fecha`, escribe `VERSION` (que `maxor --version` lee al compilar) y lo confirma;
-3. fusiona `development` en `main` (sin avance rápido, para que la versión quede marcada);
-4. crea la etiqueta anotada `v0.1.0` y sube `main` y la etiqueta;
-5. avanza `development` hasta `main` y abre la siguiente versión menor (`VERSION` pasa a `0.2.0-dev`) en un commit propio.
+1. checks the flake (`nix flake check --no-build` and the evaluation of `nitro`);
+2. moves "Unreleased" to the `## [0.1.0] - date` section, writes `VERSION` (which `maxor --version` reads at build time) and commits it;
+3. merges `development` into `main` (no fast-forward, so the version stays marked);
+4. creates the tag `v0.1.0`, **signed** with the release key (`~/.ssh/maxor-release`, it asks for its passphrase), verifies it, and pushes `main` and the tag;
+5. moves `development` forward to `main` and opens the next minor version (`VERSION` becomes `0.2.0-dev`) in its own commit;
+6. builds `manifest.json`, signs it, verifies the signature against `keys/allowed_signers`, and creates the **GitHub Release** with the notes of that section and both files attached.
 
-Al llegar la etiqueta, la CI (`.github/workflows/release.yml`) crea la **GitHub Release** con el
-texto de esa sección. Así los cambios de cada versión se leen en la pestaña de Releases.
-`scripts/release-notes.sh 0.1.0` imprime esas notas en local para revisarlas antes.
+The signed manifest is what machines read to learn that a release exists; see
+[UPDATES.md](UPDATES.md) for how it is verified. CI (`.github/workflows/release.yml`) then
+re-checks the tag, `VERSION`, the notes and the manifest from the outside and fails loudly if
+anything does not match. `scripts/release-notes.sh 0.1.0` prints the notes locally so you can
+review them first.
 
-## Si algo sale mal
+The key is created once with `scripts/release-key.sh`. If the Release upload fails after the tag is
+already pushed, repeat only that part with `scripts/release.sh 0.1.0 --assets-only`.
 
-- **El plan se niega a seguir:** el mensaje dice qué falta (rama, cambios sin commit, changelog vacío).
-- **Se subió una versión equivocada:** se borra la etiqueta y la Release en GitHub, se corrige
-  en `development` y se publica la siguiente versión. Las versiones no se reutilizan.
-- **El repositorio es privado.** Las Releases también lo son; publicarlo es una decisión aparte.
+## If something goes wrong
+
+- **The plan refuses to continue:** the message says what is missing (branch, uncommitted changes, empty changelog, release key).
+- **A wrong version was pushed:** do not move the tag; publish the next version, versions are not
+  reused. Published `v*` tags are protected by a ruleset (no update, no delete): if one really has to
+  go, disable the `immutable-release-tags` ruleset in the repository settings, delete the tag and
+  the Release, and enable it again.
+- **Machines already saw the manifest.** They remember the highest `sequence` they have seen and will
+  refuse an older manifest, so a bad release is answered with a newer one, not by going back.

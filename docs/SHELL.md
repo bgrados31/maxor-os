@@ -1,62 +1,64 @@
 # Maxor Shell
 
-Maxor Shell es [DankMaterialShell](https://github.com/AvengeMedia/DankMaterialShell) (DMS) con la
-identidad de Maxor OS. Da la barra, el launcher, las notificaciones, el centro de control y la
-pantalla de login.
+Maxor Shell is [DankMaterialShell](https://github.com/AvengeMedia/DankMaterialShell) (DMS) with
+Maxor OS's identity. It provides the bar, the launcher, the notifications, the control center and
+the login screen.
 
-## Cómo se construye: una capa de parches, no una copia
+## How it is built: a patch layer, not a copy
 
-Maxor Shell **no es una copia del código de DMS**. Es un paquete de Nix
-([`packages/maxor-shell.nix`](../packages/maxor-shell.nix)) que toma el paquete de upstream y le
-cambia solo lo que el usuario ve. Así:
+Maxor Shell **is not a copy of DMS's code**. It is a Nix package
+([`packages/maxor-shell.nix`](../packages/maxor-shell.nix)) that takes the upstream package and
+changes only what the user sees. This way:
 
-- seguimos recibiendo las mejoras y correcciones de DMS con `nix flake update`;
-- no hay un fork que mantener ni conflictos de fusión;
-- el cambio es pequeño y fácil de revisar (un archivo y un generador de logo);
-- si algún día hace falta un fork completo, el punto de partida ya está aislado.
+- we keep receiving DMS's improvements and fixes with `nix flake update`;
+- there is no fork to maintain and no merge conflicts;
+- the change is small and easy to review (one file and a logo generator);
+- if a full fork is ever needed, the starting point is already isolated.
 
-Cada texto que se sustituye usa `substituteInPlace --replace-fail`: si upstream reescribe esa
-línea, la compilación **falla** en vez de dejar una marca a medias sin avisar. Eso obliga a
-revisar el parche al actualizar.
+Every replaced text uses `substituteInPlace --replace-fail`: if upstream rewrites that line, the
+build **fails** instead of silently leaving a half-done brand. That forces the patch to be
+reviewed when updating.
 
-## Qué cambia
+## What changes
 
-| Dónde | Cambio |
+| Where | Change |
 |---|---|
-| Logo del botón del launcher, «Acerca de», bienvenida y novedades | La «M» de Krona One, tintada con el color primario del tema |
-| Botón del launcher en la barra | Pasa al modo de marca (`launcherLogoMode = "dank"`) la primera vez, si el widget no estaba personalizado; DMS lo trae en modo «apps» y sin ese ajuste el logo no se vería |
-| Icono de la aplicación | La «M» en un cuadrado redondeado con los colores de Sakura |
-| «Acerca de» | `DANK LINUX` pasa a `MAXOR OS` |
-| Bienvenida | `Welcome to Maxor OS` |
-| Identidad MPRIS, actualizaciones y plugins | `Maxor Shell` |
+| Launcher button logo, "About", welcome and what's new | The Krona One "M", tinted with the theme's primary color |
+| Launcher button in the bar | Switches to brand mode (`launcherLogoMode = "dank"`) the first time, if the widget was not customized; DMS ships it in "apps" mode and without this setting the logo would not show |
+| App icon | The "M" in a rounded square with the Sakura colors |
+| "About" | `DANK LINUX` becomes `MAXOR OS` |
+| Welcome | `Welcome to Maxor OS` |
+| MPRIS identity, updates and plugins | `Maxor Shell` |
 
-El logo se **genera desde la propia fuente** (`packages/make-mark.py`, con fontTools): se extrae el
-contorno de la «M» de Krona One y se escribe como SVG. Así no depende de que la fuente esté
-instalada para dibujarse, y sigue la regla de identidad de Maxor: logo solo texto, sin símbolo.
+The logo is **generated from the font itself** (`packages/make-mark.py`, with fontTools): the
+outline of Krona One's "M" is extracted and written as an SVG. This way it does not depend on the
+font being installed to be drawn, and it follows Maxor's identity rule: text-only logo, no symbol.
 
-## Qué no cambia (a propósito)
+## What does not change (on purpose)
 
-- Los nombres internos (`dms`, `DankBar`, rutas `~/.config/DankMaterialShell/`, comandos
-  `dms ipc …`): son la interfaz que usan los demás componentes y cambiarlos rompería cosas.
-- La licencia y el aviso de copyright de DMS (MIT): se conservan en el paquete.
-- Las traducciones: las cadenas cambiadas dejan de coincidir con sus traducciones y se muestran
-  en inglés hasta que se traduzcan.
+- Internal names (`dms`, `DankBar`, `~/.config/DankMaterialShell/` paths, `dms ipc …` commands):
+  they are the interface the other components use and changing them would break things.
+- DMS's license and copyright notice (MIT): they are kept in the package.
+- Translations: the changed strings stop matching their translations and are shown in English
+  until they are translated.
 
-## La pantalla de login
+## The login screen
 
-El login es el **greeter de DMS sobre greetd** ([`modules/greeter.nix`](../modules/greeter.nix)),
-ejecutado con el paquete Maxor Shell dentro de Hyprland. Reemplaza a SDDM.
+The login is the **DMS greeter on greetd** ([`modules/greeter.nix`](../modules/greeter.nix)),
+run with the Maxor Shell package inside Hyprland. It replaces SDDM.
 
-En cada arranque, greetd copia del usuario configurado (`services.displayManager.dms-greeter.configHome`)
-sus ajustes de DMS, el tema propio, los colores y el wallpaper. Por eso **el login lleva los
-colores del último tema que aplicaste con `maxor theme apply`**.
+On every boot, greetd copies from the configured user
+(`services.displayManager.dms-greeter.configHome`) their DMS settings, their own theme, the colors
+and the wallpaper. That is why **the login carries the colors of the last theme you applied with
+`maxor theme apply`**.
 
-Si el login no aparece, mira [TROUBLESHOOTING.md](TROUBLESHOOTING.md#el-login-no-aparece-o-queda-en-negro).
+If the login does not appear, see
+[TROUBLESHOOTING.md](TROUBLESHOOTING.md#the-login-does-not-appear-or-stays-black).
 
-## Qué falta para una identidad completa
+## What is missing for a complete identity
 
-- Fuentes de Maxor (Krona One para el logo) dentro de la propia interfaz de DMS.
-- Pantalla de ajustes con la marca de Maxor y acceso directo a la futura Maxor Store.
-- Integrar el radio de las esquinas del tema con el de DMS (hoy se ajusta a mano en `SUPER + ,`).
-- Traducciones de las cadenas cambiadas.
-- Shell propio en Quickshell (camino B de la [hoja de ruta](ROADMAP.md)).
+- Maxor fonts (Krona One for the logo) inside DMS's own interface.
+- A settings screen with Maxor's brand and a shortcut to the future Maxor Store.
+- Integrating the theme's corner radius with DMS's (today it is set by hand in `SUPER + ,`).
+- Translations of the changed strings.
+- A shell of its own in Quickshell (path B of the [roadmap](ROADMAP.md)).
