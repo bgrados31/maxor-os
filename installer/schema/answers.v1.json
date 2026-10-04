@@ -76,7 +76,10 @@
     },
     "hardware": {
       "type": "object",
-      "properties": { "report": { "type": "string", "enum": ["auto"], "default": "auto" } },
+      "properties": {
+        "report": { "type": "string", "enum": ["auto"], "default": "auto" },
+        "gpu": { "type": "string", "enum": ["auto", "integrated", "nvidia", "hybrid"], "default": "auto", "description": "Which GPU draws the desktop; auto is the recommendation for the detected hardware" }
+      },
       "default": {}
     },
     "network": {

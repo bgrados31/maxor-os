@@ -487,6 +487,7 @@ preflight_ok() {
   grep -qF 'fullname = "Ana \"la\" \${rara}";' "$d/flake.nix"
   grep -q 'initial_session' "$d/flake.nix"
   grep -q 'nixosConfigurations.maxor = maxor-os.lib.mkSystem' "$d/flake.nix"
+  grep -q 'maxor.hardware.gpu.mode = "auto";' "$d/flake.nix"
   [ "$(jq -r '.profiles[0]' "$d/host/maxor.json")" = dev ]
   # git: los archivos están commiteados (Nix solo ve lo que git conoce)
   [ -z "$(git -C "$d" status --porcelain)" ]
@@ -726,4 +727,21 @@ EOF
 @test "hashpw sin contraseña es un error de uso" {
   run bash -c "export MAXOR_INSTALL_NO_MAIN=1 MAXOR_INSTALL_STATE=$W/state MAXOR_INSTALL_LOG=$W/log MAXOR_INSTALL_SCHEMA=$MAXOR_INSTALL_SCHEMA; for f in common answers preflight disk luks filesystem host nixinstall bootloader finish; do . $ROOT/installer/engine/lib/\$f.sh; done; . $ROOT/installer/engine/main.sh; main hashpw < /dev/null"
   [ "$status" = "$IN_EX_USAGE" ]
+}
+
+@test "la gráfica es auto por defecto, acepta los cuatro modos y rechaza otro valor" {
+  mk
+  run main validate --answers "$W/a.json"
+  [ "$status" = 0 ]
+  ans_load "$W/a.json"
+  [ "$(ans .hardware.gpu)" = auto ]
+  for g in auto integrated nvidia hybrid; do
+    mk ".hardware.gpu = \"$g\""
+    run main validate --answers "$W/a.json"
+    [ "$status" = 0 ]
+  done
+  mk '.hardware.gpu = "turbo"'
+  run main validate --answers "$W/a.json"
+  [ "$status" = "$IN_EX_ANSWERS" ]
+  [[ "$output" == *"answers.hardware.gpu"* ]]
 }

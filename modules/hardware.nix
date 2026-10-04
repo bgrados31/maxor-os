@@ -20,6 +20,19 @@ let
   laptop = hw != null && hw.laptop;
   hybrid = laptop && nvidia != null && igpu != null;
 
+  # What the person chose in the installer (or later, in their own host file); auto is the recommendation for the machine:
+  # a laptop with an integrated GPU and an NVIDIA one runs hybrid; any other machine with an NVIDIA GPU uses it alone.
+  mode =
+    if cfg.gpu.mode != "auto" then cfg.gpu.mode
+    else if hybrid then "hybrid"
+    else if nvidia != null then "nvidia"
+    else "integrated";
+  useNvidia = nvidia != null && mode != "integrated";
+  # offload: the integrated GPU draws the desktop, the NVIDIA one works on demand (nvidia-offload <app>)
+  offload = useNvidia && igpu != null && mode == "hybrid";
+  # sync: the NVIDIA GPU draws everything, and the integrated one only passes the picture to the screen (a laptop)
+  sync = useNvidia && igpu != null && laptop && mode == "nvidia";
+
   # ID de dispositivo PCI de NVIDIA en número ("10de:28e1" → 0x28e1).
   nvidiaDev = lib.fromHexString (lib.last (lib.splitString ":" nvidia.id));
   # Los módulos de kernel abiertos de NVIDIA exigen Turing (RTX 20 / GTX 16) o
@@ -32,6 +45,11 @@ in
       type = lib.types.nullOr lib.types.path;
       default = null;
       description = "hardware.json generado por `maxor hardware detect --write`.";
+    };
+    gpu.mode = lib.mkOption {
+      type = lib.types.enum [ "auto" "integrated" "nvidia" "hybrid" ];
+      default = "auto";
+      description = "Which GPU draws the desktop. auto: the recommendation for the detected hardware; integrated: only the Intel/AMD one (no NVIDIA driver; coolest, longest battery); nvidia: only the NVIDIA one (on a laptop with an integrated GPU, PRIME sync); hybrid: the integrated GPU for the desktop and the NVIDIA one on demand (PRIME offload).";
     };
     nvidia.open = lib.mkOption {
       type = lib.types.nullOr lib.types.bool;
@@ -59,7 +77,7 @@ in
 
       # ── Gráficos ──
       services.xserver.videoDrivers =
-        if nvidia != null then [ "nvidia" ]
+        if useNvidia then [ "nvidia" ]
         else if amd != null then [ "amdgpu" ]
         else if intel != null then [ "modesetting" ]
         else [ ];
@@ -80,7 +98,7 @@ in
       hardware.graphics.extraPackages = [ pkgs.intel-media-driver ]; # decodificación de vídeo por hardware
     })
 
-    (lib.mkIf (hw != null && nvidia != null) {
+    (lib.mkIf (hw != null && useNvidia) {
       warnings = lib.optional (nvidiaDev < 4928)
         "Maxor: la GPU NVIDIA ${nvidia.id} es anterior a Maxwell; el controlador actual puede no soportarla (hace falta uno legacy).";
 
@@ -95,10 +113,17 @@ in
 
     # Portátil con iGPU + NVIDIA: el escritorio va por la integrada y la NVIDIA
     # entra bajo demanda con `nvidia-offload <app>` (ahorra batería y calor).
-    (lib.mkIf hybrid {
+    (lib.mkIf offload {
       hardware.nvidia.prime = {
         offload.enable = true;
         offload.enableOffloadCmd = true;
+        nvidiaBusId = nvidia.bus;
+      } // (if intel != null then { intelBusId = intel.bus; } else { amdgpuBusId = amd.bus; });
+    })
+
+    (lib.mkIf sync {
+      hardware.nvidia.prime = {
+        sync.enable = true;
         nvidiaBusId = nvidia.bus;
       } // (if intel != null then { intelBusId = intel.bus; } else { amdgpuBusId = amd.bus; });
     })

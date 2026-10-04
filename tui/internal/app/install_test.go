@@ -639,3 +639,50 @@ func TestRegionHasNoDetectRowWhenOfflineOrWhenFiltering(t *testing.T) {
 		t.Fatalf("offline cannot detect:\n%s", view(m2))
 	}
 }
+
+func hardwareScreen(t *testing.T) (*Model, *env) {
+	t.Helper()
+	e := newInstallEnv(emptyDisk())
+	m := installModel(t, e)
+	walkToAccount(m)
+	fillAccount(m, "Ana", "ana", "pc", "correct-horse-1")
+	enter(m, 2) // account → look → hardware
+	return m, e
+}
+
+func TestHardwareStepOffersTheGPUChoiceAndRecommendsHybridOnThisLaptop(t *testing.T) {
+	m, _ := hardwareScreen(t)
+	out := view(m)
+	for _, want := range []string{"Which GPU should draw the desktop?", "Hybrid", "recommended", "NVIDIA only", "Integrated only", "PRIME offload"} {
+		if !has(out, want) {
+			t.Fatalf("missing %q:\n%s", want, out)
+		}
+	}
+	send(m, key("down"))
+	if !has(view(m), "Everything runs on the NVIDIA GPU") {
+		t.Fatalf("the description follows the cursor:\n%s", view(m))
+	}
+}
+
+func TestTheChosenGPUGoesToTheEngineAndShowsInTheReview(t *testing.T) {
+	m, e := hardwareScreen(t)
+	send(m, key("down"), key("down"), key("enter")) // Integrated only → review
+	if !has(view(m), "integrated only") {
+		t.Fatalf("the review says what was chosen:\n%s", view(m))
+	}
+	typeText(m, "ERASE")
+	send(m, key("enter"))
+	if !strings.Contains(string(e.eng.answers), `"gpu": "integrated"`) {
+		t.Fatalf("the answers carry the choice:\n%s", e.eng.answers)
+	}
+}
+
+func TestLeavingTheGPUOnTheRecommendationSendsAuto(t *testing.T) {
+	m, e := hardwareScreen(t)
+	send(m, key("enter")) // Hybrid, the recommended one
+	typeText(m, "ERASE")
+	send(m, key("enter"))
+	if !strings.Contains(string(e.eng.answers), `"gpu": "hybrid"`) {
+		t.Fatalf("the recommendation is an explicit, visible choice:\n%s", e.eng.answers)
+	}
+}

@@ -73,6 +73,36 @@
     # El motor del instalador compila (y shellcheck lo revisa) como parte de las comprobaciones.
     checks.x86_64-linux.maxor-install = self.packages.x86_64-linux.maxor-install;
 
+    # What each GPU mode turns on, evaluated with the hardware of a hybrid laptop (Intel + NVIDIA). Evaluation only: the
+    # derivation is built (and the assertions run) when the check is evaluated.
+    checks.x86_64-linux.gpu-modes =
+      let
+        pkgs = nixpkgs.legacyPackages.x86_64-linux;
+        cfgOf = mode: (mkSystem {
+          machine = { hostname = "t"; user = "u"; };
+          modules = [ ({ ... }: {
+            maxor.hardware.report = ./hosts/nitro/hardware.json;
+            maxor.hardware.gpu.mode = mode;
+            boot.loader.grub.enable = false;
+            fileSystems."/" = { device = "x"; fsType = "ext4"; };
+          }) ];
+        }).config;
+        offload = c: c.hardware.nvidia.prime.offload.enable;
+        sync = c: c.hardware.nvidia.prime.sync.enable;
+        nvidia = c: builtins.elem "nvidia" c.services.xserver.videoDrivers;
+        auto = cfgOf "auto"; hybrid = cfgOf "hybrid"; integrated = cfgOf "integrated"; only = cfgOf "nvidia";
+        results = {
+          "auto on a hybrid laptop is hybrid" = offload auto && nvidia auto && !(sync auto);
+          "hybrid is offload" = offload hybrid && !(sync hybrid);
+          "integrated has no NVIDIA driver at all" = !(nvidia integrated) && !(offload integrated) && !(sync integrated);
+          "nvidia only is PRIME sync on a laptop" = sync only && !(offload only) && nvidia only;
+        };
+        failed = builtins.attrNames (nixpkgs.lib.filterAttrs (_: ok: !ok) results);
+      in
+      pkgs.runCommand "check-gpu-modes" { } (
+        if failed == [ ] then "touch $out"
+        else "echo 'failed: ${builtins.concatStringsSep ", " failed}'; exit 1");
+
     # The language and keyboard lists of the installer, generated from the system's data: they must be complete and every
     # locale must fit what the answers schema accepts.
     checks.x86_64-linux.catalog =

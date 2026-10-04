@@ -7,6 +7,7 @@ versions are numbered `0.N.0` until 1.0 (see [docs/RELEASING.md](docs/RELEASING.
 
 ### Added
 
+- **GPU choice** in the installer, where there is a real one (an NVIDIA GPU next to an Intel or AMD one): hybrid (PRIME offload), NVIDIA only (PRIME sync on a laptop) or integrated only, with the recommendation for the machine marked. The module option is `maxor.hardware.gpu.mode`; `auto` keeps today's behaviour (the derivation of an existing hybrid laptop is unchanged) and a new check (`gpu-modes`) evaluates what each mode turns on.
 - **Complete languages and keyboards** for the installer, generated at build time from the system's own data (glibc locales named with iso-codes, every xkeyboard-config layout and variant) instead of written by hand: 322 languages and 595 layouts, the common ones first, filter that ignores accents. An empty console keymap now means "same as the desktop layout" (`console.useXkbConfig`). A new check (`catalog`) keeps the lists complete and compatible with the answers schema.
 - **Time zone detection** (opt-in): the first row of the time zone step asks the internet for the zone, and says it tells ipapi.co the address; choosing a city sends nothing.
 - **Installer look**: the wizard now draws its own window (animated gradient mark, progress counter, list of steps with what was chosen, centered card that slides in between steps). The design reference is `docs/design/installer.html`. The ISO ships the official themes, and a step that cannot load them says so and continues with Sakura.

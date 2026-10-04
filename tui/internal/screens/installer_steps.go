@@ -1205,20 +1205,75 @@ func (s *lookStep) Lines(w *Installer, env *core.Env, width int) []ui.Line {
 
 // ── 10 · Hardware ────────────────────────────────────────────────────
 
-type hardwareStep struct{ stepBase }
+type hardwareStep struct {
+	stepBase
+	sel int
+}
 
 func (*hardwareStep) ID() string    { return "hardware" }
 func (*hardwareStep) Title() string { return "Your hardware" }
 func (*hardwareStep) Intro() string { return "This is what was found. Maxor OS picks the drivers for it." }
 
-func (*hardwareStep) Enter(w *Installer, env *core.Env) tea.Cmd {
+// options are the ways to use the graphics hardware: only where there is a real choice (see install.GPUOptions).
+func (*hardwareStep) options(env *core.Env) []install.GPUOption {
+	hw := env.Data.Hardware
+	if hw == nil {
+		return nil
+	}
+	var vendors []string
+	for _, g := range hw.GPUs {
+		vendors = append(vendors, g.Vendor)
+	}
+	return install.GPUOptions(vendors, hw.Laptop)
+}
+
+func (s *hardwareStep) Enter(w *Installer, env *core.Env) tea.Cmd {
+	s.sel = 0
 	if env.Data.Hardware == nil {
 		return LoadHardware(env, false)
+	}
+	s.pick(w, env)
+	return nil
+}
+
+// pick puts the cursor on what was chosen before, or on the recommendation.
+func (s *hardwareStep) pick(w *Installer, env *core.Env) {
+	opts := s.options(env)
+	for i, o := range opts {
+		if o.Mode == w.st.GPU || (w.st.GPU == "auto" && o.Recommended) {
+			s.sel = i
+		}
+	}
+}
+
+func (s *hardwareStep) Done(w *Installer, env *core.Env, d task.DoneMsg) tea.Cmd {
+	if d.ID == "data.hardware" {
+		s.pick(w, env)
 	}
 	return nil
 }
 
-func (*hardwareStep) Lines(w *Installer, env *core.Env, width int) []ui.Line {
+func (s *hardwareStep) Captures() bool { return false }
+
+func (s *hardwareStep) Key(w *Installer, env *core.Env, k tea.KeyMsg) (bool, tea.Cmd) {
+	opts := s.options(env)
+	switch k.String() {
+	case "up", "k":
+		s.sel = max(0, s.sel-1)
+	case "down", "j":
+		s.sel = min(max(len(opts)-1, 0), s.sel+1)
+	case "enter":
+		if len(opts) == 0 {
+			w.st.GPU = "auto" // one way to go: the drivers are simply picked
+		} else {
+			w.st.GPU = opts[min(s.sel, len(opts)-1)].Mode
+		}
+		return true, nil
+	}
+	return false, nil
+}
+
+func (s *hardwareStep) Lines(w *Installer, env *core.Env, width int) []ui.Line {
 	p := env.P
 	hw := env.Data.Hardware
 	if hw == nil {
@@ -1228,7 +1283,7 @@ func (*hardwareStep) Lines(w *Installer, env *core.Env, width int) []ui.Line {
 		return []ui.Line{muted(env, "Could not detect the hardware. The installer will try again while installing.")}
 	}
 	kv := func(k, v string) ui.Line {
-		return ui.Of(ui.S(p.Mu, fmt.Sprintf("%-14s", k)), ui.S(p.Text, v))
+		return ui.Of(ui.S(p.Mu, fmt.Sprintf("%-12s", k)), ui.S(p.Text, v))
 	}
 	kind := "desktop"
 	if hw.Laptop {
@@ -1246,7 +1301,27 @@ func (*hardwareStep) Lines(w *Installer, env *core.Env, width int) []ui.Line {
 	if len(hw.GPUs) == 0 {
 		lines = append(lines, kv("Graphics", "none detected"))
 	}
-	lines = append(lines, gap(), heading(env, "What Maxor OS will set up"))
+	lines = append(lines, gap())
+
+	if opts := s.options(env); len(opts) > 0 {
+		lines = append(lines, heading(env, "Which GPU should draw the desktop?"))
+		for i, o := range opts {
+			hint := ""
+			if o.Recommended {
+				hint = "recommended"
+			}
+			lines = append(lines, radio(env, i == s.sel, i == s.sel, o.Title, hint))
+		}
+		cur := opts[min(s.sel, len(opts)-1)]
+		lines = append(lines, gap())
+		for _, l := range ui.Wrap(cur.Description, width-3) {
+			lines = append(lines, muted(env, "   "+l))
+		}
+		lines = append(lines, gap(), muted(env, "You can change this later in your configuration."))
+		return lines
+	}
+
+	lines = append(lines, heading(env, "What Maxor OS will set up"))
 	has := func(v string) bool {
 		for _, x := range vendors {
 			if x == v {
@@ -1256,8 +1331,6 @@ func (*hardwareStep) Lines(w *Installer, env *core.Env, width int) []ui.Line {
 		return false
 	}
 	switch {
-	case has("nvidia") && (has("intel") || has("amd")):
-		lines = append(lines, plain(env, "Hybrid graphics: the integrated GPU runs the desktop and the NVIDIA GPU"), plain(env, "is there on demand (PRIME offload). If the NVIDIA driver cannot be fetched,"), plain(env, "the installed system falls back to the integrated GPU alone."))
 	case has("nvidia"):
 		lines = append(lines, plain(env, "The NVIDIA driver, fetched while installing."))
 	case has("amd"):
@@ -1495,6 +1568,7 @@ func (s *summaryStep) Lines(w *Installer, env *core.Env, width int) []ui.Line {
 		kv("Region", w.st.Timezone+" · "+w.st.Locale),
 		kv("Keyboard", install.FindLayout(w.st.XKBLayout, w.st.XKBVariant).Name),
 		kv("Look", w.st.Theme+profilesText(w.st.Profiles)),
+		kv("Graphics", map[string]string{"auto": "recommended for this machine", "hybrid": "hybrid (integrated + NVIDIA on demand)", "nvidia": "NVIDIA only", "integrated": "integrated only"}[w.st.GPU]),
 		kv("Network", map[bool]string{true: "none: installing without internet", false: "online"}[w.st.Offline]))
 	if d, ok := w.currentDisk(); ok && w.st.Strategy == "alongside" && d.Windows {
 		lines = append(lines, gap(), ui.Of(ui.S(p.Ok, ui.G.Tick+"  "), ui.S(p.Text, "Windows stays untouched and keeps its place in the boot menu.")))

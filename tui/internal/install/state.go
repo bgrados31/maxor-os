@@ -44,6 +44,7 @@ type State struct {
 	Theme    string
 	Profiles []string
 	Offline  bool
+	GPU      string // "auto" | "integrated" | "nvidia" | "hybrid"
 
 	Confirmed string // what the user typed to confirm (ERASE or INSTALL)
 	PlanHash  string
@@ -54,7 +55,7 @@ func Default() State {
 	return State{
 		Locale: "en_US.UTF-8", Keymap: "us", XKBLayout: "us", Timezone: "UTC",
 		Strategy: "whole", Filesystem: "btrfs", SwapKind: "zram",
-		Hostname: "maxor", Theme: "sakura",
+		Hostname: "maxor", Theme: "sakura", GPU: "auto",
 	}
 }
 
@@ -97,6 +98,7 @@ func (s State) Answers() ([]byte, error) {
 		},
 		"look":    map[string]any{"theme": s.Theme, "profiles": profiles},
 		"network": map[string]any{"offline": s.Offline},
+		"hardware": map[string]any{"gpu": s.GPU},
 	}
 	return json.MarshalIndent(doc, "", "  ")
 }

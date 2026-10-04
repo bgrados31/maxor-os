@@ -21,6 +21,7 @@ host_flake_nix() {
   km="$(nixstr "$(ans .keymap)")"
   layout="$(nixstr "$(ans .xkb.layout)")"
   variant="$(nixstr "$(ans .xkb.variant)")"
+  gpu="$(ans .hardware.gpu)" # an enum in the schema: safe to write as it is
   if ans_true '.user.autologin'; then
     autologin="
         ({ config, ... }: {
@@ -55,6 +56,7 @@ host_flake_nix() {
         ./host/local.nix
         ({ ... }: {
           maxor.hardware.report = ./host/hardware.json;
+          maxor.hardware.gpu.mode = "$gpu";
           maxor.settings = ./host/maxor.json;
         })$autologin
       ];

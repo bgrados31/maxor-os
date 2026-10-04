@@ -100,7 +100,10 @@ func (w *Installer) value(id string) string {
 	case "look":
 		return st.Theme
 	case "hardware":
-		return "detected"
+		if st.GPU == "" || st.GPU == "auto" {
+			return "detected"
+		}
+		return st.GPU
 	}
 	return ""
 }
