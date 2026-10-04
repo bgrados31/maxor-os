@@ -24,8 +24,8 @@ writeShellApplication {
   name = "maxor-install";
   runtimeInputs = [ jq coreutils util-linux parted dosfstools e2fsprogs btrfs-progs cryptsetup git curl gnugrep gnused gawk findutils nixos-install-tools nix systemd ];
   runtimeEnv = {
-    MAXOR_INSTALL_SCHEMA = ../installer/schema/answers.v1.json;
-    MAXOR_PROFILES = ../modules/profiles-catalog.json;
+    MAXOR_INSTALL_SCHEMA = "${../installer/schema/answers.v1.json}"; # interpolado: Nix lo copia al store y lo mantiene vivo
+    MAXOR_PROFILES = "${../modules/profiles-catalog.json}";
     MAXOR_BIN = "${maxor}/bin/maxor";
   };
   excludeShellChecks = [ "SC2034" "SC2001" "SC2155" "SC2086" "SC2012" "SC2015" "SC2016" "SC2312" ];

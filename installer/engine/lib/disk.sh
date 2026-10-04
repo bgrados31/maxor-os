@@ -29,8 +29,10 @@ disk_free_json() {
   if [ -z "$dump" ]; then
     # sin tabla de particiones: todo el disco, menos los extremos reservados de GPT
     local sectors
-    sectors="$(blockdev --getsz "$1")"
-    jq -nc --argjson n "$sectors" '[{start: 2048, end: ($n - 2049), sectors: ($n - 2048 - 2048)}]'
+    sectors="$(blockdev --getsz "$1" 2> /dev/null || echo 0)"
+    [[ "$sectors" =~ ^[0-9]+$ ]] || sectors=0
+    # un dispositivo sin medio (lector de tarjetas vacío, disquetera) no tiene huecos: no es un error
+    jq -nc --argjson n "$sectors" 'if $n < 4096 then [] else [{start: 2048, end: ($n - 2049), sectors: ($n - 2048 - 2048)}] end'
   else
     jq -c "$DISK_JQ_FREE" <<< "$dump"
   fi
@@ -40,7 +42,9 @@ disk_free_json() {
 disk_probe_json() {
   local lsb disks d out='[]' free
   lsb="$(lsblk -J -b -o NAME,PATH,SIZE,TYPE,MODEL,TRAN,RM,RO,FSTYPE,LABEL,PARTLABEL,MOUNTPOINTS)"
-  disks="$(jq -r '.blockdevices[] | select(.type == "disk") | .path' <<< "$lsb")"
+  # Solo discos con medio: sin disqueteras (fd), memoria comprimida (zram), lectores vacíos (tamaño 0)
+  # ni dispositivos de red (nbd).
+  disks="$(jq -r '.blockdevices[] | select(.type == "disk" and ((.size | tonumber) > 0) and (.name | test("^(fd|zram|ram|nbd)[0-9]*$") | not)) | .path' <<< "$lsb")"
   for d in $disks; do
     free="$(disk_free_json "$d")"
     out="$(jq -c --arg d "$d" --argjson free "$free" --argjson all "$lsb" '

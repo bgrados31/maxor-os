@@ -22,6 +22,7 @@ Options:
   --reset           forget a previous run's progress (it does not undo the disk)
   --events FILE     write progress events (JSON lines) to FILE
   --secret-fd N     read the encryption passphrase from file descriptor N
+  --only A,B        run only these stages, in their normal order (for tests and repairs)
 __END_USAGE__
 }
 
@@ -57,7 +58,7 @@ stage_run() {
 }
 
 engine_run() {
-  local answers="$1" resume="$2" reset="$3" secret_fd="$4" s
+  local answers="$1" resume="$2" reset="$3" secret_fd="$4" only="${5:-}" s
   ans_load "$answers" || in_die "$IN_EX_ANSWERS" "the answers are not valid (see above); nothing was changed"
 
   if [ -n "$secret_fd" ]; then IN_SECRET="$(cat <&"$secret_fd")"; fi
@@ -83,12 +84,21 @@ engine_run() {
       "$(ans_true '.disk.encrypt.enabled' && printf ', encrypted' || true)" "$(ans .user.name)"
   fi
 
+  if [ -n "$only" ]; then
+    local keep=() want w
+    IFS=, read -ra want <<< "$only"
+    for s in "${IN_STAGES[@]}"; do
+      for w in "${want[@]}"; do [ "$s" = "$w" ] && keep+=("$s"); done
+    done
+    [ "${#keep[@]}" = "${#want[@]}" ] || in_die "$IN_EX_USAGE" "--only names a stage that does not exist (stages: ${IN_STAGES[*]})"
+    IN_STAGES=("${keep[@]}")
+  fi
   for s in "${IN_STAGES[@]}"; do stage_run "$s"; done
   in_emit "done" ok "Maxor OS is installed" 1.00
 }
 
 main() {
-  local cmd="${1:-}" answers="" resume=0 reset=0 secret_fd=""
+  local cmd="${1:-}" answers="" resume=0 reset=0 secret_fd="" only=""
   [ "$#" -gt 0 ] && shift
   while [ "$#" -gt 0 ]; do
     case "$1" in
@@ -99,6 +109,8 @@ main() {
       --events) IN_EVENTS="${2:-}"; shift ;;
       --events=*) IN_EVENTS="${1#--events=}" ;;
       --secret-fd) secret_fd="${2:-}"; shift ;;
+      --only) only="${2:-}"; shift ;;
+      --only=*) only="${1#--only=}" ;;
       --dry-run) IN_DRY=1 ;;
       -h | --help) in_usage; return 0 ;;
       *) in_usage >&2; in_die "$IN_EX_USAGE" "unknown option: $1" ;;
@@ -114,13 +126,13 @@ main() {
       ;;
     hash)
       [ -n "$answers" ] || { in_usage >&2; in_die "$IN_EX_USAGE" "hash needs --answers FILE"; }
-      ans_load "$answers" || in_die "$IN_EX_ANSWERS" "the answers are not valid"
+      ans_load "$answers" structure || in_die "$IN_EX_ANSWERS" "the answers are not valid"
       ans_plan_hash
       ;;
     plan | run)
       [ -n "$answers" ] || { in_usage >&2; in_die "$IN_EX_USAGE" "$cmd needs --answers FILE"; }
       [ "$cmd" = plan ] && IN_DRY=1
-      engine_run "$answers" "$resume" "$reset" "$secret_fd"
+      engine_run "$answers" "$resume" "$reset" "$secret_fd" "$only"
       ;;
     -h | --help | help | "") in_usage ;;
     *) in_usage >&2; in_die "$IN_EX_USAGE" "unknown command: $cmd" ;;

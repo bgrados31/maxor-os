@@ -14,7 +14,7 @@ PF_FAILS=()
 pf_fail() { PF_FAILS+=("$1"); }
 
 preflight_checks() {
-  local disk strategy size need live parent mounted fs
+  local disk strategy size need live parent mounted fs min
   disk="$(ans .disk.device)"
   strategy="$(ans .disk.strategy)"
   fs="$(ans .disk.filesystem)"
@@ -36,14 +36,17 @@ preflight_checks() {
     # tamaño: un disco entero necesita sitio para un sistema cómodo; junto a otro, el hueco elegido
     size="$(blockdev --getsize64 "$disk" 2> /dev/null || echo 0)"
     if [ "$strategy" = whole ]; then
-      need=$((32 * 1073741824))
-      [ "$size" -ge "$need" ] || pf_fail "$disk has $((size / 1073741824)) GiB; a full install needs at least 32 GiB"
+      # El mínimo se puede bajar con MAXOR_INSTALL_MIN_GIB solo para pruebas con discos virtuales pequeños.
+      min="${MAXOR_INSTALL_MIN_GIB:-32}"
+      need=$((min * 1073741824))
+      [ "$size" -ge "$need" ] || pf_fail "$disk has $((size / 1073741824)) GiB; a full install needs at least $min GiB"
     else
       local rs re
       rs="$(ans .disk.region.start)"
       re="$(ans .disk.region.end)"
-      need=$((40 * 1073741824))
-      [ $(((re - rs + 1) * 512)) -ge "$need" ] || pf_fail "the free region is smaller than 40 GiB"
+      min="${MAXOR_INSTALL_MIN_REGION_GIB:-40}"
+      need=$((min * 1073741824))
+      [ $(((re - rs + 1) * 512)) -ge "$need" ] || pf_fail "the free region is smaller than $min GiB"
     fi
 
     # el medio del que arrancó la ISO nunca es un destino

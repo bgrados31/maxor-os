@@ -47,9 +47,9 @@ writeShellApplication {
   name = "maxor";
   runtimeInputs = [ jq coreutils gnused gnugrep gawk gnutar gzip findutils procps ncurses curl openssh git util-linux libnotify ];
   runtimeEnv = lib.optionalAttrs (releaseUrl != null) { MAXOR_RELEASE_URL = releaseUrl; } // {
-    MAXOR_PROFILES = ../modules/profiles-catalog.json;
+    MAXOR_PROFILES = "${../modules/profiles-catalog.json}"; # interpolado: Nix lo copia al store y lo mantiene vivo
     # Las claves de confianza van dentro del paquete: no se pueden cambiar sin cambiar el sistema.
-    MAXOR_RELEASE_KEYS = releaseKeys;
+    MAXOR_RELEASE_KEYS = "${releaseKeys}";
     MAXOR_VERSION = maxorVersion;
   };
   excludeShellChecks = [ "SC2034" "SC2001" "SC2155" "SC2086" "SC2012" "SC2015" "SC2016" ];

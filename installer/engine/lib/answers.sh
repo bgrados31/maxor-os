@@ -58,8 +58,10 @@ def reserved: ["root","daemon","bin","sys","nobody","nixbld","maxor","admin","gu
 '
 
 # ans_load ARCHIVO → deja en $IN_ANSWERS las respuestas completas; imprime los errores y devuelve 1.
+# ans_load ARCHIVO [structure] → con «structure» solo se comprueba la forma: sirve para calcular la huella
+# del plan antes de tener la confirmación (que se pide después de enseñar el resumen).
 ans_load() {
-  local file="$1" errs raw cat
+  local file="$1" mode="${2:-full}" errs raw cat
   [ -r "$file" ] || in_die "$IN_EX_USAGE" "cannot read the answers file: $file"
   [ -r "$IN_SCHEMA" ] || in_die "$IN_EX_USAGE" "the answers schema is missing: $IN_SCHEMA"
   jq -e . "$file" > /dev/null 2>&1 || in_die "$IN_EX_ANSWERS" "the answers file is not valid JSON"
@@ -69,6 +71,12 @@ ans_load() {
     return 1
   fi
   raw="$(jq -c --slurpfile s "$IN_SCHEMA" "$ANS_JQ_DEFAULTS" "$file")"
+  if [ "$mode" = structure ]; then
+    IN_ANSWERS="$(mktemp)"
+    chmod 600 "$IN_ANSWERS"
+    printf '%s\n' "$raw" > "$IN_ANSWERS"
+    return 0
+  fi
   cat='[]'
   if [ -n "${MAXOR_PROFILES:-}" ] && [ -r "$MAXOR_PROFILES" ]; then cat="$(jq -c 'keys' "$MAXOR_PROFILES")"; fi
   errs="$(jq -r --argjson cat "$cat" "$ANS_JQ_CROSS" <<< "$raw")"

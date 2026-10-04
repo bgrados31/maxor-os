@@ -9,6 +9,7 @@ versions are numbered `0.N.0` until 1.0 (see [docs/RELEASING.md](docs/RELEASING.
 
 - **Installer engine** (`maxor-install`): the program that installs Maxor OS, independent of any screen. It reads a versioned JSON contract of answers and runs eight stages (preflight, GPT partitioning, LUKS2, filesystem with btrfs subvolumes, per-machine flake, `nixos-install`, boot check, finish) with progress events, resume support and a deterministic dry run. Safety lives in the engine: erasing a disk requires typing `ERASE`, installing alongside another system requires the hash of the plan that was shown, and passwords only ever travel on standard input. See [docs/INSTALLER.md](docs/INSTALLER.md).
 - **First-login look**: new users now start with the Maxor logo in the bar and the sakura theme (`maxor firstrun`, run once by a user service), without overriding anything already customized.
+- **Real-disk installer test** (`installer-disks`): boots a UEFI VM and runs the real partitioning, LUKS2 and filesystem stages on virtual disks, including installing alongside an existing system, which must leave the existing partitions byte-identical.
 - **Test virtual machine** (`nix run .#vm`, `nix run .#vm-old`): the real desktop, login and CLI on QEMU, to try changes without touching a real machine. `vm-old` pretends to be 0.0.1 so the published release shows up as an update. A two-VM check (`release-vm`) exercises the release system end to end. See [docs/VM.md](docs/VM.md).
 - **Repository hardening**: secret scanning and push protection, Dependabot, branch and tag protection (published `v*` tags are immutable), GitHub Actions pinned to commit hashes, `CODEOWNERS`, and the signing model documented in [SECURITY.md](SECURITY.md).
 
@@ -20,6 +21,8 @@ versions are numbered `0.N.0` until 1.0 (see [docs/RELEASING.md](docs/RELEASING.
 
 ### Fixed
 
+- **Trust keys and data files could go missing.** The release trust keys, the profile catalog and the installer schema were referenced by source path instead of being copied into the Nix store, so they could disappear after garbage collection or on another machine. They are now real dependencies of the packages.
+- The installer's disk probe no longer fails on devices without media (floppy drives, empty card readers).
 - A missing signature file on the release channel was reported as an invalid signature instead of an unsigned release.
 - The release workflow now fetches the signed tag object before verifying it, and can be re-run by hand for an existing tag.
 

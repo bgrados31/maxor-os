@@ -609,3 +609,35 @@ stub_stages() {
   run main validate
   [ "$status" = "$IN_EX_USAGE" ]
 }
+
+@test "el sondeo ignora disqueteras, zram y lectores sin medio, y un dispositivo ilegible no rompe el resto" {
+  cat > "$W/lsblk.json" << 'EOF'
+{"blockdevices":[
+ {"name":"fd0","path":"/dev/fd0","size":0,"type":"disk","model":null,"rm":true,"ro":false,"mountpoints":[null],"children":[]},
+ {"name":"zram0","path":"/dev/zram0","size":8589934592,"type":"disk","model":null,"rm":false,"ro":false,"mountpoints":["[SWAP]"],"children":[]},
+ {"name":"sdb","path":"/dev/sdb","size":0,"type":"disk","model":"SD Reader","rm":true,"ro":false,"mountpoints":[null],"children":[]},
+ {"name":"vda","path":"/dev/vda","size":107374182400,"type":"disk","model":"QEMU HARDDISK","rm":false,"ro":false,"mountpoints":[null],"children":[]}
+]}
+EOF
+  shim lsblk "cat '$W/lsblk.json'"
+  shim sfdisk 'exit 1'
+  shim blockdev 'case "$*" in *vda*) echo 209715200 ;; *) exit 1 ;; esac'
+  run disk_probe_json
+  [ "$status" = 0 ]
+  [ "$(jq -r 'map(.path) | join(",")' <<< "$output")" = /dev/vda ]
+}
+
+@test "un dispositivo cuyo tamaño no se puede leer no tiene huecos en vez de romper" {
+  shim sfdisk 'exit 1'
+  shim blockdev 'exit 1'
+  run disk_free_json /dev/fd0
+  [ "$status" = 0 ]
+  [ "$output" = "[]" ]
+}
+
+@test "el hash del plan se puede calcular antes de tener la confirmación" {
+  mk '.disk.strategy = "alongside" | .disk.region = {start: 4000000, end: 200000000} | del(.disk.confirmed)'
+  run main hash --answers "$W/a.json"
+  [ "$status" = 0 ]
+  [[ "$output" =~ ^[0-9a-f]{64}$ ]]
+}
