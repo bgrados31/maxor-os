@@ -27,30 +27,35 @@ let
     xkb.layout = "es";
   };
 
-  # Lo que el instalador toma de la máquina, ya hecho: así el sistema que instala es EXACTAMENTE el que ya está
-  # compilado (la misma derivación) y nixos-install no tiene que construir nada, solo copiar. Son las opciones
-  # MAXOR_INSTALL_HWJSON y MAXOR_INSTALL_HWCONFIG del motor.
-  hwJson = ../../hosts/vm/hardware.json;
+  # What the installer takes from the machine, preseeded (the engine's MAXOR_INSTALL_HWJSON and _HWCONFIG): the
+  # description of a typical Intel laptop, so the hardware's own packages are the ones a real machine would need.
+  hwJson = ../../installer/generic/hardware-intel.json;
   # These are files of the repository, not derivations: the modules read them while evaluating, and a
   # derivation there would need building during evaluation (import from derivation), which CI forbids.
   hwConfig = ./installer-full/hardware-configuration.nix;
-  maxorJson = ./installer-full/maxor.json;
-  bootNix = ./installer-full/boot.nix;
   localNix = ./installer-full/local.nix;
 
-  # El sistema que producirá el instalador, evaluado aquí con los mismos archivos.
-  representative = self.lib.mkSystem {
-    inherit machine;
+  # What the installation medium carries: a GENERIC Maxor OS. The machine installed here is not that one (another
+  # hostname and account, another hardware description, the test harness's module): its fstab, initrd, units and top
+  # level are built during the installation, offline, with the tools of installer/offline.nix. That is what this test
+  # proves about the medium.
+  generics = self.lib.offlineStore pkgs;
+
+  # The test harness (the module that lets the test drive the installed system) is not part of Maxor OS and no real
+  # machine has it: its packages are given to the installer as test infrastructure, in a system that is otherwise the
+  # generic one, so that they are the only thing the test supplies that a real installation would not.
+  harness = (self.lib.mkSystem {
+    machine = { hostname = "maxor"; user = "maxor"; fullname = "Maxor"; };
     modules = [
-      hwConfig
-      bootNix
+      ../../installer/generic/hardware-configuration.nix
+      ../../installer/generic/boot.nix
       localNix
       ({ ... }: {
         maxor.hardware.report = hwJson;
-        maxor.settings = maxorJson;
+        maxor.settings = ../../installer/generic/maxor.json;
       })
     ];
-  };
+  }).config.system.build.toplevel;
 
   # Sin red, el instalador usa copias locales de Maxor OS y de sus inputs (con sus metadatos) en vez de internet.
   overridesFile = pkgs.writeText "overrides" (import ../../installer/offline-overrides.nix { inherit lib self inputs; });
@@ -72,7 +77,7 @@ pkgs.testers.runNixOSTest {
 
   nodes = {
     installer = { config, pkgs, lib, ... }: {
-      imports = [ commonConfig ];
+      imports = [ commonConfig ../../installer/offline.nix ];
 
       # con el initrd de systemd, el dispositivo raíz vacío se formatea solo así
       virtualisation.fileSystems."/".autoFormat = true;
@@ -81,8 +86,8 @@ pkgs.testers.runNixOSTest {
       virtualisation.emptyDiskImages = [ 1024 ];
       virtualisation.rootDevice = "/dev/vdb";
       # El sistema casi entero y las fuentes de los inputs (con su metadato, tal como las bloquea el flake.lock).
-      virtualisation.additionalPaths = [
-        representative.config.system.build.toplevel
+      virtualisation.additionalPaths = generics ++ [
+        harness
         "${inputs.nixpkgs}"
         "${inputs.home-manager}"
         "${inputs.dms}"
@@ -98,41 +103,7 @@ pkgs.testers.runNixOSTest {
         connect-timeout = 1;
       };
 
-      # La prueba no tiene red: todo lo que hace falta para evaluar y construir un NixOS tiene que estar en la VM.
-      system.extraDependencies = with pkgs; [
-        stdenv
-        stdenvNoCC
-        bintools
-        brotli
-        brotli.dev
-        brotli.lib
-        desktop-file-utils
-        docbook5
-        docbook_xsl_ns
-        kbd.dev
-        kmod.dev
-        libarchive.dev
-        libxml2.bin
-        libxslt.bin
-        perlPackages.ConfigIniFiles
-        perlPackages.FileSlurp
-        perlPackages.JSON
-        perlPackages.ListCompare
-        perlPackages.XMLLibXML
-        (python3.withPackages (p: [ p.mistune ]))
-        shared-mime-info
-        sudo
-        switch-to-configuration-ng
-        texinfo
-        unionfs-fuse
-        lndir
-        shellcheck-minimal
-        systemdMinimal.out
-        curl
-        zstd.bin
-        mypy
-        config.boot.bootspec.package
-      ];
+      # No network in the test: what is needed to evaluate and build a NixOS is what the installation medium carries.
     };
 
     # El sistema instalado, arrancado desde el mismo disco.
@@ -161,7 +132,7 @@ pkgs.testers.runNixOSTest {
         "disk": {"device": "/dev/vda", "strategy": "whole", "filesystem": "btrfs", "confirmed": "ERASE"},
         "machine": {"hostname": "${machine.hostname}"},
         "user": {"name": "${machine.user}", "fullname": "${machine.fullname}", "password_hash": "${passwordHash}"},
-        "look": {"profiles": ["dev"]},
+        "look": {"profiles": []},
     }
 
     installer.start()

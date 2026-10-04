@@ -1,0 +1,8 @@
+{
+  "version": 1,
+  "cpu": { "vendor": "intel", "model": "generic" },
+  "gpus": [ { "vendor": "intel", "id": "8086:a7a0", "bus": "PCI:0:2:0" } ],
+  "laptop": true,
+  "virt": "none",
+  "bluetooth": true
+}

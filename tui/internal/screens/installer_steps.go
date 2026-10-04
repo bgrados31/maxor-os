@@ -1728,8 +1728,8 @@ func (s *installStep) Lines(w *Installer, env *core.Env, width int) []ui.Line {
 		}
 		lines = append(lines, ui.Of(mark, ui.S(txt, st.Title)))
 	}
-	n := int(progress * 36)
-	lines = append(lines, gap(), ui.Of(ui.S(p.Ac, strings.Repeat(ui.G.BarOn, n)), ui.S(p.Mu, strings.Repeat(ui.G.BarOff, 36-n)), ui.S(p.Mu, fmt.Sprintf("  %d%%", int(progress*100)))))
+	bar := gradBar(env, ui.NewPainter(env.Theme, env.Theme.P.Bg), int(progress*100), 36, w.running)
+	lines = append(lines, gap(), ui.Line{L: append(bar, ui.S(p.Mu, fmt.Sprintf("  %d%%", int(progress*100))))})
 	// what the programs are printing, as far as the window has room for
 	if n := min(6, w.bodyH-19); n > 0 {
 		lines = append(lines, gap())

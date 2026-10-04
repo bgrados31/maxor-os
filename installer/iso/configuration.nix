@@ -50,7 +50,14 @@ in
     (modulesPath + "/installer/cd-dvd/installation-cd-base.nix")
     ../../modules/fonts.nix
     ../../modules/branding.nix # the name, the quiet boot and the splash with the progress bar
+    ../offline.nix # the tools to build a system without a network
   ];
+
+  # ── Installing without a network ────────────────────────────────────
+  # The finished packages of a generic Maxor OS travel on the medium. nixos-install takes them from this store; what
+  # describes the machine being installed (disks, account, hardware) is built during the installation, with the tools
+  # of offline.nix. Proven by checks.installer-full, which installs a different machine offline.
+  isoImage.storeContents = self.lib.offlineStore pkgs;
 
   # ── The installer session ───────────────────────────────────────────
   # The base image already has the passwordless `nixos` user, who is also the owner of the installer.

@@ -204,7 +204,7 @@ func (w *Installer) Frame(env *core.Env, width, height int) []string {
 			pos = len(vis)
 		}
 		barW := 24
-		segs := append([]ui.Seg{ui.S(page.Mu, "install  ")}, ui.Bar(page, pos*100/max(len(vis), 1), barW)...)
+		segs := append([]ui.Seg{ui.S(page.Mu, "install  ")}, gradBar(env, page, pos*100/max(len(vis), 1), barW, w.running)...)
 		segs = append(segs, ui.S(page.Mu, fmt.Sprintf("  %d/%d", pos, len(vis))))
 		rows = append(rows, padSegs(segs, width, pc).Render(width, pc))
 	}
@@ -254,4 +254,28 @@ func (w *Installer) Frame(env *core.Env, width, height int) []string {
 	}
 	rows = append(rows, blank, padSegs(ui.Hints(page, w.Hints(env)), width, pc).Render(width, pc))
 	return rows[:height]
+}
+
+// gradBar is a progress bar whose filled part runs from one accent to the other, with a bright cell that travels
+// along it while there is work going on (animate).
+func gradBar(env *core.Env, p ui.Painter, pct, width int, animate bool) []ui.Seg {
+	pct = min(max(pct, 0), 100)
+	n := pct * width / 100
+	segs := make([]ui.Seg, 0, width)
+	glow := -1
+	if animate && n > 0 {
+		glow = (env.Frame / 2) % n
+	}
+	for i := 0; i < width; i++ {
+		if i >= n {
+			segs = append(segs, ui.S(p.Mu, ui.G.BarOff))
+			continue
+		}
+		col := ui.Mix(env.Theme.P.Ac, env.Theme.P.Ac2, float64(i)/float64(max(width-1, 1)))
+		if i == glow {
+			col = ui.Mix(col, env.Theme.P.Fg, 0.55)
+		}
+		segs = append(segs, ui.S(p.Fill.Foreground(lipgloss.Color(col)), ui.G.BarOn))
+	}
+	return segs
 }

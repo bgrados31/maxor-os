@@ -30,6 +30,19 @@
       modules = [ self.nixosModules.default { maxor.machine = machine; } ] ++ modules;
     };
 
+    # A generic machine for the installation medium (see maxor-generic below): only its hardware description varies.
+    genericSystem = hw: mkSystem {
+      machine = { hostname = "maxor"; user = "maxor"; fullname = "Maxor"; };
+      modules = [
+        ./installer/generic/hardware-configuration.nix
+        ./installer/generic/boot.nix
+        ({ ... }: {
+          maxor.hardware.report = hw;
+          maxor.settings = ./installer/generic/maxor.json;
+        })
+      ];
+    };
+
     # La máquina virtual de pruebas (hosts/vm): el mismo Maxor OS sobre QEMU.
     # cliVersion, si se da, es la versión que dice ser la CLI (ver vm-old).
     mkVm = { cliVersion ? null }: mkSystem {
@@ -169,6 +182,16 @@
     };
     packages.x86_64-linux.iso = self.nixosConfigurations.maxor-iso.config.system.build.isoImage;
 
+    # Generic machines: the finished packages of Maxor OS that the installation medium carries, so that installing needs no
+    # network. They differ only in what the hardware pulls in (microcode, video drivers, laptop tools, the guest tools of a
+    # virtual machine): the medium carries every variant, so those packages come with it by construction instead of from a
+    # list somebody has to keep. The machine that is installed differs in what describes it (disks, hostname, account); those
+    # parts are built during the installation from the tools in installer/offline.nix. NVIDIA drivers are not carried.
+    nixosConfigurations.maxor-generic = genericSystem ./installer/generic/hardware-base.json;
+    nixosConfigurations.maxor-generic-intel = genericSystem ./installer/generic/hardware-intel.json;
+    nixosConfigurations.maxor-generic-amd = genericSystem ./installer/generic/hardware-amd.json;
+    nixosConfigurations.maxor-generic-vm = genericSystem ./installer/generic/hardware-vm.json;
+
     # Una máquina de ejemplo con otro usuario, otro teclado y otra región, y sin identidad de git:
     # la prueba de que la distribución no tiene ningún nombre escrito a mano. Se evalúa en la CI
     # (`nix flake check`) pero no se construye. Es también la plantilla de lo que
@@ -194,5 +217,14 @@
 
     # Para quien arma su propia máquina: `maxor-os.lib.mkSystem { machine = …; modules = […]; }`.
     lib.mkSystem = mkSystem;
+
+    # What the installation medium carries so that installing needs no network (see installer/offline-inputs.nix and
+    # nixosConfigurations.maxor-generic): the finished generic systems and what building a machine's own parts needs.
+    # The medium and the install test both take it from here, so the test proves what the medium ships.
+    lib.offlineStore = pkgs:
+      let systems = map (n: self.nixosConfigurations.${n})
+        [ "maxor-generic" "maxor-generic-intel" "maxor-generic-amd" "maxor-generic-vm" ];
+      in map (s: s.config.system.build.toplevel) systems
+        ++ [ (import ./installer/offline-inputs.nix { inherit pkgs; systems = map (s: s.config) systems; }) ];
   };
 }

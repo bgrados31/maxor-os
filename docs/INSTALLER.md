@@ -157,20 +157,35 @@ configurations). Updating is then `maxor release apply`: it verifies the signed 
 it and rebuilds. This also gives machines that are not a clone of this repository a supported way to
 follow releases.
 
-### The live ISO
+### The installation medium
 
-`nixosConfigurations.maxor-iso`, built with `nix build .#iso`. It boots, in this order of importance:
+`nixosConfigurations.maxor-iso`, built with `nix build .#iso`. Like any installer medium it is not a
+desktop: the boot menu starts a minimal system whose only program is the installer.
 
-- **Boot menu** with Maxor's name and branding: normal, safe graphics (`nomodeset`), copy to RAM.
-- **Live session** straight into Hyprland with Maxor Shell, so the system can be tried before installing.
-- **The installer**, offered on first boot as a full-screen window, and reachable with `maxor install`.
-- **The closure of the default install** baked in, so a default install works offline; everything else
-  comes from the binary cache.
+- **Boot menu**: GRUB with the Maxor mark (Krona One, Sakura gradient) and Red Hat Mono entries
+  (`installer/iso/grub-theme.nix`); normal, safe graphics (`nomodeset`), copy to RAM.
+- **Boot splash**: the same Plymouth theme the installed system uses, with the progress bar.
+- **The session**: greetd signs in and starts one sway session with one program, the installer, full
+  screen on a dark background (`maxor-tui --screen install` in kitty). sway is used instead of a plainer
+  kiosk compositor because it can change the keyboard layout while it runs, so the layout being chosen can
+  be tested by typing. When the installer ends the session ends and greetd starts it again. Ctrl+Alt+F2 is
+  a text console, a way out if something goes wrong.
+- **Installing without a network**: the medium carries the finished packages of a generic Maxor OS, in
+  four variants that differ only in what the hardware pulls in (base, Intel laptop, AMD, virtual machine;
+  `nixosConfigurations.maxor-generic*`), plus the tools to build the parts that describe the machine being
+  installed (`installer/offline.nix`). `nixos-install` takes the finished paths from the medium's store and
+  builds only fstab, initrd, units and the system's top level. `checks.installer-full` installs a *different*
+  machine offline to prove it. With a network the local store is used as well, so nothing the medium carries
+  is downloaded twice.
+- **Limits, stated plainly**: NVIDIA's proprietary driver is not redistributable and not built by the binary
+  cache, so it is not on the medium; the profiles (gaming, development…) download their packages, so without
+  a network they are not offered. The installer says both.
 - A checksum and a signature (`SHA256SUMS` + `.sig`, made with the release key) published as release
   assets; the update system's key covers it.
 
-NVIDIA's proprietary driver is not redistributable inside the ISO: it is fetched during the install,
-and hybrid graphics fall back to the integrated GPU if that fetch is not possible.
+Tools: `scripts/offline-missing.py TARGET.drv ROOT…` tells what installing a given system would still need
+that a medium does not carry (what Nix would have to build, and what would need the internet), without
+building an image or running a VM.
 
 ## Testing
 
@@ -192,7 +207,7 @@ dual-boots Windows.
 | M1 | `lib.mkSystem`: the distribution stops hardcoding a user; hosts become data | **done**: `nitro` and the VM build from it; 654 home files and all of `/etc` compared, only the intended file changed |
 | M2 | Engine: answers schema, plan, preflight, dry-run, stages, events | **done**: 52 tests; the generated machine flake evaluates against this repository |
 | M3 | Real install onto a virtual disk in a NixOS test | **done**: the engine installs offline and the installed system boots (`installer-full`) |
-| M4 | ISO: branded boot, live session, closure baked in, boots in QEMU with UEFI | verified by screenshots |
-| M5 | The wizard (TUI) driving the engine | a full install through the screens in the VM |
+| M4 | ISO: branded boot, installer-only session, closure baked in, boots in QEMU with UEFI | **mostly done**: boots under UEFI with the branded menu and splash into the installer (screenshots); the offline closure is proven by `installer-full`; the full ISO with that closure is built next |
+| M5 | The wizard (TUI) driving the engine | **done in tests**; a full install through the screens on the ISO in the VM is next |
 | M6 | Alongside (dual boot), LUKS, hybrid NVIDIA, binary cache | each tested in the real layer |
 | M7 | Signed ISO as a release asset | checksum and signature verify in CI |
