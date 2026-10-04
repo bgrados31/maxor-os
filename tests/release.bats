@@ -7,7 +7,7 @@ setup() {
   cat > "$BATS_TEST_TMPDIR/r/CHANGELOG.md" <<'MD'
 # Cambios
 
-## [Sin publicar]
+## [Unreleased]
 
 ### Añadido
 

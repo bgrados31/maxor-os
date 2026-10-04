@@ -1,15 +1,15 @@
 #!/usr/bin/env bash
-# Publica una versión de Maxor OS, firmada.
+# Publish a signed Maxor OS release.
 #
-#   scripts/release.sh 0.1.0                 muestra el plan y no cambia nada
-#   scripts/release.sh 0.1.0 --yes           lo ejecuta
-#   scripts/release.sh 0.1.0 --assets-only   solo (re)sube el manifiesto firmado de una etiqueta ya creada
+#   scripts/release.sh 0.1.0                 print the plan and change nothing
+#   scripts/release.sh 0.1.0 --yes           run it
+#   scripts/release.sh 0.1.0 --assets-only   only (re)upload the signed manifest of an existing tag
 #
-# Parte de `development`, mueve «Sin publicar» del CHANGELOG a la versión, la fusiona en
-# `main`, crea la etiqueta vX.Y.Z FIRMADA, firma el manifiesto (manifest.json) y sube todo:
-# la etiqueta con git y el manifiesto con la GitHub Release. Los equipos solo confían en
-# lo firmado con la clave de keys/allowed_signers (ver docs/UPDATES.md); la clave privada
-# es ~/.ssh/maxor-release (o MAXOR_RELEASE_KEY) y se crea con scripts/release-key.sh.
+# Starts from `development`, moves [Unreleased] in CHANGELOG.md to the version, merges into `main`,
+# creates the SIGNED tag vX.Y.Z, signs the manifest (manifest.json) and uploads everything: the tag with
+# git and the manifest with the GitHub Release. Machines only trust what is signed by the key in
+# keys/allowed_signers (see docs/UPDATES.md); the private key is ~/.ssh/maxor-release (or MAXOR_RELEASE_KEY)
+# and is created with scripts/release-key.sh.
 set -euo pipefail
 
 die() { printf '✗ %s\n' "$*" >&2; exit 1; }
@@ -23,27 +23,27 @@ for a in "$@"; do
   case "$a" in
     --yes) yes=1 ;;
     --assets-only) assets_only=1 ;;
-    *) die "opción desconocida: $a" ;;
+    *) die "unknown option: $a" ;;
   esac
 done
-[[ "$ver" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] || die "uso: scripts/release.sh X.Y.Z [--yes | --assets-only]"
+[[ "$ver" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] || die "usage: scripts/release.sh X.Y.Z [--yes | --assets-only]"
 
 cd "$(git rev-parse --show-toplevel)"
 tag="v$ver"
 key="${MAXOR_RELEASE_KEY:-$HOME/.ssh/maxor-release}"
 signers="$PWD/keys/allowed_signers"
 
-# ── La clave: sin ella no se publica nada ────────────────────────────
-for c in ssh-keygen gh jq; do command -v "$c" > /dev/null || die "falta el programa $c"; done
-[ -f "$key" ] || die "no existe la clave de release $key (créala con scripts/release-key.sh)"
-[ -f "$key.pub" ] || die "falta $key.pub (la parte pública de la clave)"
+# ── The key: nothing is published without it ─────────────────────────
+for c in ssh-keygen gh jq; do command -v "$c" > /dev/null || die "missing program: $c"; done
+[ -f "$key" ] || die "the release key $key does not exist (create it with scripts/release-key.sh)"
+[ -f "$key.pub" ] || die "missing $key.pub (the public half of the key)"
 pub="$(cut -d' ' -f1,2 "$key.pub")"
-grep -qF "$pub" "$signers" || die "la clave $key no está en keys/allowed_signers: los equipos no confiarían en ella"
-gh auth status > /dev/null 2>&1 || die "gh no tiene sesión (gh auth login)"
+grep -qF "$pub" "$signers" || die "the key $key is not in keys/allowed_signers: machines would not trust it"
+gh auth status > /dev/null 2>&1 || die "gh is not logged in (gh auth login)"
 
 gitssh() { git -c gpg.format=ssh -c "gpg.ssh.allowedSignersFile=$signers" "$@"; }
 
-# Firma el manifiesto de una etiqueta y crea (o completa) su GitHub Release.
+# Sign the manifest of a tag and create (or complete) its GitHub Release.
 publish_release() {
   local commit work
   commit="$(git rev-parse "$tag^{commit}")"
@@ -51,7 +51,7 @@ publish_release() {
   scripts/release-manifest.sh "$ver" "$commit" > "$work/manifest.json"
   ssh-keygen -Y sign -f "$key" -n maxor-release "$work/manifest.json" > /dev/null
   ssh-keygen -Y verify -f "$signers" -I maxor-release -n maxor-release -s "$work/manifest.json.sig" < "$work/manifest.json" > /dev/null \
-    || die "el manifiesto recién firmado no verifica con keys/allowed_signers"
+    || die "the manifest that was just signed does not verify against keys/allowed_signers"
   scripts/release-notes.sh "$ver" > "$work/notes.md"
   if gh release view "$tag" > /dev/null 2>&1; then
     gh release upload "$tag" "$work/manifest.json" "$work/manifest.json.sig" --clobber
@@ -63,65 +63,65 @@ publish_release() {
 }
 
 if [ "$assets_only" = 1 ]; then
-  git rev-parse -q --verify "refs/tags/$tag" > /dev/null || die "la etiqueta $tag no existe"
-  gitssh verify-tag "$tag" > /dev/null 2>&1 || die "la etiqueta $tag no está firmada con la clave de release"
+  git rev-parse -q --verify "refs/tags/$tag" > /dev/null || die "the tag $tag does not exist"
+  gitssh verify-tag "$tag" > /dev/null 2>&1 || die "the tag $tag is not signed by the release key"
   publish_release
-  say "Manifiesto firmado de $tag subido."
+  say "Signed manifest of $tag uploaded."
   exit 0
 fi
 
-[ "$(git branch --show-current)" = development ] || die "hay que estar en la rama development"
-[ -z "$(git status --porcelain)" ] || die "hay cambios sin commit"
+[ "$(git branch --show-current)" = development ] || die "you must be on the development branch"
+[ -z "$(git status --porcelain)" ] || die "there are uncommitted changes"
 git fetch -q origin
-[ "$(git rev-parse HEAD)" = "$(git rev-parse origin/development)" ] || die "development no coincide con origin/development (haz push o pull)"
-git rev-parse -q --verify "refs/tags/$tag" > /dev/null && die "la etiqueta $tag ya existe"
-grep -q '^## \[Sin publicar\]' CHANGELOG.md || die "CHANGELOG.md no tiene la sección [Sin publicar]"
+[ "$(git rev-parse HEAD)" = "$(git rev-parse origin/development)" ] || die "development differs from origin/development (push or pull first)"
+git rev-parse -q --verify "refs/tags/$tag" > /dev/null && die "the tag $tag already exists"
+grep -q '^## \[Unreleased\]' CHANGELOG.md || die "CHANGELOG.md has no [Unreleased] section"
 
-pending="$(awk '/^## \[Sin publicar\]/{on=1;next} on&&/^## /{exit} on{print}' CHANGELOG.md | grep -cE '^- ' || true)"
-[ "$pending" -gt 0 ] || die "[Sin publicar] está vacío: no hay nada que publicar"
+pending="$(awk '/^## \[Unreleased\]/{on=1;next} on&&/^## /{exit} on{print}' CHANGELOG.md | grep -cE '^- ' || true)"
+[ "$pending" -gt 0 ] || die "[Unreleased] is empty: there is nothing to publish"
 
-say "Versión:     $ver (etiqueta $tag)"
-say "Cambios:     $pending entradas en el CHANGELOG"
-say "Commits:     $(git rev-list --count "$(git describe --tags --abbrev=0 2> /dev/null || git rev-list --max-parents=0 HEAD)"..HEAD) desde la versión anterior"
-say "Clave:       $(printf '%s' "$pub" | ssh-keygen -lf - 2> /dev/null | cut -d' ' -f1,2 || echo "$key")"
-say "Se hará:     comprobar el flake → mover «Sin publicar» a [$ver] → fusionar en main → etiqueta FIRMADA → manifiesto firmado → subir"
+say "Version:    $ver (tag $tag)"
+say "Changes:    $pending entries in the changelog"
+say "Commits:    $(git rev-list --count "$(git describe --tags --abbrev=0 2> /dev/null || git rev-list --max-parents=0 HEAD)"..HEAD) since the previous version"
+say "Key:        $(printf '%s' "$pub" | ssh-keygen -lf - 2> /dev/null | cut -d' ' -f1,2 || echo "$key")"
+say "It will:    check the flake → move [Unreleased] to [$ver] → merge into main → SIGNED tag → signed manifest → upload"
 
 if [ "$yes" = 0 ]; then
-  say "Esto fue solo el plan. Añade --yes para ejecutarlo."
+  say "That was only the plan. Add --yes to run it."
   exit 0
 fi
 
-say "Comprobando el flake…"
+say "Checking the flake…"
 nix flake check --no-build
 nix eval --raw .#nixosConfigurations.nitro.config.system.build.toplevel.drvPath > /dev/null
 
 date="$(date +%F)"
-sed -i "s/^## \[Sin publicar\]$/## [Sin publicar]\n\n## [$ver] - $date/" CHANGELOG.md
-scripts/release-notes.sh "$ver" > /dev/null || die "la sección [$ver] quedó vacía"
-printf '%s\n' "$ver" > VERSION # `maxor --version` la lee al compilar
+sed -i "s/^## \[Unreleased\]$/## [Unreleased]\n\n## [$ver] - $date/" CHANGELOG.md
+scripts/release-notes.sh "$ver" > /dev/null || die "the [$ver] section ended up empty"
+printf '%s\n' "$ver" > VERSION # `maxor --version` reads it at build time
 git commit -q -am "chore(release): v$ver"
 
 git checkout -q main
 git merge -q --no-ff development -m "release: v$ver"
-# Etiqueta firmada con la clave de release (ssh-keygen te pedirá su contraseña).
+# Tag signed with the release key (ssh-keygen will ask for its passphrase).
 git -c gpg.format=ssh -c "user.signingkey=$key" tag -s -a "$tag" -m "Maxor OS $ver"
-gitssh verify-tag "$tag" > /dev/null 2>&1 || die "la etiqueta recién firmada no verifica"
+gitssh verify-tag "$tag" > /dev/null 2>&1 || die "the tag that was just signed does not verify"
 git push -q origin main "$tag"
 git checkout -q development
 git merge -q --ff-only main
 
-# development sigue con la próxima versión menor, marcada como en desarrollo.
+# development continues with the next minor version, marked as in development.
 IFS=. read -r major minor _ <<< "$ver"
 next="$major.$((minor + 1)).0-dev"
 printf '%s\n' "$next" > VERSION
-git commit -q -am "chore: abrir $next"
+git commit -q -am "chore: open $next"
 git push -q origin development
 
 publish_release || {
-  say "La etiqueta ya está subida, pero falló la GitHub Release. Repítela con:"
+  say "The tag is already pushed, but the GitHub Release failed. Repeat it with:"
   say "  scripts/release.sh $ver --assets-only"
   exit 1
 }
 
-say "Listo: $tag publicada, firmada, con su manifiesto firmado."
-say "development sigue en $next."
+say "Done: $tag published, signed, with its signed manifest."
+say "development continues at $next."

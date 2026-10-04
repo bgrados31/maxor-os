@@ -372,9 +372,9 @@ signtag() { git -C "$W/up" -c gpg.format=ssh -c "user.signingkey=$W/keys/${1:-go
 @test "release-manifest genera un manifiesto con la forma que la CLI exige" {
   mkdir -p "$W/r/scripts"
   cp "$ROOT/scripts/release-manifest.sh" "$ROOT/scripts/release-notes.sh" "$W/r/scripts/"
-  printf '## [Sin publicar]\n\n## [0.2.0] - 2026-10-03\n\n- **Cosa nueva**: detalle.\n' > "$W/r/CHANGELOG.md"
+  printf '## [Unreleased]\n\n## [0.2.0] - 2026-10-03\n\n- **New thing**: detail.\n' > "$W/r/CHANGELOG.md"
   "$W/r/scripts/release-manifest.sh" 0.2.0 cccccccccccccccccccccccccccccccccccccccc > "$W/chan/manifest.json"
-  [ "$(jq -r .summary "$W/chan/manifest.json")" = "Cosa nueva" ]
+  [ "$(jq -r .summary "$W/chan/manifest.json")" = "New thing" ]
   ssh-keygen -Y sign -f "$W/keys/good" -n maxor-release "$W/chan/manifest.json" > /dev/null 2>&1
   rel_refresh 1
   [ "$(field status)" = ok ]
@@ -389,10 +389,10 @@ signtag() { git -C "$W/up" -c gpg.format=ssh -c "user.signingkey=$W/keys/${1:-go
 @test "release-manifest sin negrita corta el resumen en una palabra entera" {
   mkdir -p "$W/r/scripts"
   cp "$ROOT/scripts/release-manifest.sh" "$ROOT/scripts/release-notes.sh" "$W/r/scripts/"
-  printf '## [Sin publicar]\n\n## [0.2.0] - 2026-10-03\n\n- Un cambio largo sin ningún título en negrita que sigue y sigue explicándose durante mucho rato más\n' > "$W/r/CHANGELOG.md"
+  printf '## [Unreleased]\n\n## [0.2.0] - 2026-10-03\n\n- A long change with no bold title that keeps going and going and explaining itself for a very long time\n' > "$W/r/CHANGELOG.md"
   s="$("$W/r/scripts/release-manifest.sh" 0.2.0 cccccccccccccccccccccccccccccccccccccccc | jq -r .summary)"
   [ "${#s}" -le 90 ]
-  [[ "$s" == "Un cambio largo"* ]]
+  [[ "$s" == "A long change"* ]]
   [[ "$s" != *" " ]]
   [[ "${s##* }" =~ ^[a-zA-Zñáéíóú]+$ ]]
 }
