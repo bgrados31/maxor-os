@@ -83,6 +83,13 @@ pkgs.testers.runNixOSTest {
         assert "subvol=/@home" in machine.succeed("findmnt -no OPTIONS /mnt/home")
         assert "compress=zstd" in machine.succeed("findmnt -no OPTIONS /mnt")
         machine.succeed("umount -R /mnt")
+        # The installed system mounts these by label, as its fstab does, in a fresh mount: it must work.
+        machine.succeed("udevadm settle")
+        machine.succeed("mkdir -p /t && mount -o subvol=@,compress=zstd,noatime /dev/disk/by-label/maxor-root /t")
+        machine.succeed("ls -la /t >&2; test -d /t/home && test -d /t/.snapshots")
+        machine.succeed("mount -o subvol=@home,compress=zstd,noatime /dev/disk/by-label/maxor-root /t/home")
+        machine.succeed("mount -o subvol=@snapshots,compress=zstd,noatime /dev/disk/by-label/maxor-root /t/.snapshots")
+        machine.succeed("umount -R /t")
 
     with subtest("ext4 with LUKS2 and a swap file: encrypted root, passphrase only on stdin"):
         write_answers("/dev/vdc", filesystem="ext4", encrypt={"enabled": True}, swap={"kind": "file", "gib": 1})

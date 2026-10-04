@@ -79,7 +79,7 @@
       let pkgs = nixpkgs.legacyPackages.x86_64-linux; in
       pkgs.runCommand "maxor-cli-tests"
         {
-          nativeBuildInputs = with pkgs; [ bats shellcheck jq gnugrep gnused gawk coreutils findutils gnutar ncurses git openssh curl util-linux ];
+          nativeBuildInputs = with pkgs; [ bats shellcheck jq gnugrep gnused gawk coreutils findutils gnutar ncurses git openssh curl util-linux openssl ];
           MAXOR_BIN = "${self.packages.x86_64-linux.maxor}/bin/maxor";
         } ''
         cp -r ${self} src
@@ -98,6 +98,9 @@
     # Las etapas reales del instalador (disco, LUKS, sistema de archivos) sobre discos virtuales (necesita KVM).
     checks.x86_64-linux.installer-disks = import ./tests/vm/installer-disks.nix { pkgs = nixpkgs.legacyPackages.x86_64-linux; };
 
+    # La instalación completa y el arranque del sistema instalado (necesita KVM y tarda).
+    checks.x86_64-linux.installer-full = import ./tests/vm/installer-full.nix { pkgs = nixpkgs.legacyPackages.x86_64-linux; inherit self inputs; };
+
     # Módulos de sistema de Maxor OS, reutilizables desde otro flake.
     nixosModules.default = {
       imports = [
@@ -113,6 +116,14 @@
     };
 
     nixosConfigurations.nitro = mkSystem { modules = [ ./hosts/nitro/configuration.nix ]; };
+
+    # La ISO de Maxor OS: sistema vivo con el instalador. `nix build .#iso`.
+    nixosConfigurations.maxor-iso = nixpkgs.lib.nixosSystem {
+      system = "x86_64-linux";
+      specialArgs = { inherit inputs self; };
+      modules = [ self.nixosModules.default ./installer/iso/configuration.nix ];
+    };
+    packages.x86_64-linux.iso = self.nixosConfigurations.maxor-iso.config.system.build.isoImage;
 
     # Una máquina de ejemplo con otro usuario, otro teclado y otra región, y sin identidad de git:
     # la prueba de que la distribución no tiene ningún nombre escrito a mano. Se evalúa en la CI

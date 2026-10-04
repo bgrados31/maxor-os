@@ -1,0 +1,69 @@
+{ config, lib, pkgs, inputs, self, modulesPath, ... }:
+
+# La ISO de Maxor OS: un sistema vivo (sesión Hyprland con Maxor Shell, sin instalar nada) que lleva el
+# instalador. Es el mismo Maxor OS que se instala —mismos módulos, escritorio y CLI—, así que se puede probar
+# antes de decidir. Se construye con `nix build .#iso`. Ver docs/INSTALLER.md.
+let
+  version = lib.removeSuffix "\n" (builtins.readFile ../../VERSION);
+  maxor = pkgs.callPackage ../../packages/maxor.nix { };
+  maxorTui = pkgs.callPackage ../../packages/maxor-tui.nix { };
+  maxorInstall = pkgs.callPackage ../../packages/maxor-install.nix { inherit maxor; };
+
+  # Para instalar sin red: la copia local de Maxor OS y de sus inputs, con sus metadatos (ver
+  # installer/offline-overrides.nix). El instalador la lee de /etc/maxor-install/overrides.
+  overrides = pkgs.writeText "maxor-install-overrides" (import ../offline-overrides.nix { inherit lib self inputs; });
+in
+{
+  imports = [ (modulesPath + "/installer/cd-dvd/installation-cd-base.nix") ];
+
+  # ── Quién es el sistema vivo ────────────────────────────────────────
+  maxor.machine = {
+    hostname = "maxor-live";
+    user = "live";
+    fullname = "Maxor live session";
+  };
+  # El sistema vivo arranca en cualquier equipo: sin informe de hardware concreto, los drivers genéricos de la ISO.
+  maxor.hardware.report = pkgs.writeText "hardware.json" (builtins.toJSON {
+    version = 1;
+    cpu = { vendor = "other"; model = "generic"; };
+    gpus = [ ];
+    laptop = false;
+    virt = "none";
+    bluetooth = true;
+  });
+
+  # ── Sesión viva: entra sola, sin contraseña ─────────────────────────
+  users.users.live = {
+    initialHashedPassword = "";
+    extraGroups = [ "wheel" ];
+  };
+  security.sudo.wheelNeedsPassword = false;
+  services.greetd.settings.initial_session = {
+    command = "${config.programs.hyprland.package}/bin/start-hyprland";
+    user = "live";
+  };
+  # La ISO base usa wpa_supplicant a secas; Maxor usa NetworkManager (Wi-Fi para el instalador y el sistema).
+  networking.wireless.enable = lib.mkImageMediaOverride false;
+
+  # ── El instalador ───────────────────────────────────────────────────
+  environment.systemPackages = [ maxorInstall maxorTui ];
+  environment.etc."maxor-install/overrides".source = overrides;
+
+  # ── Imagen y arranque ───────────────────────────────────────────────
+  # El menú de la ISO espera más que el del sistema instalado: hay que dar tiempo a elegir.
+  boot.loader.timeout = lib.mkForce 10;
+  isoImage = {
+    volumeID = "MAXOR_OS";
+    edition = "maxor";
+    prependToMenuLabel = "Maxor OS · ";
+    squashfsCompression = "zstd -Xcompression-level 15";
+    makeEfiBootable = true;
+    makeUsbBootable = true;
+  };
+  # Nombre del archivo de la imagen: maxor-os-<versión>-<arquitectura>.iso
+  image.fileName = "maxor-os-${version}-${pkgs.stdenv.hostPlatform.system}.iso";
+  # ZFS viene con la ISO base; no hace falta que fuerce importar la raíz (y evita un aviso).
+  boot.zfs.forceImportRoot = false;
+
+  system.stateVersion = "26.05"; # NO cambiar
+}

@@ -641,3 +641,89 @@ EOF
   [ "$status" = 0 ]
   [[ "$output" =~ ^[0-9a-f]{64}$ ]]
 }
+
+@test "host: sin red, cada entrada del flake se resuelve a su copia local" {
+  mk
+  ans_load "$W/a.json"
+  IN_MAXOR="$W/bin/maxor"
+  shim maxor 'echo "{}"'
+  shim nixos-generate-config 'echo "{ ... }: { }"'
+  shim nix 'touch "${@: -1}/flake.lock"'
+  export MAXOR_INSTALL_OVERRIDES=$'maxor-os=path:/store/os\nmaxor-os/nixpkgs=path:/store/np?rev=abc\nmaxor-os/dms/dank-qml-common=path:/store/q'
+  stage_host
+  calls | grep -q 'nix flake lock --override-input maxor-os path:/store/os --override-input maxor-os/nixpkgs path:/store/np?rev=abc --override-input maxor-os/dms/dank-qml-common path:/store/q '
+}
+
+@test "host: sin overrides se resuelve desde la red (nix flake lock a secas)" {
+  mk
+  ans_load "$W/a.json"
+  IN_MAXOR="$W/bin/maxor"
+  shim maxor 'echo "{}"'
+  shim nixos-generate-config 'echo "{ ... }: { }"'
+  shim nix 'touch "${@: -1}/flake.lock"'
+  unset MAXOR_INSTALL_OVERRIDES
+  stage_host
+  [[ "$(calls)" != *"--override-input"* ]]
+}
+
+@test "host: crea host/local.nix para lo propio del usuario, y el flake lo importa" {
+  mk
+  ans_load "$W/a.json"
+  IN_MAXOR="$W/bin/maxor"
+  shim maxor 'echo "{}"'
+  shim nixos-generate-config 'echo "{ ... }: { }"'
+  shim nix 'touch "${@: -1}/flake.lock"'
+  unset MAXOR_INSTALL_LOCAL_NIX
+  stage_host
+  d="$W/mnt/home/ana/nixos-config"
+  grep -q 'This file is yours' "$d/host/local.nix"
+  grep -q './host/local.nix' "$d/flake.nix"
+}
+
+@test "host: MAXOR_INSTALL_LOCAL_NIX instala su contenido como host/local.nix" {
+  mk
+  ans_load "$W/a.json"
+  IN_MAXOR="$W/bin/maxor"
+  shim maxor 'echo "{}"'
+  shim nixos-generate-config 'echo "{ ... }: { }"'
+  shim nix 'touch "${@: -1}/flake.lock"'
+  echo '{ ... }: { services.openssh.enable = true; }' > "$W/mine.nix"
+  export MAXOR_INSTALL_LOCAL_NIX="$W/mine.nix"
+  stage_host
+  grep -q 'services.openssh.enable = true' "$W/mnt/home/ana/nixos-config/host/local.nix"
+}
+
+@test "--only corre solo esas etapas y en su orden normal" {
+  mk
+  IN_STAGES=(alfa beta gamma)
+  stage_alfa() { echo alfa >> "$W/ran"; }
+  stage_beta() { echo beta >> "$W/ran"; }
+  stage_gamma() { echo gamma >> "$W/ran"; }
+  run main run --answers "$W/a.json" --only gamma,alfa
+  [ "$status" = 0 ]
+  [ "$(tr '\n' ' ' < "$W/ran")" = "alfa gamma " ]
+}
+
+@test "--only con una etapa que no existe es un error de uso y no corre nada" {
+  mk
+  IN_STAGES=(alfa beta)
+  stage_alfa() { echo alfa >> "$W/ran"; }
+  stage_beta() { echo beta >> "$W/ran"; }
+  run main run --answers "$W/a.json" --only alfa,zeta
+  [ "$status" = "$IN_EX_USAGE" ]
+  [[ "$output" == *"stage that does not exist"* ]]
+  [ ! -e "$W/ran" ]
+}
+
+@test "hashpw lee la contraseña de la entrada estándar y escribe un hash que la verifica" {
+  run bash -c "source() { :; }; export MAXOR_INSTALL_NO_MAIN=1 MAXOR_INSTALL_STATE=$W/state MAXOR_INSTALL_LOG=$W/log MAXOR_INSTALL_SCHEMA=$MAXOR_INSTALL_SCHEMA; for f in common answers preflight disk luks filesystem host nixinstall bootloader finish; do . $ROOT/installer/engine/lib/\$f.sh; done; . $ROOT/installer/engine/main.sh; echo 'una contraseña larga' | main hashpw"
+  [ "$status" = 0 ]
+  [[ "$output" =~ ^\$6\$[^$]+\$.+ ]]
+  salt="$(cut -d'$' -f3 <<< "$output")"
+  [ "$(openssl passwd -6 -salt "$salt" 'una contraseña larga')" = "$output" ]
+}
+
+@test "hashpw sin contraseña es un error de uso" {
+  run bash -c "export MAXOR_INSTALL_NO_MAIN=1 MAXOR_INSTALL_STATE=$W/state MAXOR_INSTALL_LOG=$W/log MAXOR_INSTALL_SCHEMA=$MAXOR_INSTALL_SCHEMA; for f in common answers preflight disk luks filesystem host nixinstall bootloader finish; do . $ROOT/installer/engine/lib/\$f.sh; done; . $ROOT/installer/engine/main.sh; main hashpw < /dev/null"
+  [ "$status" = "$IN_EX_USAGE" ]
+}

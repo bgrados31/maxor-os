@@ -191,7 +191,7 @@ dual-boots Windows.
 | M0 | This plan | reviewed |
 | M1 | `lib.mkSystem`: the distribution stops hardcoding a user; hosts become data | **done**: `nitro` and the VM build from it; 654 home files and all of `/etc` compared, only the intended file changed |
 | M2 | Engine: answers schema, plan, preflight, dry-run, stages, events | **done**: 52 tests; the generated machine flake evaluates against this repository |
-| M3 | Real install onto a virtual disk in a NixOS test | the installed system boots and passes `maxor doctor` |
+| M3 | Real install onto a virtual disk in a NixOS test | **done**: the engine installs offline and the installed system boots (`installer-full`) |
 | M4 | ISO: branded boot, live session, closure baked in, boots in QEMU with UEFI | verified by screenshots |
 | M5 | The wizard (TUI) driving the engine | a full install through the screens in the VM |
 | M6 | Alongside (dual boot), LUKS, hybrid NVIDIA, binary cache | each tested in the real layer |

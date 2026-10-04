@@ -52,6 +52,7 @@ host_flake_nix() {
       modules = [
         ./host/hardware-configuration.nix
         ./host/boot.nix
+        ./host/local.nix
         ({ ... }: {
           maxor.hardware.report = ./host/hardware.json;
           maxor.settings = ./host/maxor.json;
@@ -61,6 +62,17 @@ host_flake_nix() {
   };
 }
 __END_FLAKE__
+}
+
+host_local_nix() {
+  cat << '__END_LOCAL__'
+{ ... }:
+
+# Your own NixOS options, on top of Maxor OS. This file is yours: the system never overwrites it.
+# For example:  services.openssh.enable = true;
+{
+}
+__END_LOCAL__
 }
 
 host_boot_nix() {
@@ -85,16 +97,31 @@ stage_host() {
   in_run mkdir -p "$dir/host"
   host_flake_nix | write_file "$dir/flake.nix" 644
   host_boot_nix | write_file "$dir/host/boot.nix" 644
+  # host/local.nix es del usuario. Para instalaciones desatendidas, MAXOR_INSTALL_LOCAL_NIX trae su contenido.
+  if [ -n "${MAXOR_INSTALL_LOCAL_NIX:-}" ]; then
+    write_file "$dir/host/local.nix" 644 < "$MAXOR_INSTALL_LOCAL_NIX"
+  else
+    host_local_nix | write_file "$dir/host/local.nix" 644
+  fi
 
   prof="$(jq '{profiles: .look.profiles}' "$IN_ANSWERS")"
   printf '%s\n' "$prof" | write_file "$dir/host/maxor.json" 644
 
-  # El hardware se detecta aquí, en la máquina que se instala.
-  if [ "$IN_DRY" = 1 ]; then
+  # El hardware se detecta aquí, en la máquina que se instala. Para imágenes reproducibles o instalaciones sobre
+  # hardware conocido se pueden dar ya hechos: MAXOR_INSTALL_HWJSON (lo que produce `maxor hardware detect`) y
+  # MAXOR_INSTALL_HWCONFIG (lo que produce nixos-generate-config).
+  if [ -n "${MAXOR_INSTALL_HWJSON:-}" ]; then
+    in_run cp "$MAXOR_INSTALL_HWJSON" "$dir/host/hardware.json"
+  elif [ "$IN_DRY" = 1 ]; then
     printf 'DRYRUN: %s hardware detect > %s\n' "$IN_MAXOR" "$dir/host/hardware.json"
-    printf 'DRYRUN: nixos-generate-config --root %s --show-hardware-config > %s\n' "$IN_ROOT" "$dir/host/hardware-configuration.nix"
   else
     "$IN_MAXOR" hardware detect > "$dir/host/hardware.json" || in_die "$IN_EX_FAIL" "could not detect the hardware"
+  fi
+  if [ -n "${MAXOR_INSTALL_HWCONFIG:-}" ]; then
+    in_run cp "$MAXOR_INSTALL_HWCONFIG" "$dir/host/hardware-configuration.nix"
+  elif [ "$IN_DRY" = 1 ]; then
+    printf 'DRYRUN: nixos-generate-config --root %s --show-hardware-config > %s\n' "$IN_ROOT" "$dir/host/hardware-configuration.nix"
+  else
     nixos-generate-config --root "$IN_ROOT" --show-hardware-config > "$dir/host/hardware-configuration.nix" \
       || in_die "$IN_EX_FAIL" "nixos-generate-config failed"
   fi
@@ -104,12 +131,17 @@ stage_host() {
   in_run git -C "$dir" add .
   in_run git -C "$dir" -c user.name=Maxor -c user.email=maxor@localhost commit --quiet -m "Initial Maxor OS configuration"
 
-  # Fija la versión de Maxor OS (flake.lock): desde la copia de la ISO sin red, o desde la red.
-  if [ -n "${MAXOR_INSTALL_OS_PATH:-}" ]; then
-    in_run nix flake lock --override-input maxor-os "path:$MAXOR_INSTALL_OS_PATH" "$dir"
-  else
-    in_run nix flake lock "$dir"
+  # Fija las versiones (flake.lock). Sin red, MAXOR_INSTALL_OVERRIDES trae una línea «entrada=referencia» por cada
+  # entrada del flake (maxor-os, maxor-os/nixpkgs, …) con su copia local en el disco (ver offline-overrides.nix);
+  # con red, se resuelven desde internet.
+  local args=() line
+  if [ -n "${MAXOR_INSTALL_OVERRIDES:-}" ]; then
+    while IFS= read -r line; do
+      [ -n "$line" ] || continue
+      args+=(--override-input "${line%%=*}" "${line#*=}")
+    done <<< "$MAXOR_INSTALL_OVERRIDES"
   fi
+  in_run nix flake lock "${args[@]}" "$dir"
   in_run git -C "$dir" add flake.lock
   in_run git -C "$dir" -c user.name=Maxor -c user.email=maxor@localhost commit --quiet -m "Pin Maxor OS"
 }

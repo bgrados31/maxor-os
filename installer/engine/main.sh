@@ -15,6 +15,7 @@ Usage: maxor-install <run|plan|validate|hash|probe> [--answers FILE] [options]
   validate   check the answers only
   hash       print the plan hash (an install alongside another system must carry it)
   probe      list the disks of this machine and their free space, as JSON
+  hashpw     read a password on standard input and print its crypt hash (never on arguments)
 
 Options:
   --answers FILE    the answers (JSON, see installer/schema/answers.v1.json)
@@ -123,6 +124,14 @@ main() {
       [ -n "$answers" ] || { in_usage >&2; in_die "$IN_EX_USAGE" "validate needs --answers FILE"; }
       ans_load "$answers" || in_die "$IN_EX_ANSWERS" "the answers are not valid"
       printf 'The answers are valid.\n'
+      ;;
+    hashpw)
+      # Lee la contraseña de la entrada estándar y escribe su hash crypt(3) SHA-512: la pantalla nunca la lleva por
+      # argumentos ni la guarda, y el motor es el único que sabe cómo se cifra.
+      local pw
+      IFS= read -r pw || true
+      [ "${#pw}" -ge 1 ] || in_die "$IN_EX_USAGE" "hashpw reads the password from standard input"
+      printf '%s' "$pw" | openssl passwd -6 -stdin
       ;;
     hash)
       [ -n "$answers" ] || { in_usage >&2; in_die "$IN_EX_USAGE" "hash needs --answers FILE"; }
