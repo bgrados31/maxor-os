@@ -1,5 +1,9 @@
 { lib, writeShellApplication, jq, coreutils, gnused, gnugrep, gawk, gnutar, gzip, findutils, procps, ncurses
-, curl, openssh, git, util-linux, libnotify }:
+, curl, openssh, git, util-linux, libnotify
+  # Las claves en las que confía y el canal que consulta. Los valores por defecto son los de
+  # producción; solo las pruebas (tests/vm) los cambian, para firmar con una clave de prueba.
+, releaseKeys ? ../keys/allowed_signers
+, releaseUrl ? null }:
 
 # La CLI `maxor`. Los scripts reales viven en home/maxor/ (lib/ y cmd/) y se
 # ensamblan en este orden; shellcheck revisa el resultado al compilar.
@@ -40,10 +44,10 @@ in
 writeShellApplication {
   name = "maxor";
   runtimeInputs = [ jq coreutils gnused gnugrep gawk gnutar gzip findutils procps ncurses curl openssh git util-linux libnotify ];
-  runtimeEnv = {
+  runtimeEnv = lib.optionalAttrs (releaseUrl != null) { MAXOR_RELEASE_URL = releaseUrl; } // {
     MAXOR_PROFILES = ../modules/profiles-catalog.json;
     # Las claves de confianza van dentro del paquete: no se pueden cambiar sin cambiar el sistema.
-    MAXOR_RELEASE_KEYS = ../keys/allowed_signers;
+    MAXOR_RELEASE_KEYS = releaseKeys;
     MAXOR_VERSION = lib.removeSuffix "\n" (builtins.readFile ../VERSION);
   };
   excludeShellChecks = [ "SC2034" "SC2001" "SC2155" "SC2086" "SC2012" "SC2015" "SC2016" ];

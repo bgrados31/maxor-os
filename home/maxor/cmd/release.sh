@@ -122,7 +122,18 @@ rel_try() {
     200)
       m="$t/manifest.json"
       s="$t/manifest.json.sig"
-      if ! curl -sS -L --max-time 20 --connect-timeout 8 -A "maxor/$MAXOR_VERSION" -o "$s" "$MAXOR_RELEASE_URL/manifest.json.sig" 2> /dev/null || [ ! -s "$s" ]; then
+      # -f: un 404 del servidor no se guarda como si fuera la firma (su página de error no está vacía)
+      rc=0
+      curl -sS -f -L --max-time 20 --connect-timeout 8 -A "maxor/$MAXOR_VERSION" -o "$s" "$MAXOR_RELEASE_URL/manifest.json.sig" 2> /dev/null || rc=$?
+      case "$rc" in
+        0 | 22 | 37) ;; # respondió (con la firma, con un error HTTP o sin el archivo): se juzga abajo
+        *)
+          # se cayó la red entre el manifiesto y su firma: no se pudo comprobar, no es una firma ausente
+          rel_write unavailable network
+          return 0
+          ;;
+      esac
+      if [ "$rc" != 0 ] || [ ! -s "$s" ]; then
         log ERROR "release: el manifiesto no trae firma"
         rel_write insecure unsigned
         return 0

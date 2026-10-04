@@ -42,6 +42,10 @@
         touch $out
       '';
 
+    # El sistema de releases de punta a punta, en máquinas virtuales (necesita KVM):
+    # `nix build .#checks.x86_64-linux.release-vm -L`. No va en la CI: tarda y pide KVM.
+    checks.x86_64-linux.release-vm = import ./tests/vm/release.nix { pkgs = nixpkgs.legacyPackages.x86_64-linux; };
+
     # Módulos de sistema de Maxor OS, reutilizables desde otro flake.
     nixosModules.default = {
       imports = [
