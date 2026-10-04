@@ -82,6 +82,11 @@ in
     networking.hostName = cfg.hostname;
     time.timeZone = cfg.timezone;
     i18n.defaultLocale = cfg.locale;
+    # Todos los idiomas, siempre. Por defecto NixOS compila glibc-locales solo con los de esta máquina, y entonces
+    # cada idioma elegido es un paquete distinto: el medio de instalación no puede traerlos todos ya hechos y,
+    # sin red, instalar en español fallaba al no poder compilarlo. Con «all» es uno solo, el mismo para todas las
+    # máquinas (unos 200 MB), y viaja en la ISO.
+    i18n.supportedLocales = lib.mkDefault [ "all" ];
     # An empty console keymap means "the same as the desktop layout" (every XKB layout works that way).
     console = if cfg.keymap == "" then { useXkbConfig = true; } else { keyMap = cfg.keymap; };
     services.xserver.xkb = {

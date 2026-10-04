@@ -22,7 +22,7 @@ let
     user = "ana";
     fullname = "Ana Test";
     timezone = "Europe/Madrid";
-    locale = "en_US.UTF-8";
+    locale = "es_PE.UTF-8"; # not the generic one: a different language must install without a network too
     keymap = "es";
     xkb.layout = "es";
   };
