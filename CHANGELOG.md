@@ -5,6 +5,8 @@ no usa versiones numeradas.
 
 ## [Sin publicar]
 
+## [0.1.0] - 2026-10-04
+
 ### Cambiado
 
 - **La CLI es lineal y cuelga de un riel** (`┌ │ ◇ └`) en vez de dibujar una ventana que imita una terminal: no mide el ancho de cada línea, se copia limpia y se ve igual en un log. Glifos Unicode con respaldo ASCII automático (`TERM=linux`, un locale que no es UTF-8 o `MAXOR_ASCII=1`).
