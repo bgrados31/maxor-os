@@ -2,7 +2,7 @@ name: CI
 
 on:
   push:
-    branches: [main]
+    branches: [main, development]
   pull_request:
 
 permissions:
@@ -10,15 +10,22 @@ permissions:
 
 jobs:
   eval:
-    name: Evaluar el flake
+    name: Evaluate the flake
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: cachix/install-nix-action@v31
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: cachix/install-nix-action@13d8dd58da0234aa297dedd986986ccb8e7f3e24 # v31
         with:
           extra_nix_config: |
             experimental-features = nix-command flakes
+      - name: No private keys or tokens in the tree
+        run: |
+          if git grep -nIE "BEGIN [A-Z ]*PRIVATE KEY|gh[pousr]_[A-Za-z0-9]{30,}|github_pat_[A-Za-z0-9_]{30,}" -- . ':!tests'; then echo "secret-looking content found"; exit 1; fi
       - name: nix flake check
         run: nix flake check --no-build
-      - name: Evaluar el sistema nitro
+      - name: Evaluate the nitro system
         run: nix eval --raw .#nixosConfigurations.nitro.config.system.build.toplevel.drvPath
+      - name: CLI tests (bats, shellcheck, message catalog)
+        run: nix build .#checks.x86_64-linux.cli-tests --print-build-logs
+      - name: Full-screen app (builds and runs go test)
+        run: nix build .#packages.x86_64-linux.maxor-tui --print-build-logs

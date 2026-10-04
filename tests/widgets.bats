@@ -1,0 +1,81 @@
+load helper
+
+DIFF=$'firefox: 149.0 → 150.0, +12.3 MiB\nearlyoom: ∅ → 1.9.0, 52.3 KiB\nfont-util: 1.4.2 → ∅, -228.7 KiB\nbash-interactive: 7.2 MiB\nfwupd.conf: ∅ → ε\nunit-fwupd-refresh.timer: ∅ → ε\nmesa: 26.0.1, 26.0.2 → 26.0.3, +1.1 MiB'
+
+@test "ui_diff cuenta nuevos, actualizados y eliminados" {
+  load_lib
+  ui_diff "$DIFF" > /dev/null
+  [ "$UI_DIFF_ADD" = 1 ]
+  [ "$UI_DIFF_UPD" = 2 ]
+  [ "$UI_DIFF_DEL" = 1 ]
+  [ "$UI_DIFF_CFG" = 2 ]
+  [ "$UI_DIFF_CHG" = 1 ]
+}
+
+@test "ui_diff muestra los cambios solo de tamaño con ~" {
+  load_lib
+  out="$(ui_diff "$DIFF")"
+  [[ "$out" == *"~ bash-interactive"* ]]
+  [[ "$out" == *"~1 changed"* ]]
+}
+
+@test "ui_diff esconde los archivos de configuración y muestra los paquetes" {
+  load_lib
+  out="$(ui_diff "$DIFF")"
+  [[ "$out" == *firefox* ]]
+  [[ "$out" == *earlyoom* ]]
+  [[ "$out" == *"149.0 → 150.0"* ]]
+  [[ "$out" != *unit-fwupd* ]]
+  [[ "$out" == *"2 configuration files"* ]]
+}
+
+@test "ui_diff entiende los colores de nix y recorta con «y N más»" {
+  load_lib
+  many=""
+  for i in $(seq 1 30); do many+=$'\e[31;1m'"pkg$i"$'\e[0m: ∅ → 1.0, 1 KiB\n'; done
+  out="$(ui_diff "$many" 5)"
+  [[ "$out" == *"and 25 more"* ]]
+}
+
+@test "ui_diff con texto vacío no falla" {
+  load_lib
+  run ui_diff ""
+  [ "$status" = 0 ]
+}
+
+@test "ui_error muestra causa y qué probar con los glifos de árbol correctos" {
+  load_lib
+  run ui_error "It failed" "the network is down" "maxor doctor"
+  [ "$status" = 0 ]
+  [[ "$output" == *"It failed"* ]]
+  [[ "$output" == *"├ cause"* ]]
+  [[ "$output" == *"└ try"* ]]
+}
+
+@test "ui_error solo apunta a los registros si se pide" {
+  load_lib
+  run ui_error "x" "y"
+  [[ "$output" != *"maxor logs"* ]]
+  run ui_error "x" "y" "z" log
+  [[ "$output" == *"maxor logs --last"* ]]
+  [[ "$output" == *"└ details"* ]]
+}
+
+@test "ui_error anota el fallo en el registro" {
+  load_lib
+  ui_error "Disk exploded" "no space" 2> /dev/null
+  grep -q "Disk exploded" "$logfile"
+}
+
+@test "diff_json clasifica los cambios y conserva los totales" {
+  load_lib
+  out="$(diff_json "$DIFF")"
+  echo "$out" | jq -e 'length == 5'
+  echo "$out" | jq -e '[.[] | select(.kind == "updated")] | length == 2'
+  echo "$out" | jq -e '.[] | select(.name == "firefox") | .from == "149.0" and .to == "150.0" and .size == "+12.3 MiB"'
+  echo "$out" | jq -e '.[] | select(.name == "earlyoom") | .kind == "new" and .to == "1.9.0"'
+  echo "$out" | jq -e '.[] | select(.name == "font-util") | .kind == "removed" and .from == "1.4.2"'
+  echo "$out" | jq -e '.[] | select(.name == "bash-interactive") | .kind == "changed" and .size == "7.2 MiB"'
+  diff_parse "$DIFF"
+  [ "$UI_DIFF_ADD" = 1 ] && [ "$UI_DIFF_UPD" = 2 ] && [ "$UI_DIFF_DEL" = 1 ] && [ "$UI_DIFF_CHG" = 1 ] && [ "$UI_DIFF_CFG" = 2 ]
+}

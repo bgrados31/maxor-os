@@ -14,3 +14,15 @@ result-*
 # Registros y secretos locales
 *.log
 .env
+
+# Claves y credenciales: nunca deben entrar en el repositorio
+*.pem
+*.key
+id_ed25519
+id_rsa
+maxor-release
+maxor-release-*
+!maxor-release.pub
+*.p12
+*.pfx
+.netrc

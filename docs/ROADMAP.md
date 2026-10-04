@@ -1,94 +1,97 @@
-# Hoja de ruta
+# Roadmap
 
-Maxor OS aspira a ser una distribución completa basada en NixOS: escritorio Hyprland,
-personalizable al 100 %, con tienda de apps, tienda de temas, shell propio, menú de arranque
-propio e instalador propio. Referencias de experiencia: Ryoku OS, Omarchy y los dotfiles de end-4.
+Maxor OS aims to be a complete NixOS-based distribution: a Hyprland desktop, 100 % customizable,
+with an app store, a theme store, its own shell, its own boot menu and its own installer.
+Experience references: Ryoku OS, Omarchy and end-4's dotfiles.
 
-## Estado
+## Status
 
-| Fase | Objetivo | Estado |
+| Phase | Goal | Status |
 |---|---|---|
-| 0 | Base NixOS + Hyprland + DMS funcionando | Hecha |
-| 1 | Solo Hyprland, branding mínimo (`os-release`, Plymouth, fastfetch) | Hecha |
-| 2 | Repo ordenado y modular, CLI `maxor` v0 (update, rollback, doctor) | Casi hecha |
-| 3 | Motor de temas y temas oficiales | Casi hecha |
-| 4 | Shell Maxor y greeter propio | En curso |
-| 5 | Maxor Store (apps Flatpak y temas) | Pendiente |
-| 6 | Menú de arranque (Limine), ISO live e instalador | Pendiente |
-| 7 | Theme Store web, comunidad, documentación y sitio | Pendiente |
+| 0 | NixOS + Hyprland + DMS base working | Done |
+| 1 | Hyprland only, minimal branding (`os-release`, Plymouth, fastfetch) | Done |
+| 2 | Tidy, modular repo, `maxor` CLI (update, rollback, doctor, apps, profiles, backup) | Almost done |
+| 3 | Theme engine and official themes | Almost done |
+| 4 | Maxor Shell and its own greeter | In progress |
+| 5 | Maxor Store (Flatpak apps and themes) | Started (the Store tab of the full-screen app) |
+| 6 | Boot menu (Limine), live ISO and installer | Pending |
+| 7 | Theme Store on the web, community, documentation and site | Pending |
 
-## Fase 2: repo ordenado y CLI
+## Phase 2: tidy repo and CLI
 
-- [x] Repositorio con documentación, licencia y CI.
-- [x] Separar `configuration.nix` en `modules/core.nix` y `modules/desktop.nix`; `branding` y `fonts` ya eran módulos.
-- [ ] Extraer `modules/shell.nix` y `modules/theming.nix` cuando el shell propio exista (fase 4).
-- [x] Dejar `hosts/<equipo>` solo con lo propio del equipo (arranque, GPU, región, usuario).
-- [ ] Exportar `homeModules.default` para reutilizar la configuración de usuario.
-- [x] Configuración de Hyprland en módulos Lua (`settings`, `rules`, `binds`) y un `user.lua` que nunca se sobrescribe.
-      Los monitores los gestiona DMS.
-- [x] `maxor update`, `maxor rollback` y `maxor doctor`, con interfaz de ventanas de terminal.
+- [x] Repository with documentation, license and CI.
+- [x] Split `configuration.nix` into `modules/core.nix` and `modules/desktop.nix`; `branding` and `fonts` were already modules.
+- [ ] Extract `modules/shell.nix` and `modules/theming.nix` once the shell of its own exists (phase 4).
+- [x] Leave `hosts/<host>` with only what belongs to the machine (boot, GPU, region, user).
+- [ ] Export `homeModules.default` to reuse the user configuration.
+- [x] Hyprland configuration in Lua modules (`settings`, `rules`, `binds`) and a `user.lua` that is never overwritten.
+      Monitors are managed by DMS.
+- [x] `maxor update`, `maxor rollback` and `maxor doctor`, with linear output and a single loader.
+- [x] `maxor search|install|remove|apps`, profiles, hardware detection, `maxor backup` and `maxor restore`.
+- [x] `maxor-tui`: the full-screen app in Go (home, store, themes, update, doctor, profiles, first-run setup).
 
-## Fase 3: motor de temas
+## Phase 3: theme engine
 
-- [x] Formato de tema (`colors.json`, `theme.toml`, `wallpaper.png`).
+- [x] Theme format (`colors.json`, `theme.toml`, `wallpaper.png`).
 - [x] `maxor theme list | current | apply | undo`.
-- [x] Modo claro: DMS, lockscreen y la CLI se adaptan al `mode` del tema.
-- [x] Diez temas oficiales: cinco oscuros y cinco claros, todos con contraste AA.
-- [x] Incluir en el tema la forma de Hyprland (esquinas, espacios, bordes, desenfoque, opacidad, velocidad de animaciones) con `style.json`.
-- [ ] Curva de animaciones por tema.
-- [ ] Incluir en el tema la disposición de la barra.
-- [x] `maxor theme install <carpeta|archivo>` con validación estricta de esquema y archivos.
-- [ ] `maxor theme install <url>` y firma opcional de temas.
+- [x] Light mode: DMS, the lock screen and the CLI adapt to the theme's `mode`.
+- [x] Ten official themes: five dark and five light, all with AA contrast.
+- [x] Put Hyprland's shape in the theme (corners, gaps, borders, blur, opacity, animation speed) with `style.json`.
+- [ ] Animation curve per theme.
+- [ ] Put the bar layout in the theme.
+- [x] `maxor theme install <folder|file>` with strict schema and file validation.
+- [ ] `maxor theme install <url>` and optional theme signing.
 - [x] `maxor theme export`.
 
-## Fase 4: identidad completa
+## Phase 4: complete identity
 
-Dos caminos para el shell. Se empieza por el A y se migra al B cuando haya capacidad.
+Two paths for the shell. It starts with A and migrates to B when there is capacity.
 
-- **A. Capa de parches sobre DankMaterialShell:** Maxor Shell cambia el logo, el nombre y unos
-  pocos textos sin copiar el código, y sigue recibiendo las mejoras de upstream
-  ([SHELL.md](SHELL.md)). DMS se distribuye bajo MIT.
-- **B. Shell propio en Quickshell (QML):** control total de barra, dock, launcher, centro de
-  control, notificaciones, lockscreen y OSD.
+- **A. Patch layer on DankMaterialShell:** Maxor Shell changes the logo, the name and a few texts
+  without copying the code, and keeps receiving upstream improvements
+  ([SHELL.md](SHELL.md)). DMS is distributed under MIT.
+- **B. Own shell in Quickshell (QML):** full control of bar, dock, launcher, control center,
+  notifications, lock screen and OSD.
 
-- [x] Paquete `maxor-shell`: logo «M» generado desde Krona One, nombre y textos propios.
-- [x] Greeter propio: greetd con el greeter de DMS y el paquete Maxor Shell, con el tema y el
-      wallpaper del usuario. Reemplaza a SDDM.
-- [ ] Fuente Krona One y marca de Maxor dentro de la interfaz de DMS.
-- [ ] Pantalla de ajustes con la marca de Maxor.
-- [ ] Traducciones de las cadenas cambiadas.
-- [ ] Integrar el radio de esquinas del tema con DMS.
-- [ ] Sesión por UWSM.
-- [ ] Decidir si se pasa a un fork completo o al shell propio (camino B).
+- [x] `maxor-shell` package: "M" logo generated from Krona One, its own name and texts.
+- [x] Own greeter: greetd with the DMS greeter and the Maxor Shell package, with the user's theme
+      and wallpaper. It replaces SDDM.
+- [ ] Krona One font and Maxor brand inside DMS's interface.
+- [ ] A settings screen with Maxor's brand.
+- [ ] Translations of the changed strings.
+- [ ] Integrate the theme's corner radius with DMS.
+- [ ] UWSM session.
+- [ ] Decide whether to move to a full fork or to the own shell (path B).
 
-## Fase 5: tienda
+## Phase 5: store
 
-- Backend: Flatpak (Flathub) para apps de usuario y paquetes de nixpkgs para herramientas del
-  sistema, instalables sin editar `.nix`.
-- Frontend: Maxor Store con tres pestañas: Apps, Temas y Extras.
+- Backend: Flatpak (Flathub) for user apps and nixpkgs packages for system tools, installable
+  without editing `.nix`.
+- Frontend: Maxor Store with three tabs: Apps, Themes and Extras. Today the Store, Themes and
+  Profiles tabs of the full-screen app cover apps, themes and usage profiles.
 
-## Fase 6: arranque e instalador
+## Phase 6: boot and installer
 
-- Menú de arranque con Limine (con GRUB con tema como plan B). Se prueba primero en una VM y
-  luego en un USB; nunca se cambia el cargador en una máquina con Windows sin respaldo.
-- ISO generada desde el flake, con sesión live en Hyprland.
-- Instalador: Calamares con la marca de Maxor, o uno propio con elección de tema y perfil
-  (Gaming, Dev, Minimal, Creator). Detección automática de GPU, incluida NVIDIA híbrida.
-- Caché binaria propia para que instalar tarde minutos y no horas.
+- Boot menu with Limine (with a themed GRUB as plan B). Tested first in a VM and then on a USB
+  stick; the bootloader is never changed on a machine with Windows without a backup.
+- ISO generated from the flake, with a live Hyprland session.
+- Installer: Calamares with Maxor's brand, or one of its own with a choice of theme and profile
+  (Gaming, Dev, Minimal, Creator). Automatic GPU detection, including hybrid NVIDIA.
+- Own binary cache so that installing takes minutes and not hours.
 
-## Fase 7: comunidad
+## Phase 7: community
 
-- Theme Store web con previsualizaciones, votos y búsqueda.
-- Cuentas de autor, firma de temas y moderación.
-- Sitio y documentación pública.
+- A web Theme Store with previews, votes and search.
+- Author accounts, theme signing and moderation.
+- Public site and documentation.
 
-## Riesgos y reglas
+## Risks and rules
 
-- **No reemplazar el cargador de arranque sin respaldo.** Esta laptop comparte ESP con Windows.
-- Probar la ISO y el instalador en una VM antes de hardware real.
-- Revisar y respetar las licencias de DMS, Quickshell, Hyprland, Calamares, fuentes y
-  wallpapers antes de redistribuir (ver [THIRD_PARTY.md](../THIRD_PARTY.md)).
-- Hyprland cambia rápido: la versión queda fijada en `flake.lock` y se actualiza por canal.
-- NVIDIA híbrida es la parte más frágil; el instalador debe poder caer a un perfil sin GPU
-  dedicada.
-- Un tema de la comunidad es superficie de ataque: solo datos y sin ejecución por defecto.
+- **Do not replace the bootloader without a backup.** This laptop shares its ESP with Windows.
+- Test the ISO and the installer in a VM before real hardware.
+- Review and respect the licenses of DMS, Quickshell, Hyprland, Calamares, fonts and wallpapers
+  before redistributing (see [THIRD_PARTY.md](../THIRD_PARTY.md)).
+- Hyprland moves fast: the version is pinned in `flake.lock` and updated by channel.
+- Hybrid NVIDIA is the most fragile part; the installer must be able to fall back to a profile
+  with no dedicated GPU.
+- A community theme is an attack surface: data only and no execution by default.

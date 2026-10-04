@@ -17,6 +17,31 @@
   };
 
   outputs = { self, nixpkgs, home-manager, ... }@inputs: {
+    # La CLI como paquete propio, para construirla y probarla sin el sistema entero.
+    packages.x86_64-linux.maxor = nixpkgs.legacyPackages.x86_64-linux.callPackage ./packages/maxor.nix { };
+    packages.x86_64-linux.maxor-tui = nixpkgs.legacyPackages.x86_64-linux.callPackage ./packages/maxor-tui.nix { };
+
+    # La pantalla completa compila y corre sus pruebas de Go (go test) al construirse.
+    checks.x86_64-linux.tui = self.packages.x86_64-linux.maxor-tui;
+
+    # Pruebas de la CLI (tests/): `nix build .#checks.x86_64-linux.cli-tests` o
+    # `nix flake check`. Corren en el sandbox, sin tocar nada del usuario.
+    checks.x86_64-linux.cli-tests =
+      let pkgs = nixpkgs.legacyPackages.x86_64-linux; in
+      pkgs.runCommand "maxor-cli-tests"
+        {
+          nativeBuildInputs = with pkgs; [ bats shellcheck jq gnugrep gnused gawk coreutils findutils gnutar ncurses git openssh curl util-linux ];
+          MAXOR_BIN = "${self.packages.x86_64-linux.maxor}/bin/maxor";
+        } ''
+        cp -r ${self} src
+        chmod -R u+w src
+        cd src
+        patchShebangs scripts
+        shellcheck -x scripts/*.sh
+        bats tests/
+        touch $out
+      '';
+
     # Módulos de sistema de Maxor OS, reutilizables desde otro flake.
     nixosModules.default = {
       imports = [

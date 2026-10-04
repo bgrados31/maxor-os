@@ -1,0 +1,8 @@
+# Whoever owns a path is asked to review changes to it. The trust root of the update system and
+# everything that publishes or verifies releases is listed on purpose.
+*                          @bgrados31
+/keys/                     @bgrados31
+/scripts/release*.sh       @bgrados31
+/home/maxor/cmd/release.sh @bgrados31
+/.github/                  @bgrados31
+/SECURITY.md               @bgrados31

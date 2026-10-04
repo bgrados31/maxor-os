@@ -3,6 +3,9 @@
 # modules/hardware.nix usa para elegir microcódigo, drivers de vídeo y
 # ajustes de portátil. Nix evalúa sin ver el equipo, por eso el resultado se
 # guarda en hosts/<equipo>/hardware.json y se versiona con el resto.
+maxor_cmd hardware system "show detect"
+
+hw_any() { local p; for p in "$@"; do [ -e "$p" ] && return 0; done; return 1; } # ¿existe alguna coincidencia del glob?
 
 # hw_read variable archivo → contenido del archivo, o vacío si no se puede leer.
 # Sin lanzar `cat`: el detector lee unos veinte archivos de /sys.
@@ -14,8 +17,6 @@ hw_pci_busid() { # 0000:01:00.0 → PCI:1:0:0 (decimal, como pide NixOS)
   local a="$1"
   printf 'PCI:%d:%d:%d' "0x${a:5:2}" "0x${a:8:2}" "${a:11:1}"
 }
-
-hw_any() { local p; for p in "$@"; do [ -e "$p" ] && return 0; done; return 1; } # ¿existe alguna coincidencia del glob?
 
 hw_detect() {
   local vid cpu model laptop=false virt=none bt=false chassis sysv
@@ -69,34 +70,44 @@ hw_detect() {
 }
 
 hw_show() {
-  local j="$1" n
+  local j="$1" kind virtinfo line
   echo
-  ui_open "maxor · hardware"
-  ui_section "Equipo"
+  ui_intro @hardware.title
+  ui_section @hardware.sec_machine
   ui_row info "$(jq -r '.cpu.model' <<< "$j")"
-  ui_row info "$(jq -r 'if .laptop then "portátil" else "sobremesa" end' <<< "$j")$(jq -r 'if .virt != "none" then " · máquina virtual (" + .virt + ")" else "" end' <<< "$j")"
-  ui_section "Gráficos"
-  n="$(jq '.gpus | length' <<< "$j")"
-  if [ "$n" = 0 ]; then ui_row warn "no se detectó ninguna GPU"; fi
-  jq -r '.gpus[] | "\(.vendor) \(.id) \(.bus)"' <<< "$j" | while read -r v id bus; do
+  if [ "$(jq -r '.laptop' <<< "$j")" = true ]; then msg kind @hardware.laptop; else msg kind @hardware.desktop; fi
+  virtinfo="$(jq -r 'if .virt != "none" then .virt else "" end' <<< "$j")"
+  if [ -n "$virtinfo" ]; then
+    msg line @hardware.vm "$virtinfo"
+    ui_row info "$kind · $line"
+  else
+    ui_row info "$kind"
+  fi
+  ui_section @hardware.sec_graphics
+  if [ "$(jq '.gpus | length' <<< "$j")" = 0 ]; then ui_row warn @hardware.no_gpu; fi
+  while read -r v id bus; do
     ui_row info "$v · $id · $bus"
-  done
-  ui_section "Maxor usará"
-  jq -r '
-    (if .cpu.vendor == "intel" then "microcódigo Intel y thermald"
-     elif .cpu.vendor == "amd" then "microcódigo AMD (amd_pstate lo gestiona el kernel)"
-     else "sin microcódigo específico" end),
-    (if ([.gpus[].vendor] | index("nvidia")) and ([.gpus[].vendor] | map(select(. == "intel" or . == "amd")) | length > 0) and .laptop
-     then "gráficos híbridos: iGPU en el escritorio y NVIDIA bajo demanda (nvidia-offload)"
-     elif ([.gpus[].vendor] | index("nvidia")) then "controlador NVIDIA"
-     elif ([.gpus[].vendor] | index("amd")) then "controlador AMD (amdgpu, Vulkan y OpenCL)"
-     elif ([.gpus[].vendor] | index("intel")) then "controlador Intel (Mesa y aceleración de vídeo)"
-     else "controladores genéricos de Mesa" end),
-    (if .laptop then "perfiles de energía y control térmico de portátil" else empty end),
-    (if .virt != "none" then "herramientas de invitado para " + .virt else empty end)
-  ' <<< "$j" | while read -r line; do ui_row ok "$line"; done
-  ui_line ""
-  ui_close
+  done < <(jq -r '.gpus[] | "\(.vendor) \(.id) \(.bus)"' <<< "$j")
+  ui_section @hardware.sec_uses
+  # La lógica de qué se activa vive en modules/hardware.nix; aquí solo se resume.
+  local cpuv gv hybrid
+  cpuv="$(jq -r '.cpu.vendor' <<< "$j")"
+  case "$cpuv" in
+    intel) ui_row ok @hardware.use_intel ;;
+    amd) ui_row ok @hardware.use_amd ;;
+    *) ui_row ok @hardware.use_cpu_other ;;
+  esac
+  gv="$(jq -r '[.gpus[].vendor] | join(" ")' <<< "$j")"
+  hybrid="$(jq -r 'if .laptop and ([.gpus[].vendor] | index("nvidia")) and ([.gpus[].vendor] | map(select(. == "intel" or . == "amd")) | length > 0) then "yes" else "no" end' <<< "$j")"
+  if [ "$hybrid" = yes ]; then ui_row ok @hardware.use_hybrid
+  elif [[ "$gv" == *nvidia* ]]; then ui_row ok @hardware.use_nvidia
+  elif [[ "$gv" == *amd* ]]; then ui_row ok @hardware.use_amd_gpu
+  elif [[ "$gv" == *intel* ]]; then ui_row ok @hardware.use_intel_gpu
+  else ui_row ok @hardware.use_mesa; fi
+  if [ "$(jq -r '.laptop' <<< "$j")" = true ]; then ui_row ok @hardware.use_laptop; fi
+  if [ -n "$virtinfo" ]; then ui_row ok @hardware.use_guest "$virtinfo"; fi
+  ui_text ""
+  ui_outro
   echo
 }
 
@@ -115,11 +126,11 @@ cmd_hardware() {
           mkdir -p "$(dirname "$out")"
           printf '%s\n' "$j" > "$out"
           track_file "$out"
-          ui_say ok "Hardware guardado en $out"
+          ui_say ok @hardware.saved "$out"
           ;;
-        *) die "uso: maxor hardware detect [--write [ruta]]" ;;
+        *) usage_error hardware ;;
       esac
       ;;
-    *) die "uso: maxor hardware [show | detect [--write [ruta]]]" ;;
+    *) usage_error hardware ;;
   esac
 }

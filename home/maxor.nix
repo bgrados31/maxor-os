@@ -4,18 +4,7 @@
 #
 # Los temas oficiales son las carpetas de ../themes (colors.json + theme.toml);
 # aquí se les genera el wallpaper y se instalan junto a los del usuario en
-# ~/.local/share/maxor/themes/. El CLI vive en ./maxor/*.sh (scripts reales,
-# con shellcheck al compilar) y se ensambla en este orden:
-#
-#   lib.sh      rutas y utilidades de color
-#   ui.sh       ventanas de terminal con la paleta del tema activo
-#   style.sh    style.json → Lua de Hyprland
-#   theme.sh    maxor theme …
-#   system.sh   maxor update | rollback | doctor
-#   hardware.sh maxor hardware (detección del equipo)
-#   apps.sh     maxor search | install | remove | apps
-#   profile.sh  maxor profile
-#   main.sh     ayuda y despacho de comandos
+# ~/.local/share/maxor/themes/. La CLI es el paquete packages/maxor.nix.
 let
   themesDir = ../themes;
   themeIds = builtins.attrNames (lib.filterAttrs (_: kind: kind == "directory") (builtins.readDir themesDir));
@@ -35,26 +24,59 @@ let
 
   officialThemes = lib.genAttrs themeIds mkTheme;
 
-  maxor = pkgs.writeShellApplication {
-    name = "maxor";
-    runtimeInputs = with pkgs; [ jq coreutils gnused gnugrep gawk gnutar findutils procps ncurses ];
-    runtimeEnv.MAXOR_PROFILES = ../modules/profiles-catalog.json;
-    excludeShellChecks = [ "SC2001" "SC2155" "SC2086" "SC2012" "SC2015" "SC2016" ];
-    text = lib.concatMapStringsSep "\n" builtins.readFile [
-      ./maxor/lib.sh
-      ./maxor/ui.sh
-      ./maxor/style.sh
-      ./maxor/theme.sh
-      ./maxor/system.sh
-      ./maxor/hardware.sh
-      ./maxor/apps.sh
-      ./maxor/profile.sh
-      ./maxor/main.sh
-    ];
-  };
+  maxor = pkgs.callPackage ../packages/maxor.nix { };
+  maxorTui = pkgs.callPackage ../packages/maxor-tui.nix { };
 in
 {
-  home.packages = [ maxor ];
+  home.packages = [ maxor maxorTui ];
+
+  # Una vez al día mira si alguna app instalada con maxor tiene versión nueva y, si la hay,
+  # lo avisa con una notificación. Mirar es barato (no compila ni descarga nada del sistema);
+  # actualizar sigue siendo cosa tuya, desde la Tienda.
+  systemd.user.services.maxor-app-updates = {
+    Unit.Description = "Look for new versions of the apps installed with maxor";
+    Service = {
+      Type = "oneshot";
+      ExecStart = "${maxor}/bin/maxor apps updates --refresh --notify";
+      Environment = [ "PATH=${lib.makeBinPath [ pkgs.libnotify pkgs.coreutils pkgs.nix pkgs.flatpak ]}" ];
+      Nice = 15;
+    };
+  };
+  systemd.user.timers.maxor-app-updates = {
+    Unit.Description = "Daily look for new app versions";
+    Timer = {
+      OnCalendar = "daily";
+      RandomizedDelaySec = "30min";
+      Persistent = true;
+    };
+    Install.WantedBy = [ "timers.target" ];
+  };
+
+  # Cada hora pregunta, con una petición condicional (ETag: si no hay nada nuevo, el servidor
+  # responde 304 sin cuerpo), si hay una release de Maxor OS. La respuesta solo vale si su
+  # firma es de la clave de release; avisa una vez por versión. El mismo chequeo corre
+  # al iniciar sesión y cuando se abre la pantalla completa. Sin red no es un fallo (código 4).
+  systemd.user.services.maxor-release-check = {
+    Unit = {
+      Description = "Look for a new signed Maxor OS release";
+      After = [ "network-online.target" ];
+    };
+    Service = {
+      Type = "oneshot";
+      ExecStart = "${maxor}/bin/maxor release check --notify --quiet";
+      SuccessExitStatus = [ 4 ];
+      Nice = 15;
+    };
+  };
+  systemd.user.timers.maxor-release-check = {
+    Unit.Description = "Hourly look for a new Maxor OS release";
+    Timer = {
+      OnStartupSec = "2min";
+      OnUnitActiveSec = "1h";
+      RandomizedDelaySec = "5min";
+    };
+    Install.WantedBy = [ "timers.target" ];
+  };
 
   # Temas oficiales: carpetas de solo lectura junto a los tuyos, y sus
   # wallpapers en ~/Pictures/Wallpapers para el selector de DMS.
