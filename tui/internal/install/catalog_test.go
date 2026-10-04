@@ -40,6 +40,9 @@ func TestEveryLocaleIsUTF8AndNamed(t *testing.T) {
 }
 
 func TestParseZonesKeepsOnlyZoneNames(t *testing.T) {
+	if z := parseZones("US/Pacific\nWET\nEtc/GMT+5\nUniversal\nAmerica/Lima\n"); len(z) != 1 || z[0] != "America/Lima" {
+		t.Fatalf("legacy aliases are dropped: %v", z)
+	}
 	z := parseZones("Europe/Madrid\n\nAmerica/Lima\nnot a zone\nUTC\n")
 	if len(z) != 3 || z[0] != "America/Lima" || z[2] != "UTC" {
 		t.Fatalf("%v", z)
@@ -82,6 +85,9 @@ func TestParseStatusPrefersTheWire(t *testing.T) {
 	st = ParseStatus("wifi:connected:Casa\n", "limited")
 	if st.Online || st.Kind != "wifi" || st.Name != "Casa" {
 		t.Fatalf("%+v", st)
+	}
+	if st := ParseStatus("ethernet:connected:Wired\n", "unknown"); !st.Online {
+		t.Fatalf("a connected wire with no connectivity check counts as online: %+v", st)
 	}
 	if st := ParseStatus("ethernet:unavailable:\n", "none"); st.Online || st.Kind != "" {
 		t.Fatalf("%+v", st)

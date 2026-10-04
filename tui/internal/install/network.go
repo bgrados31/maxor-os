@@ -77,7 +77,8 @@ func splitTerse(line string) []string {
 
 // ParseStatus reads `nmcli -t -f TYPE,STATE,CONNECTION device` and the connectivity word.
 func ParseStatus(devices, connectivity string) NetStatus {
-	st := NetStatus{Online: strings.TrimSpace(connectivity) == "full"}
+	conn := strings.TrimSpace(connectivity)
+	st := NetStatus{Online: conn == "full"}
 	for _, l := range strings.Split(devices, "\n") {
 		f := splitTerse(l)
 		if len(f) < 3 || f[1] != "connected" {
@@ -85,6 +86,8 @@ func ParseStatus(devices, connectivity string) NetStatus {
 		}
 		if f[0] == "ethernet" || f[0] == "wifi" {
 			st.Kind, st.Name = f[0], f[2]
+			// without a connectivity check NetworkManager says "unknown": a connected device is the best answer
+			st.Online = st.Online || conn == "unknown" || conn == ""
 			if f[0] == "ethernet" {
 				break // a wire beats Wi-Fi as the answer
 			}

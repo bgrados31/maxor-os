@@ -64,7 +64,7 @@ type welcomeStep struct {
 func (*welcomeStep) ID() string    { return "welcome" }
 func (*welcomeStep) Title() string { return "Welcome" }
 func (*welcomeStep) Intro() string {
-	return "Let us install Maxor OS. It takes a few questions and nothing changes until the end."
+	return "A few questions, and nothing changes until the end."
 }
 
 func (s *welcomeStep) filtered() []install.Locale {
@@ -233,7 +233,7 @@ type networkStep struct {
 func (*networkStep) ID() string    { return "network" }
 func (*networkStep) Title() string { return "Network" }
 func (*networkStep) Intro() string {
-	return "The installer downloads what it needs from the internet. You can also install without it."
+	return "The installer can download updates. It also works without a network."
 }
 
 func (s *networkStep) Enter(w *Installer, env *core.Env) tea.Cmd {

@@ -109,12 +109,25 @@ func Timezones(ctx context.Context) []string {
 	return append([]string(nil), fallbackZones...)
 }
 
+// legacyZone: the aliases tzdata keeps for old software (US/Pacific, Etc/GMT+5, WET…) are noise in a list for people.
+func legacyZone(z string) bool {
+	if z == "UTC" {
+		return false
+	}
+	for _, p := range []string{"US/", "Etc/", "SystemV/", "Brazil/", "Canada/", "Chile/", "Mexico/"} {
+		if strings.HasPrefix(z, p) {
+			return true
+		}
+	}
+	return !strings.Contains(z, "/")
+}
+
 func parseZones(s string) []string {
 	var zones []string
 	sc := bufio.NewScanner(strings.NewReader(s))
 	for sc.Scan() {
 		z := strings.TrimSpace(sc.Text())
-		if z != "" && !strings.ContainsAny(z, " :") {
+		if z != "" && !strings.ContainsAny(z, " :") && !legacyZone(z) {
 			zones = append(zones, z)
 		}
 	}

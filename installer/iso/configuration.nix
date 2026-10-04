@@ -41,10 +41,27 @@ in
   # ── El instalador ───────────────────────────────────────────────────
   environment.systemPackages = [ maxorInstall maxorTui ];
   environment.etc."maxor-install/overrides".source = overrides;
+  # Marca la sesión viva: lo que solo tiene sentido en la ISO (el instalador, los avisos) pregunta por este archivo.
+  environment.etc."maxor-live".text = "${version}\n";
+
+  # El instalador se abre solo, a pantalla completa, cuando el escritorio está listo. Colgado de dms.service como
+  # maxor-first-run (ver home/maxor.nix): DMS arranca después de graphical-session.target. Si se cierra, se puede
+  # volver a abrir con `maxor-tui --screen install`.
+  systemd.user.services.maxor-installer = {
+    description = "Maxor OS installer";
+    after = [ "dms.service" ];
+    wantedBy = [ "dms.service" ];
+    serviceConfig = {
+      ExecStart = "${pkgs.kitty}/bin/kitty --start-as=fullscreen --title='Maxor OS installer' ${maxorTui}/bin/maxor-tui --screen install";
+      Restart = "no";
+    };
+  };
 
   # ── Imagen y arranque ───────────────────────────────────────────────
   # El menú de la ISO espera más que el del sistema instalado: hay que dar tiempo a elegir.
   boot.loader.timeout = lib.mkForce 10;
+  # Nombre del archivo: maxor-os-<versión>-<arquitectura>.iso
+  image.baseName = lib.mkForce "maxor-os-${version}-${pkgs.stdenv.hostPlatform.system}";
   isoImage = {
     volumeID = "MAXOR_OS";
     edition = "maxor";
@@ -53,8 +70,6 @@ in
     makeEfiBootable = true;
     makeUsbBootable = true;
   };
-  # Nombre del archivo de la imagen: maxor-os-<versión>-<arquitectura>.iso
-  image.fileName = "maxor-os-${version}-${pkgs.stdenv.hostPlatform.system}.iso";
   # ZFS viene con la ISO base; no hace falta que fuerce importar la raíz (y evita un aviso).
   boot.zfs.forceImportRoot = false;
 
