@@ -41,7 +41,7 @@ disk_free_json() {
 # disk_probe_json → los discos del equipo, con lo que hay en ellos y su espacio libre. Solo lee.
 disk_probe_json() {
   local lsb disks d out='[]' free
-  lsb="$(lsblk -J -b -o NAME,PATH,SIZE,TYPE,MODEL,TRAN,RM,RO,FSTYPE,LABEL,PARTLABEL,MOUNTPOINTS)"
+  lsb="$(lsblk -J -b -o NAME,PATH,SIZE,START,TYPE,MODEL,TRAN,RM,RO,FSTYPE,LABEL,PARTLABEL,MOUNTPOINTS)"
   # Solo discos con medio: sin disqueteras (fd), memoria comprimida (zram), lectores vacíos (tamaño 0)
   # ni dispositivos de red (nbd).
   disks="$(jq -r '.blockdevices[] | select(.type == "disk" and ((.size | tonumber) > 0) and (.name | test("^(fd|zram|ram|nbd)[0-9]*$") | not)) | .path' <<< "$lsb")"
@@ -53,7 +53,7 @@ disk_probe_json() {
             removable: ((.rm | tostring) == "true" or (.rm | tostring) == "1"),
             readonly: ((.ro | tostring) == "true" or (.ro | tostring) == "1"),
             mountpoints: [ (.mountpoints // [])[] | select(. != null) ],
-            partitions: [ (.children // [])[] | { path: .path, size: (.size | tonumber), fstype: (.fstype // ""), label: (.label // ""),
+            partitions: [ (.children // [])[] | { path: .path, size: (.size | tonumber), start: ((.start // 0) | tonumber), fstype: (.fstype // ""), label: (.label // ""),
                           partlabel: (.partlabel // ""), mountpoints: [ (.mountpoints // [])[] | select(. != null) ] } ],
             free: $free } ]
       | map(. + { mounted: (([.partitions[].mountpoints[]] + .mountpoints) | length > 0),

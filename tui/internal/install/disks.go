@@ -17,6 +17,7 @@ type Free struct {
 type Partition struct {
 	Path        string   `json:"path"`
 	Size        int64    `json:"size"`
+	Start       int64    `json:"start"` // first sector (512 bytes); 0 when the engine did not say
 	FSType      string   `json:"fstype"`
 	Label       string   `json:"label"`
 	PartLabel   string   `json:"partlabel"`

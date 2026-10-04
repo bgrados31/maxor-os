@@ -16,15 +16,16 @@ import (
 
 // Env es lo que una pantalla puede usar. La aplicación lo actualiza en cada vuelta.
 type Env struct {
-	Client *maxor.Client
-	Theme  theme.Theme
-	P      ui.Painter // estilos sobre el fondo de los paneles
-	Tasks  *task.Manager
-	Frame  int // fotograma de la animación, compartido por todo el cargador
-	Now    func() time.Time
-	Data   *Data
-	Host   string
-	Setup  bool // arrancó como asistente (maxor setup): sin pestañas
+	Client  *maxor.Client
+	Theme   theme.Theme
+	P       ui.Painter // estilos sobre el fondo de los paneles
+	Tasks   *task.Manager
+	Frame   int           // fotograma de la animación (uno cada 80 ms), compartido por todo el cargador
+	Clock   time.Duration // tiempo de animación transcurrido: las transiciones se miden con él, no con fotogramas
+	Now     func() time.Time
+	Data    *Data
+	Host    string
+	Setup   bool          // arrancó como asistente (maxor setup): sin pestañas
 	Install *install.Deps // lo que necesita el instalador guiado (motor, red, equipo); nil fuera de él
 }
 
@@ -57,15 +58,19 @@ type ExecDoneMsg struct {
 }
 
 // Toast, Note y Go devuelven el comando que emite cada mensaje.
-func Toast(kind, text string) tea.Cmd { return func() tea.Msg { return ToastMsg{Kind: kind, Text: text} } }
-func Note(kind, text string) tea.Cmd  { return func() tea.Msg { return SummaryMsg{Kind: kind, Text: text} } }
-func Go(id string) tea.Cmd            { return func() tea.Msg { return GoMsg{ID: id} } }
+func Toast(kind, text string) tea.Cmd {
+	return func() tea.Msg { return ToastMsg{Kind: kind, Text: text} }
+}
+func Note(kind, text string) tea.Cmd {
+	return func() tea.Msg { return SummaryMsg{Kind: kind, Text: text} }
+}
+func Go(id string) tea.Cmd { return func() tea.Msg { return GoMsg{ID: id} } }
 
 // GoThen cambia de pantalla y le entrega un mensaje (p. ej. «comprueba las actualizaciones»).
 func GoThen(id string, then tea.Msg) tea.Cmd {
 	return func() tea.Msg { return GoMsg{ID: id, Then: then} }
 }
-func Quit() tea.Cmd                   { return func() tea.Msg { return QuitMsg{} } }
+func Quit() tea.Cmd { return func() tea.Msg { return QuitMsg{} } }
 
 // Screen es una pantalla de la aplicación (una pestaña).
 type Screen interface {
@@ -97,10 +102,10 @@ type Briefer interface {
 // Base da valores por defecto a lo que casi ninguna pantalla necesita.
 type Base struct{}
 
-func (Base) Side(*Env, int, int) []ui.Line   { return nil }
-func (Base) Captures() bool                  { return false }
-func (Base) Click(*Env, int, int) tea.Cmd    { return nil }
-func (Base) Wheel(*Env, int) tea.Cmd         { return nil }
+func (Base) Side(*Env, int, int) []ui.Line { return nil }
+func (Base) Captures() bool                { return false }
+func (Base) Click(*Env, int, int) tea.Cmd  { return nil }
+func (Base) Wheel(*Env, int) tea.Cmd       { return nil }
 
 // Data es la caché compartida entre pantallas: quien carga un dato lo deja aquí y
 // las demás lo leen (el Inicio muestra lo que cargaron la Tienda o el Doctor).
@@ -134,4 +139,10 @@ type Framed interface {
 // Animated is optional: a screen that keeps moving (a gradient, a transition) asks for steady frames.
 type Animated interface {
 	Animated() bool
+}
+
+// Smooth is optional: a screen in the middle of a transition asks for frames at 30 per second instead of 12, so
+// motion and fades look continuous. It is asked on every frame, so it can say no as soon as the transition ends.
+type Smooth interface {
+	Smooth(env *Env) bool
 }

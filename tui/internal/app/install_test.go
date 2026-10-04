@@ -90,8 +90,8 @@ func emptyDisk() install.Disk {
 }
 
 func windowsDisk() install.Disk {
-	return install.Disk{Path: "/dev/nvme0n1", Model: "Samsung SSD", Size: 512_110_190_592, Windows: true,
-		Partitions: []install.Partition{{Path: "/dev/nvme0n1p1", Size: 104_857_600, FSType: "vfat", Label: "SYSTEM"}, {Path: "/dev/nvme0n1p2", Size: 200_000_000_000, FSType: "ntfs", Label: "Windows"}},
+	return install.Disk{Path: "/dev/nvme0n1", Model: "Samsung SSD 980 PRO", Size: 512_110_190_592, Transport: "nvme", Windows: true,
+		Partitions: []install.Partition{{Path: "/dev/nvme0n1p1", Start: 2048, Size: 104_857_600, FSType: "vfat", Label: "SYSTEM"}, {Path: "/dev/nvme0n1p2", Start: 206_848, Size: 200_000_000_000, FSType: "ntfs", Label: "Windows"}},
 		Free:       []install.Free{{Start: 400_000_000, End: 1_000_000_000, Sectors: 600_000_000}}}
 }
 
@@ -310,7 +310,7 @@ func TestAnEmptyDiskSkipsTheStrategyAndAWindowsDiskAsksForIt(t *testing.T) {
 	m = installModel(t, newInstallEnv(windowsDisk()))
 	enter(m, 5)
 	out := view(m)
-	for _, want := range []string{"How to install", "Erase the disk", "alongside what is already there", "Windows was found"} {
+	for _, want := range []string{"How to install", "Erase the disk", "alongside Windows", "Shrink the Windows partition", "now", "after"} {
 		if !has(out, want) {
 			t.Fatalf("missing %q:\n%s", want, out)
 		}
@@ -321,10 +321,13 @@ func TestStorageEncryptionNeedsAStrongPassphrase(t *testing.T) {
 	m := installModel(t, newInstallEnv(emptyDisk()))
 	enter(m, 5) // → storage
 	send(m, key("down"), key("space"))
-	if !has(view(m), "Passphrase") || !has(view(m), "no recovery") {
-		t.Fatalf("encryption shows its fields and its warning:\n%s", view(m))
+	if !has(view(m), "Passphrase") || !has(view(m), "LUKS2") {
+		t.Fatalf("encryption shows its fields:\n%s", view(m))
 	}
 	send(m, key("down"))
+	if !has(view(m), "no way to recover") {
+		t.Fatalf("the passphrase warns that it cannot be recovered:\n%s", view(m))
+	}
 	typeText(m, "password")
 	send(m, key("down"))
 	typeText(m, "password")

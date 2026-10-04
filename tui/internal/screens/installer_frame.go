@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"math"
 	"strings"
+	"time"
 
 	"github.com/charmbracelet/lipgloss"
 	"github.com/charmbracelet/x/ansi"
@@ -21,13 +22,41 @@ const (
 	headerRows = 5
 	footerRows = 2
 	railWidth  = 27
+	railWide   = 32 // the list of steps where the window has room for it
 	cardWidth  = 66
-	slideFrames = 6 // frames (80 ms each) a card takes to slide into place
-	minCard     = 56 // the narrowest a card gets when the list of steps is shown
+	minCard    = 56 // the narrowest a card gets when the list of steps is shown
+
+	slideIn    = 260 * time.Millisecond // a new card slides and fades into place
+	slideCells = 4                      // from this many cells away: short, so it reads as motion and not as a jump
+	barGlide   = 420 * time.Millisecond // the progress bar glides to the new step
 )
 
 // Animated: the gradient of the mark and the slide between steps need steady frames.
 func (w *Installer) Animated() bool { return true }
+
+// Smooth: while a card slides in or the bar glides, frames come at 30 per second.
+func (w *Installer) Smooth(env *core.Env) bool { return env.Clock-w.changedAt < barGlide }
+
+// barTarget is the share of the steps done, the end the progress bar glides to.
+func (w *Installer) barTarget() float64 {
+	if w.running {
+		return 1
+	}
+	vis := w.visible()
+	pos := 0
+	for n, i := range vis {
+		if i <= w.idx {
+			pos = n + 1
+		}
+	}
+	return float64(pos) / float64(max(len(vis), 1))
+}
+
+// barShown is what the progress bar shows now: on its way from where it was to the current step.
+func (w *Installer) barShown(env *core.Env) float64 {
+	t := ui.EaseOut(ui.Progress(env.Clock-w.changedAt, barGlide))
+	return w.barFrom + (w.barTarget()-w.barFrom)*t
+}
 
 func padSegs(segs []ui.Seg, width int, ctx ui.Ctx) ui.Line {
 	n := 0
@@ -76,7 +105,12 @@ func (w *Installer) value(id string) string {
 	st := w.st
 	switch id {
 	case "welcome":
-		return strings.TrimSpace(install.LocaleName(st.Locale))
+		// «English (United States)» → «English»: the rail has little room, and the review says it all
+		name := install.LocaleName(st.Locale)
+		if i := strings.Index(name, " ("); i > 0 {
+			name = name[:i]
+		}
+		return strings.TrimSpace(name)
 	case "keyboard":
 		return install.FindLayout(st.XKBLayout, st.XKBVariant).XKB
 	case "network":
@@ -92,7 +126,7 @@ func (w *Installer) value(id string) string {
 	case "disk":
 		return strings.TrimPrefix(st.Disk, "/dev/")
 	case "strategy":
-		return map[string]string{"whole": "whole disk", "alongside": "alongside"}[st.Strategy]
+		return map[string]string{"whole": "erase disk", "alongside": "alongside"}[st.Strategy]
 	case "storage":
 		v := st.Filesystem
 		if st.Encrypt {
@@ -146,7 +180,7 @@ func (w *Installer) railLines(env *core.Env) []ui.Line {
 		line := ui.Line{L: segs}
 		if i < w.idx {
 			// the value gets what the name leaves; if that is too little, it is left out rather than eating the name
-			room := railWidth - 4 - 2 - ansi.StringWidth(label) - 2
+			room := w.railW - 4 - 2 - ansi.StringWidth(label) - 2
 			if v := w.value(s.ID()); v != "" && room >= 4 {
 				line.R = []ui.Seg{ui.S(p.Mu, ansi.Truncate(v, room, "…")+" ")}
 			}
@@ -204,17 +238,22 @@ func (w *Installer) Frame(env *core.Env, width, height int) []string {
 			pos = len(vis)
 		}
 		barW := 24
-		segs := append([]ui.Seg{ui.S(page.Mu, "install  ")}, gradBar(env, page, pos*100/max(len(vis), 1), barW, w.running)...)
+		segs := append([]ui.Seg{ui.S(page.Mu, "install  ")}, gradBar(env, page, int(w.barShown(env)*100+0.5), barW, w.running)...)
 		segs = append(segs, ui.S(page.Mu, fmt.Sprintf("  %d/%d", pos, len(vis))))
 		rows = append(rows, padSegs(segs, width, pc).Render(width, pc))
 	}
 	rows = append(rows, blank)
 
 	bodyH := height - headerRows - footerRows
-	showRail := !w.running && !final && !intro && w.cur().ID() != "install" && width >= railWidth+minCard+6
+	// the list of steps is wider where there is room, so what was chosen fits next to each step
+	w.railW = railWidth
+	if width >= railWide+cardWidth+8 {
+		w.railW = railWide
+	}
+	showRail := !w.running && !final && !intro && w.cur().ID() != "install" && width >= w.railW+minCard+6
 	cw := min(cardWidth, width-2)
 	if showRail {
-		cw = min(cardWidth, width-railWidth-6) // the card gives way before the list of steps does
+		cw = min(cardWidth, width-w.railW-6) // the card gives way before the list of steps does
 	}
 	if !showRail && !final && w.cur().ID() == "install" {
 		cw = min(cardWidth+12, width-2)
@@ -222,18 +261,37 @@ func (w *Installer) Frame(env *core.Env, width, height int) []string {
 
 	w.bodyH = bodyH
 	lines := w.cardLines(env, cw-6)
-	off := 0
-	if k := env.Frame - w.changed; k >= 0 && k < slideFrames {
-		off = (slideFrames - k) * 3 // the card slides in from the right
+	// what a row puts on the right keeps the same margin from the edge as the text on the left
+	for i := range lines {
+		if len(lines[i].R) > 0 {
+			lines[i].R = append(append([]ui.Seg(nil), lines[i].R...), ui.Seg{T: "   "})
+		}
 	}
-	ch := min(bodyH, max(len(lines)+3, 12))
-	card := ui.Block(ui.Inset(lines, 3+off, 1), cw, ch, env.P.Ctx())
+	// the row with the focus is tinted with the accent, and keeps its own colours: calmer than a solid bar
+	ctx := env.P.Ctx()
+	ctx.SelBg = lipgloss.Color(ui.Mix(string(env.P.Bg), env.Theme.P.Ac, 0.16))
+	// A new card comes in from the side it was reached from (the right going forward, the left going back),
+	// a few cells away, easing out while it fades in from the card's colour.
+	if t := ui.EaseOut(ui.Progress(env.Clock-w.changedAt, slideIn)); t < 1 {
+		bg := string(env.P.Bg)
+		lines = ui.Fade(lines, bg, t)
+		ctx = ui.FadeCtx(ctx, bg, t)
+	}
+	inset := 3 + w.dir*ui.Lerp(slideCells, 0, ui.EaseOut(ui.Progress(env.Clock-w.changedAt, slideIn)))
+	inset = max(inset, 0)
+
+	// The card is never shorter than the list of steps beside it: the list is never cut, and the card does not
+	// change height from one short step to the next. Its top edge stays put; a long step grows downwards.
+	railRows := w.railLines(env)
+	steady := max(len(railRows)+2, 12)
+	ch := min(bodyH, max(len(lines)+3, steady))
+	card := ui.Block(ui.Inset(lines, inset, 1), cw, ch, ctx)
 
 	var body []string
 	margin := func(n int) string { return page.Fill.Render(strings.Repeat(" ", max(n, 0))) }
 	if showRail {
-		rail := ui.Block(ui.Inset(w.railLines(env), 2, 1), railWidth, ch, env.P.Ctx())
-		total := railWidth + 2 + cw
+		rail := ui.Block(ui.Inset(railRows, 2, 1), w.railW, ch, env.P.Ctx())
+		total := w.railW + 2 + cw
 		x0 := (width - total) / 2
 		for i := 0; i < ch; i++ {
 			body = append(body, margin(x0)+rail[i]+margin(2)+card[i]+margin(width-x0-total))
@@ -244,7 +302,7 @@ func (w *Installer) Frame(env *core.Env, width, height int) []string {
 			body = append(body, margin(x0)+card[i]+margin(width-x0-cw))
 		}
 	}
-	top := (bodyH - len(body)) / 2
+	top := max(min((bodyH-min(steady, bodyH))/2, bodyH-len(body)), 0)
 	for i := 0; i < top; i++ {
 		rows = append(rows, blank)
 	}

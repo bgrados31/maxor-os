@@ -201,6 +201,7 @@ func typeText(m *Model, s string) {
 func view(m *Model) string {
 	if m.animated() {
 		m.env.Frame += 20
+		m.env.Clock += 5 * time.Second
 	}
 	return ansi.Strip(m.View())
 }

@@ -16,6 +16,7 @@ type Glyphs struct {
 	BarOn, BarOff, Find, Arrow     string
 	Ellipsis                       string
 	Swatch, Branch                 string // punto de color y símbolo de rama
+	Fill, Free, Edge               string // celda ocupada y libre de un mapa de disco (media altura: dos mapas seguidos no se pegan), y borde del foco
 	Spin                           []string
 }
 
@@ -27,6 +28,7 @@ var unicode = Glyphs{
 	BarOn: "▰", BarOff: "▱", Find: "⌕", Arrow: "→",
 	Ellipsis: "…",
 	Swatch:   "●", Branch: "⎇",
+	Fill:     "▄", Free: "▄", Edge: "▌",
 	Spin:     []string{"⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"},
 }
 
@@ -38,6 +40,7 @@ var ascii = Glyphs{
 	BarOn: "#", BarOff: "-", Find: "?", Arrow: "->",
 	Ellipsis: "...",
 	Swatch:   "*", Branch: "branch",
+	Fill:     "#", Free: ".", Edge: "|",
 	Spin:     []string{"|", "/", "-", "\\"},
 }
 

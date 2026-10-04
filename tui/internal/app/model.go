@@ -62,6 +62,7 @@ type Model struct {
 	base       theme.Theme // tema activo del sistema
 	previewing bool
 	ticking    bool
+	lastTick   time.Time // cuándo llegó el último fotograma: el reloj de animación avanza con el tiempo real
 	quitting   bool
 
 	// geometría para el ratón; la deja View
@@ -149,13 +150,35 @@ func (m *Model) setToast(kind, text string) {
 	m.toast.until = m.env.Now().Add(3500 * time.Millisecond)
 }
 
-// ensureTick mantiene la animación solo mientras haya algo que animar.
+// ensureTick mantiene la animación solo mientras haya algo que animar: 12 fotogramas por segundo, o 30 mientras
+// la pantalla está en mitad de una transición (core.Smooth).
 func (m *Model) ensureTick() tea.Cmd {
 	if m.ticking || !(m.env.Tasks.Busy() || m.toastActive() || m.animated()) {
 		return nil
 	}
 	m.ticking = true
-	return tea.Tick(80*time.Millisecond, func(time.Time) tea.Msg { return tickMsg{} })
+	every := frameEvery
+	if s, ok := m.screens[m.active].(core.Smooth); ok && s.Smooth(m.env) {
+		every = 33 * time.Millisecond
+	}
+	return tea.Tick(every, func(time.Time) tea.Msg { return tickMsg{} })
+}
+
+// frameEvery es lo que dura un fotograma (env.Frame): los cargadores y los giros van a este paso sea cual sea el
+// ritmo de los ticks.
+const frameEvery = 80 * time.Millisecond
+
+// advanceClock mueve el reloj de animación lo que ha pasado de verdad desde el último tick. Tras una pausa (no
+// había nada que animar) cuenta un solo fotograma: una transición nunca se salta entera.
+func (m *Model) advanceClock(now time.Time) {
+	d := frameEvery
+	if !m.lastTick.IsZero() && now.Sub(m.lastTick) < 250*time.Millisecond {
+		d = now.Sub(m.lastTick)
+	}
+	m.lastTick = now
+	before := m.env.Clock / frameEvery
+	m.env.Clock += d
+	m.env.Frame += int(m.env.Clock/frameEvery - before)
 }
 
 func (m *Model) Init() tea.Cmd {
@@ -190,7 +213,7 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	case tickMsg:
 		m.ticking = false
-		m.env.Frame++
+		m.advanceClock(time.Now())
 
 	case task.DoneMsg:
 		if !m.env.Tasks.Done(msg) {

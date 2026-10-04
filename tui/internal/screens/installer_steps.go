@@ -589,9 +589,9 @@ func (s *diskStep) Captures() bool { return false }
 func (s *diskStep) Key(w *Installer, env *core.Env, k tea.KeyMsg) (bool, tea.Cmd) {
 	switch k.String() {
 	case "up", "k":
-		s.list.move(-1, len(s.disks), pickRows)
+		s.list.move(-1, len(s.disks), diskRows)
 	case "down", "j":
-		s.list.move(1, len(s.disks), pickRows)
+		s.list.move(1, len(s.disks), diskRows)
 	case "r":
 		return false, s.Enter(w, env)
 	case "enter":
@@ -632,7 +632,6 @@ func (s *diskStep) Gate(w *Installer) string {
 }
 
 func (s *diskStep) Lines(w *Installer, env *core.Env, width int) []ui.Line {
-	p := env.P
 	if l, ok := working(env, "install.disk.probe", "Looking at the disks"); ok {
 		return []ui.Line{l}
 	}
@@ -642,24 +641,82 @@ func (s *diskStep) Lines(w *Installer, env *core.Env, width int) []ui.Line {
 	if len(s.disks) == 0 {
 		return []ui.Line{muted(env, "No disks found. Plug one in and press r.")}
 	}
+	// Each disk is a small block: its name and size, what it is and what is on it, and the disk drawn to scale.
+	// The one with the focus is tinted as a whole and also names its parts.
 	var lines []ui.Line
-	from, to := s.list.window(len(s.disks), pickRows)
+	from, to := s.list.window(len(s.disks), diskRows)
 	for i := from; i < to; i++ {
 		d := s.disks[i]
 		sel := i == s.list.sel
 		ok := usable(d)
-		st := p.Text
-		if !ok {
-			st = p.Mu
+		block := diskBlock(env, d, sel, ok, width)
+		for k := range block {
+			block[k].Sel = sel
 		}
-		lines = append(lines, ui.Line{L: []ui.Seg{ui.S(p.Ac, pad(sel)), ui.S(st, d.Label())}, Sel: sel})
-		detail := "   " + d.Contents()
-		if !ok {
-			detail = "   " + firstProblem(d)
+		lines = append(lines, block...)
+		if i < to-1 {
+			lines = append(lines, gap())
 		}
-		lines = append(lines, ui.Of(ui.S(p.Mu, detail)))
 	}
-	return append(lines, gap(), muted(env, "r looks again. The disk this installer started from is never offered."))
+	if from > 0 || to < len(s.disks) {
+		lines = append(lines, muted(env, fmt.Sprintf("   %d of %d disks · ↑ ↓ for the others", to-from, len(s.disks))))
+	}
+	lines = append(lines, gap())
+	for _, l := range ui.Wrap("r looks again. The disk this installer started from is never offered.", width) {
+		lines = append(lines, muted(env, l))
+	}
+	return lines
+}
+
+// diskRows is how many disks the list shows at once: each takes four or five rows.
+const diskRows = 3
+
+// diskBlock draws one disk of the list.
+func diskBlock(env *core.Env, d install.Disk, sel, ok bool, width int) []ui.Line {
+	p := env.P
+	name := d.Model
+	if name == "" {
+		name = d.Path
+	}
+	nameSt := p.Text.Bold(true)
+	if !ok {
+		nameSt = p.Mu
+	}
+	mark := ui.S(p.Ac, "  ")
+	if sel {
+		mark = ui.S(p.Ac, ui.G.Sel+" ")
+	}
+	title := ui.Line{L: []ui.Seg{mark, ui.S(nameSt, name)}, R: []ui.Seg{ui.S(p.Text, install.HumanSize(d.Size))}}
+
+	meta := []string{d.Path}
+	if t := transportName(d); t != "" {
+		meta = append(meta, t)
+	}
+	meta = append(meta, d.Contents())
+	lines := []ui.Line{title, ui.Of(ui.S(p.Mu, "  "+strings.Join(meta, " · ")))}
+	if !ok {
+		return append(lines, ui.Of(ui.S(p.Warn, "  "+ui.G.Warn+" "), ui.S(p.Mu, "cannot be used: "+firstProblem(d))))
+	}
+	spans := d.Layout()
+	if !sel {
+		return append(lines, ui.Of(append([]ui.Seg{ui.S(p.Mu, "  ")}, diskBar(env, spans, width-4)...)...))
+	}
+	return append(lines, diskMap(env, spans, width-2, 2)...)
+}
+
+// transportName is how a disk is connected, in the words on the box.
+func transportName(d install.Disk) string {
+	switch {
+	case d.Removable || d.Transport == "usb":
+		return "USB, removable"
+	case d.Transport == "nvme":
+		return "NVMe"
+	case d.Transport == "sata" || d.Transport == "ata":
+		return "SATA"
+	case d.Transport == "mmc":
+		return "SD / eMMC"
+	}
+	return ""
 }
 
 // ── 6 · Strategy ─────────────────────────────────────────────────────
@@ -760,23 +817,43 @@ func (s *strategyStep) Lines(w *Installer, env *core.Env, width int) []ui.Line {
 	var lines []ui.Line
 	for i, o := range s.opts {
 		sel := i == s.sel
+		var opt []ui.Line
 		switch o {
 		case "whole":
-			lines = append(lines, radio(env, w.st.Strategy == o, sel, "Erase the disk and install Maxor OS", ""),
-				ui.T(p.Warn, "      Everything on "+d.Path+" will be deleted."))
+			opt = []ui.Line{radio(env, sel, sel, "Erase the disk and install Maxor OS", ""),
+				ui.T(p.Warn, "      Everything on "+d.Path+" will be deleted.")}
 		case "alongside":
 			f := d.LargestFree()
 			size := ""
 			if f != nil {
-				size = install.HumanSize(f.Sectors * 512)
+				size = install.HumanSize(f.Sectors*512) + " free"
 			}
-			lines = append(lines, radio(env, w.st.Strategy == o, sel, "Install alongside what is already there", size+" free"),
-				ui.T(p.Mu, "      Only the free space is used: nothing that exists is changed or resized."))
+			other := "what is already there"
+			if d.Windows {
+				other = "Windows"
+			}
+			opt = []ui.Line{radio(env, sel, sel, "Install alongside "+other, size),
+				ui.T(p.Mu, "      Only the free space is used. Nothing else is touched.")}
 		}
+		for k := range opt {
+			opt[k].Sel = sel
+		}
+		lines = append(lines, opt...)
 		lines = append(lines, gap())
 	}
+	// the disk now, and as it will be with the option that has the focus
+	label := func(t string) ui.Seg { return ui.S(p.Mu, fmt.Sprintf("%-8s", t)) }
+	lines = append(lines, ui.Of(append([]ui.Seg{label("now")}, diskBar(env, d.Layout(), width-8)...)...))
+	after := d.Planned(s.opts[min(s.sel, len(s.opts)-1)])
+	lines = append(lines, ui.Of(append([]ui.Seg{label("after")}, diskBar(env, after, width-8)...)...))
+	for _, l := range diskLegend(env, after, width-8) {
+		lines = append(lines, ui.Of(append([]ui.Seg{label("")}, l.L...)...))
+	}
 	if d.Windows {
-		lines = append(lines, muted(env, "Windows was found. To make room, shrink its partition from Windows first."))
+		lines = append(lines, gap())
+		for _, l := range ui.Wrap("Need more room for Maxor OS? Shrink the Windows partition from Windows first (Disk Management), then come back.", width) {
+			lines = append(lines, muted(env, l))
+		}
 	}
 	return lines
 }
@@ -802,7 +879,7 @@ const (
 
 func (*storageStep) ID() string    { return "storage" }
 func (*storageStep) Title() string { return "Storage" }
-func (*storageStep) Intro() string { return "How the disk is organised, whether it is encrypted, and what happens when memory runs low." }
+func (*storageStep) Intro() string { return "How Maxor OS sits on the disk. ↑ ↓ moves, ← → changes." }
 
 func (s *storageStep) Enter(w *Installer, env *core.Env) tea.Cmd {
 	s.pass = ui.Input{Mask: true, Placeholder: "passphrase"}
@@ -914,30 +991,120 @@ func (s *storageStep) Lines(w *Installer, env *core.Env, width int) []ui.Line {
 	p := env.P
 	row := s.row(w)
 	var lines []ui.Line
-	section := func(t string) { lines = append(lines, gap(), heading(env, t)) }
-	section("Filesystem")
-	lines = append(lines,
-		radio(env, w.st.Filesystem == "btrfs", row == rFS && w.st.Filesystem == "btrfs", "btrfs", "snapshots, compression · recommended"),
-		radio(env, w.st.Filesystem == "ext4", row == rFS && w.st.Filesystem == "ext4", "ext4", "plain and proven"))
-	section("Encryption")
-	lines = append(lines, radio(env, w.st.Encrypt, row == rEnc, "Encrypt the system disk (LUKS2)", "protects your data if the computer is lost"))
-	if w.st.Encrypt {
-		lines = append(lines, field(env, "Passphrase", &s.pass, row == rPass, width))
-		if s.pass.Text() != "" {
-			lines = append(lines, ui.Of(ui.S(p.Mu, fmt.Sprintf("%-18s", "")), meter(env, install.Strength(s.pass.Text()))))
+
+	// what the disk will hold, with the choices of this step written on the Maxor OS part
+	if d, ok := w.currentDisk(); ok {
+		spans := d.Planned(w.st.Strategy)
+		for i := range spans {
+			if spans[i].Kind == "maxor" && spans[i].New {
+				what := []string{w.st.Filesystem}
+				if w.st.Encrypt {
+					what = append(what, "encrypted")
+				}
+				spans[i].Label = "Maxor OS (" + strings.Join(what, ", ") + ")"
+			}
 		}
-		lines = append(lines, field(env, "Again", &s.confirm, row == rConf, width),
-			ui.T(p.Warn, "      There is no recovery if you forget it."))
+		lines = append(lines, diskMap(env, spans, width, 0)...)
+		lines = append(lines, gap())
 	}
-	section("When memory runs low")
-	lines = append(lines,
-		radio(env, w.st.SwapKind == "zram", row == rSwap && w.st.SwapKind == "zram", "Compressed memory (zram)", "recommended"),
-		radio(env, w.st.SwapKind == "file", row == rSwap && w.st.SwapKind == "file", "A swap file", "also lets the computer hibernate"),
-		radio(env, w.st.SwapKind == "none", row == rSwap && w.st.SwapKind == "none", "Nothing", ""))
+
+	lines = append(lines, choice(env, "Filesystem", []string{"btrfs", "ext4"}, []string{"btrfs", "ext4"}, w.st.Filesystem, row == rFS))
+	enc := "off"
+	if w.st.Encrypt {
+		enc = "on"
+	}
+	lines = append(lines, gap(), choice(env, "Encryption", []string{"off", "on"}, []string{"Off", "On"}, enc, row == rEnc))
+	if w.st.Encrypt {
+		lines = append(lines, field(env, "    Passphrase", &s.pass, row == rPass, width))
+		if s.pass.Text() != "" {
+			n := install.Strength(s.pass.Text())
+			lines = append(lines, ui.Of(ui.S(p.Mu, strings.Repeat(" ", 18)), meter(env, n), ui.S(p.Mu, "  "+strengthWord(n))))
+		}
+		again := field(env, "    Again", &s.confirm, row == rConf, width)
+		if s.confirm.Text() != "" && s.confirm.Text() == s.pass.Text() {
+			again.L = append(again.L, ui.S(p.Ok, "  "+ui.G.Tick+" match"))
+		}
+		lines = append(lines, again)
+	}
+	lines = append(lines, gap(), choice(env, "Low memory", []string{"zram", "file", "none"}, []string{"zram", "swap file", "none"}, w.st.SwapKind, row == rSwap))
 	if w.st.SwapKind == "file" {
-		lines = append(lines, field(env, "Size (GiB)", &s.gib, row == rGiB, width))
+		lines = append(lines, field(env, "    Size (GiB)", &s.gib, row == rGiB, width))
+	}
+
+	// One place, always the same, explains the row with the focus: the screen stays short and nothing jumps
+	// when the focus moves.
+	text, st := s.help(w), p.Mu
+	if (row == rPass || row == rConf) && w.st.Encrypt {
+		st = p.Warn
+	}
+	lines = append(lines, gap())
+	for _, l := range ui.Wrap(text, width) {
+		lines = append(lines, ui.T(st, l))
 	}
 	return lines
+}
+
+// help explains the setting that has the focus, in its current value.
+func (s *storageStep) help(w *Installer) string {
+	switch s.row(w) {
+	case rFS:
+		if w.st.Filesystem == "ext4" {
+			return "ext4: the classic Linux filesystem, plain and proven, without snapshots."
+		}
+		return "btrfs: snapshots to roll back a bad change, and compression. Recommended."
+	case rEnc:
+		if w.st.Encrypt {
+			return "Encrypted with LUKS2: the passphrase is asked every time the computer starts."
+		}
+		return "Encryption protects your files if the computer is lost or stolen. ← → turns it on."
+	case rPass, rConf:
+		return "There is no way to recover the passphrase if you forget it. Write it down somewhere safe."
+	case rSwap:
+		switch w.st.SwapKind {
+		case "file":
+			return "A swap file on the disk: slower than zram, but it lets the computer hibernate."
+		case "none":
+			return "Nothing: when memory runs out, programs are closed."
+		}
+		return "zram: compressed memory, fast and easy on the disk. Recommended."
+	case rGiB:
+		return "Between 1 and 128 GiB. To hibernate, at least the size of your memory."
+	}
+	return ""
+}
+
+// optCol is where the options of a choice start, after its label.
+const optCol = 16
+
+// choice draws a setting picked with ← →: its label, then the options side by side with the chosen one on the
+// accent. With the focus, the label lights up and arrows say it can be changed.
+func choice(env *core.Env, label string, ids, names []string, cur string, focused bool) ui.Line {
+	p := env.P
+	lst := p.Mu
+	mark := "  "
+	if focused {
+		lst, mark = p.Ac.Bold(true), ui.G.Sel+" "
+	}
+	segs := []ui.Seg{ui.S(p.Ac, mark), ui.S(lst, fmt.Sprintf("%-*s", optCol-2, label))}
+	for i, id := range ids {
+		if i > 0 {
+			segs = append(segs, ui.S(p.Mu, " "))
+		}
+		if id == cur {
+			segs = append(segs, ui.S(p.Btn, " "+names[i]+" "))
+		} else {
+			segs = append(segs, ui.S(p.Text, " "+names[i]+" "))
+		}
+	}
+	if focused {
+		segs = append(segs, ui.S(p.Mu, "  ← →"))
+	}
+	return ui.Line{L: segs, Sel: focused}
+}
+
+// strengthWord says in a word what the strength meter shows.
+func strengthWord(n int) string {
+	return [...]string{"too weak", "weak", "fair", "good", "strong"}[min(max(n, 0), 4)]
 }
 
 // ── 8 · Account ──────────────────────────────────────────────────────
@@ -1300,18 +1467,27 @@ func (s *hardwareStep) Lines(w *Installer, env *core.Env, width int) []ui.Line {
 	kv := func(k, v string) ui.Line {
 		return ui.Of(ui.S(p.Mu, fmt.Sprintf("%-12s", k)), ui.S(p.Text, v))
 	}
-	kind := "desktop"
+	kind := "Desktop"
 	if hw.Laptop {
-		kind = "laptop"
+		kind = "Laptop"
 	}
 	if hw.Virt != "" && hw.Virt != "none" {
-		kind = "virtual machine (" + hw.Virt + ")"
+		kind = "Virtual machine (" + hw.Virt + ")"
 	}
-	lines := []ui.Line{kv("Processor", hw.CPU.Model), kv("Type", kind)}
+	lines := []ui.Line{kv("Type", kind), kv("Processor", cpuName(hw.CPU.Model))}
+	if env.Install != nil && env.Install.Sys != nil {
+		if ram := env.Install.Sys().RAMBytes; ram > 0 {
+			lines = append(lines, kv("Memory", fmt.Sprintf("%.0f GB", float64(ram)/1e9)))
+		}
+	}
 	var vendors []string
-	for _, g := range hw.GPUs {
+	for i, g := range hw.GPUs {
 		vendors = append(vendors, g.Vendor)
-		lines = append(lines, kv("Graphics", install.GPUName(g.Vendor, g.ID)))
+		label := ""
+		if i == 0 {
+			label = "Graphics"
+		}
+		lines = append(lines, kv(label, install.GPUName(g.Vendor, g.ID)))
 	}
 	if len(hw.GPUs) == 0 {
 		lines = append(lines, kv("Graphics", "none detected"))
@@ -1345,25 +1521,40 @@ func (s *hardwareStep) Lines(w *Installer, env *core.Env, width int) []ui.Line {
 		}
 		return false
 	}
+	item := func(text string) { lines = append(lines, ui.Of(ui.S(p.Ok, ui.G.Tick+"  "), ui.S(p.Text, text))) }
 	switch {
 	case has("nvidia"):
-		lines = append(lines, plain(env, "The NVIDIA driver, fetched while installing."))
+		item("The NVIDIA driver, fetched while installing")
 	case has("amd"):
-		lines = append(lines, plain(env, "The open-source AMD graphics stack."))
+		item("The open-source AMD graphics stack")
 	case has("intel"):
-		lines = append(lines, plain(env, "The Intel graphics stack with video acceleration."))
+		item("The Intel graphics stack, with video acceleration")
 	case hw.Virt != "" && hw.Virt != "none":
-		lines = append(lines, plain(env, "The guest tools of the virtual machine."))
+		item("The guest tools of the virtual machine")
 	default:
-		lines = append(lines, plain(env, "Generic graphics drivers."))
+		item("Generic graphics drivers")
 	}
 	if hw.Laptop {
-		lines = append(lines, plain(env, "Power profiles and laptop settings."))
+		item("Power profiles and laptop settings")
 	}
 	if hw.Bluetooth {
-		lines = append(lines, plain(env, "Bluetooth."))
+		item("Bluetooth")
 	}
 	return lines
+}
+
+// cpuName tidies the name a processor reports: «13th Gen Intel(R) Core(TM) i5-13500H» → «13th Gen Intel Core
+// i5-13500H», «AMD Ryzen 7 5800H with Radeon Graphics» → «AMD Ryzen 7 5800H».
+func cpuName(s string) string {
+	for _, junk := range []string{"(R)", "(r)", "(TM)", "(tm)", " CPU", " Processor"} {
+		s = strings.ReplaceAll(s, junk, "")
+	}
+	for _, cut := range []string{" @ ", " with "} {
+		if i := strings.Index(s, cut); i > 0 {
+			s = s[:i]
+		}
+	}
+	return strings.Join(strings.Fields(s), " ")
 }
 
 // ── 11 · Summary ─────────────────────────────────────────────────────
@@ -1499,57 +1690,6 @@ func (s *summaryStep) Gate(w *Installer) string {
 	return ""
 }
 
-// diskBar draws the disk as a proportional bar: what exists, and what Maxor OS will take.
-func diskBar(env *core.Env, d install.Disk, st install.State, width int) []ui.Line {
-	p := env.P
-	type seg struct {
-		label string
-		size  int64
-		new   bool
-	}
-	var segs []seg
-	if st.Strategy == "whole" {
-		segs = []seg{{"Maxor OS", d.Size, true}}
-	} else {
-		for _, pt := range d.Partitions {
-			name := pt.Label
-			if name == "" {
-				name = pt.FSType
-			}
-			segs = append(segs, seg{name, pt.Size, false})
-		}
-		used := (st.Region.End - st.Region.Start + 1) * 512
-		segs = append(segs, seg{"Maxor OS", used, true})
-	}
-	var total int64
-	for _, s := range segs {
-		total += s.size
-	}
-	if total == 0 {
-		return nil
-	}
-	var bar []ui.Seg
-	var legend []ui.Seg
-	left := width
-	for i, s := range segs {
-		n := int(float64(s.size) / float64(total) * float64(width))
-		if n < 1 {
-			n = 1
-		}
-		if i == len(segs)-1 || n > left {
-			n = max(left, 1)
-		}
-		left -= n
-		st := p.Mu
-		if s.new {
-			st = p.Ac.Bold(true)
-		}
-		bar = append(bar, ui.S(st, strings.Repeat("█", n)))
-		legend = append(legend, ui.S(st, ui.G.Swatch+" "), ui.S(p.Text, s.label+" "+install.HumanSize(s.size)+"   "))
-	}
-	return []ui.Line{ui.Of(bar...), ui.Of(legend...)}
-}
-
 func (s *summaryStep) Lines(w *Installer, env *core.Env, width int) []ui.Line {
 	p := env.P
 	if s.showPlan {
@@ -1567,12 +1707,12 @@ func (s *summaryStep) Lines(w *Installer, env *core.Env, width int) []ui.Line {
 	var lines []ui.Line
 	if d, ok := w.currentDisk(); ok {
 		lines = append(lines, kv("Disk", d.Label()))
-		lines = append(lines, diskBar(env, d, w.st, min(width-2, 64))...)
+		lines = append(lines, diskMap(env, d.Planned(w.st.Strategy), min(width, 64), 0)...)
 		lines = append(lines, gap())
 	}
 	how := "Erase the whole disk"
 	if w.st.Strategy == "alongside" {
-		how = "Alongside the existing system (only free space is used)"
+		how = "Alongside what is there, in the free space"
 	}
 	enc := "not encrypted"
 	if w.st.Encrypt {
@@ -1589,7 +1729,14 @@ func (s *summaryStep) Lines(w *Installer, env *core.Env, width int) []ui.Line {
 		kv("Graphics", map[string]string{"auto": "recommended for this machine", "hybrid": "hybrid (integrated + NVIDIA on demand)", "nvidia": "NVIDIA only", "integrated": "integrated only"}[w.st.GPU]),
 		kv("Network", map[bool]string{true: "none: installing without internet", false: "online"}[w.st.Offline]))
 	if d, ok := w.currentDisk(); ok && w.st.Strategy == "alongside" && d.Windows {
-		lines = append(lines, gap(), ui.Of(ui.S(p.Ok, ui.G.Tick+"  "), ui.S(p.Text, "Windows stays untouched and keeps its place in the boot menu.")))
+		for i, l := range ui.Wrap("Windows stays untouched and keeps its place in the boot menu.", width-3) {
+			mark := ui.S(p.Ok, "   ")
+			if i == 0 {
+				mark = ui.S(p.Ok, ui.G.Tick+"  ")
+				lines = append(lines, gap())
+			}
+			lines = append(lines, ui.Of(mark, ui.S(p.Text, l)))
+		}
 	}
 	lines = append(lines, gap())
 	if l, ok := working(env, "install.summary.prepare", "Checking everything"); ok {

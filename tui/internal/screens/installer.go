@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"strings"
 	"sync"
+	"time"
 
 	tea "github.com/charmbracelet/bubbletea"
 
@@ -26,8 +27,11 @@ type Installer struct {
 	running bool   // the engine is installing: nothing can be left
 	failed  bool
 
-	changed int // the animation frame at which the current step started
+	changedAt time.Duration // env.Clock when the current step started: its card is still sliding in for a moment
+	dir       int           // +1 when the step was reached going forward, -1 going back: where the card comes from
+	barFrom   float64       // what the progress bar showed when the step changed: it glides from there
 	bodyH   int // rows the card may use, as of the last frame
+	railW   int // the width of the list of steps, as of the last frame
 	fromReview bool // a step is being edited from the review: the review comes back right after it
 
 	mu     sync.Mutex
@@ -83,8 +87,13 @@ func (w *Installer) goTo(env *core.Env, i int) tea.Cmd {
 	if i < 0 || i >= len(w.steps) {
 		return nil
 	}
+	w.barFrom = w.barShown(env)
+	w.dir = 1
+	if i < w.idx {
+		w.dir = -1
+	}
 	w.idx, w.notice = i, ""
-	w.changed = env.Frame
+	w.changedAt = env.Clock
 	return w.cur().Enter(w, env)
 }
 

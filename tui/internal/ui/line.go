@@ -24,6 +24,9 @@ type Line struct {
 type Ctx struct {
 	Fill lipgloss.Style
 	Sel  lipgloss.Style
+	// SelBg, si se da, cambia cómo se ve la fila con el foco: en vez de pintarla entera con Sel, cada trozo
+	// conserva su color y solo el fondo se tiñe. Es el foco suave del instalador.
+	SelBg lipgloss.Color
 }
 
 // Ctx de un Painter.
@@ -93,15 +96,26 @@ func (ln Line) Render(w int, c Ctx) string {
 	lw := segsWidth(left)
 
 	var b strings.Builder
+	soft := ln.Sel && c.SelBg != ""
 	paint := func(s Seg) string {
-		if ln.Sel {
+		switch {
+		case soft:
+			// solo cambia el fondo de la tarjeta: un trozo con fondo propio (un botón, un chip) lo conserva
+			if bg := s.S.GetBackground(); bg == c.Fill.GetBackground() || bg == (lipgloss.NoColor{}) {
+				return s.S.Background(c.SelBg).Render(s.T)
+			}
+			return s.S.Render(s.T)
+		case ln.Sel:
 			return c.Sel.Render(s.T)
 		}
 		// Un trozo sin fondo propio hereda el del relleno: no quedan huecos.
 		return s.S.Inherit(c.Fill).Render(s.T)
 	}
 	fill := c.Fill
-	if ln.Sel {
+	switch {
+	case soft:
+		fill = c.Fill.Background(c.SelBg)
+	case ln.Sel:
 		fill = c.Sel
 	}
 	for _, s := range left {
