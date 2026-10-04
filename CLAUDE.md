@@ -52,6 +52,12 @@ no flicker (theme written before the login, greetd waits only on the first boot)
 a single OS; dual boot keeps 3 s), the installer redesign (disk maps, storage, motion, keyboard and time zone proposed
 from the language, readable review, failures explained), the new identity above.
 
+Also on branch `claude/vigilant-ptolemy-ng8e4i` (2026-10-04, evening; not yet merged into `development`): Hyprland tuned (every setting guarded with `pcall`, Maxor motion curves
+`maxor`/`maxor-out`, vfr, blur noise/vibrancy, DMS layer blur, idle inhibit on fullscreen); lock screen redesigned
+(spaced Cinzel mark on top, 168 px light clock, accent rule, glass card with a pill input and a two-accent gradient
+outline, dims at 150 s); wallpaper signature (vignette, `ac2` glow top-right with three orbits, grain; light themes
+softer). None of this was seen on a real screen yet: check it on the laptop before the release.
+
 Next, in order:
 1. **Verify the latest ISO** (`nix build .#iso`) with a full install in a VM (Spanish, offline) to the desktop.
 2. **Release 0.2.0-beta** (pre-release, Bryan chose this): set `VERSION` to `0.2.0-beta`, rebuild the ISO, write its
