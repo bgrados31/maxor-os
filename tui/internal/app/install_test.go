@@ -524,7 +524,7 @@ func TestEveryStepFitsInASmallWindow(t *testing.T) {
 func TestTheIntroSaysNothingIsWrittenUntilConfirmedAndHasNoStepList(t *testing.T) {
 	m := introModel(t, newInstallEnv(emptyDisk()))
 	out := view(m)
-	for _, want := range []string{"M A X O R", "Let's install Maxor OS", "no demo", "Nothing is written"} {
+	for _, want := range []string{"M A X O R", "Let's install Maxor OS", "no demo", "until you confirm"} {
 		if !has(out, want) {
 			t.Fatalf("missing %q:\n%s", want, out)
 		}
