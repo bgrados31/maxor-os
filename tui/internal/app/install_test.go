@@ -790,3 +790,21 @@ func TestTheLookIsLightOrDarkAndTheChoiceReachesTheEngine(t *testing.T) {
 		t.Fatalf("the answers carry the look:\n%s", e.eng.answers)
 	}
 }
+
+func TestTheLanguageProposesTheKeyboardAndTheTimeZone(t *testing.T) {
+	e := newInstallEnv(emptyDisk())
+	e.net.status = install.NetStatus{} // offline: the time zone cannot be found from the network
+	m := installModel(t, e)
+	typeText(m, "peru")
+	send(m, key("enter")) // language → keyboard
+	if !has(view(m), "❯ Spanish (Latin America)") {
+		t.Fatalf("Spanish (Peru) proposes the Latin American keyboard:\n%s", view(m))
+	}
+	if len(e.layouts) == 0 || e.layouts[len(e.layouts)-1] != "latam" {
+		t.Fatalf("the proposed layout is the one the keys type with: %v", e.layouts)
+	}
+	send(m, key("enter"), key("enter")) // keyboard → network → time zone
+	if !has(view(m), "❯ America/Lima") {
+		t.Fatalf("and the time zone of Peru:\n%s", view(m))
+	}
+}

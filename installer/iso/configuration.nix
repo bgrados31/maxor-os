@@ -119,8 +119,12 @@ in
   boot.loader.timeout = lib.mkForce 10;
   # File name: maxor-os-<version>-<architecture>.iso
   image.baseName = lib.mkForce "maxor-os-${version}-${pkgs.stdenv.hostPlatform.system}";
+  system.nixos.label = version; # what the boot menu entry shows after the name
   isoImage = {
     volumeID = "MAXOR_OS";
+    # the boot menu entry reads «Install Maxor OS 0.2.0» instead of the NixOS label (version, date and commit)
+    prependToMenuLabel = "Install ";
+    appendToMenuLabel = "";
     edition = "maxor";
     squashfsCompression = "zstd -Xcompression-level 15";
     makeEfiBootable = true;

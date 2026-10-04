@@ -27,12 +27,14 @@ type Installer struct {
 	running bool   // the engine is installing: nothing can be left
 	failed  bool
 
-	changedAt time.Duration // env.Clock when the current step started: its card is still sliding in for a moment
-	dir       int           // +1 when the step was reached going forward, -1 going back: where the card comes from
-	barFrom   float64       // what the progress bar showed when the step changed: it glides from there
-	bodyH   int // rows the card may use, as of the last frame
-	railW   int // the width of the list of steps, as of the last frame
-	fromReview bool // a step is being edited from the review: the review comes back right after it
+	changedAt  time.Duration // env.Clock when the current step started: its card is still sliding in for a moment
+	dir        int           // +1 when the step was reached going forward, -1 going back: where the card comes from
+	barFrom    float64       // what the progress bar showed when the step changed: it glides from there
+	bodyH      int           // rows the card may use, as of the last frame
+	railW      int           // the width of the list of steps, as of the last frame
+	sugLayout  string        // the keyboard (xkb:variant) and the time zone proposed from the language, so a new
+	sugZone    string        // language can replace them while the person has not chosen others (see suggest)
+	fromReview bool          // a step is being edited from the review: the review comes back right after it
 
 	mu     sync.Mutex
 	events []install.Event
@@ -358,4 +360,20 @@ func (w *Installer) editStep(env *core.Env, n int) tea.Cmd {
 	}
 	w.fromReview = true
 	return w.goTo(env, vis[n-1])
+}
+
+// suggest proposes the keyboard and the time zone of the language just chosen (install.SuggestLayout and
+// SuggestZone), where they are still what was proposed before: the starting values or an earlier suggestion. It
+// never replaces something the person picked.
+func (w *Installer) suggest() {
+	if l, ok := install.SuggestLayout(w.st.Locale); ok {
+		cur := w.st.XKBLayout + ":" + w.st.XKBVariant
+		if cur == "us:" || cur == w.sugLayout {
+			w.st.Keymap, w.st.XKBLayout, w.st.XKBVariant = l.Console, l.XKB, l.Variant
+			w.sugLayout = l.XKB + ":" + l.Variant
+		}
+	}
+	if z, ok := install.SuggestZone(w.st.Locale); ok && (w.st.Timezone == "UTC" || w.st.Timezone == w.sugZone) {
+		w.st.Timezone, w.sugZone = z, z
+	}
 }

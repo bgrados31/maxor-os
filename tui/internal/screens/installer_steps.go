@@ -100,6 +100,7 @@ func (s *welcomeStep) Key(w *Installer, env *core.Env, k tea.KeyMsg) (bool, tea.
 	if k.String() == "enter" {
 		if s.pk.list.sel >= 0 && s.pk.list.sel < len(items) {
 			w.st.Locale = items[s.pk.list.sel].Code
+			w.suggest()
 		}
 		return true, nil
 	}
@@ -125,20 +126,19 @@ func (s *welcomeStep) Lines(w *Installer, env *core.Env, width int) []ui.Line {
 		}
 		return ui.Of(ui.S(p.Bad, ui.G.Bad+"  "), ui.S(p.Text, text))
 	}
-	net := "Checking the network…"
-	netOK := true
+	// the network is not a requirement (Maxor OS installs without one): not having it is said plainly, not as a fault
+	netLine := ui.Of(ui.S(p.Mu, ui.G.Info+"  "), ui.S(p.Mu, "Looking for a network…"))
 	if s.got {
-		switch {
-		case s.net.Online:
-			net, netOK = "Connected to the internet ("+s.net.Name+")", true
-		default:
-			net, netOK = "Not connected: you will be able to connect in a moment", false
+		if s.net.Online {
+			netLine = tick(true, "Connected to the internet ("+s.net.Name+")")
+		} else {
+			netLine = ui.Of(ui.S(p.Mu, ui.G.Info+"  "), ui.S(p.Text, "No network yet: connect in a moment, or install without one"))
 		}
 	}
 	lines := []ui.Line{
 		tick(s.sys.UEFI, "UEFI firmware"),
 		tick(s.sys.RAMBytes == 0 || s.sys.RAMBytes >= 1500*1000*1000, fmt.Sprintf("%.1f GB of memory", float64(s.sys.RAMBytes)/1e9)),
-		tick(netOK, net),
+		netLine,
 		gap(), heading(env, "System language"),
 	}
 	return append(lines, listRows(env, &s.pk, s.filtered(), func(l install.Locale) string { return l.Name }, func(l install.Locale) string { return l.Code }, width)...)
@@ -170,8 +170,11 @@ func (s *keyboardStep) Enter(w *Installer, env *core.Env) tea.Cmd {
 	for i, l := range install.Layouts {
 		if l == cur {
 			s.pk.list.sel = i
+			s.pk.list.top = max(0, i-pickRows/2)
 		}
 	}
+	// the layout shown is also the one the keys type with, from the start (it may be the one the language proposed)
+	s.apply(w, env)
 	return nil
 }
 
@@ -361,7 +364,9 @@ func (s *networkStep) Lines(w *Installer, env *core.Env, width int) []ui.Line {
 	if l, ok := working(env, "install.network.scan", "Looking for Wi-Fi networks"); ok {
 		lines = append(lines, l)
 	} else if s.apsDone && len(s.aps) == 0 {
-		lines = append(lines, muted(env, "No Wi-Fi networks found (a wired connection works without any setup)."))
+		for _, l := range ui.Wrap("No Wi-Fi networks found (a wired connection works without any setup).", width) {
+			lines = append(lines, muted(env, l))
+		}
 	}
 	from, to := s.list.window(len(s.aps)+1, pickRows)
 	for i := from; i < to; i++ {
