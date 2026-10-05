@@ -27,6 +27,8 @@ in
     compositor.customConfig = ''
       hl.env("DMS_RUN_GREETER", "1")
       hl.config({
+        -- El login no usa X11: su Xwayland moría con SIGABRT en cada cierre (coredump) y retrasaba el relevo a tu sesión.
+        xwayland = { enabled = false },
         misc = {
           disable_hyprland_logo = true,
           disable_splash_rendering = true,
