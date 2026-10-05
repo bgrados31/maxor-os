@@ -1,0 +1,2897 @@
+# Maxor OS: texts of the full-screen app and the installer.
+# How to translate: docs/TRANSLATING.md
+msgid ""
+msgstr ""
+"Project-Id-Version: Maxor OS\n"
+"Report-Msgid-Bugs-To: https://github.com/bgrados31/maxor-os/issues\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#: screens/installer_steps.go
+msgid "      Only the free space is used. Nothing else is touched."
+msgstr ""
+
+#: screens/installer_steps.go
+msgid "    Again"
+msgstr ""
+
+#: screens/installer_steps.go
+msgid "    Passphrase"
+msgstr ""
+
+#: screens/installer_steps.go
+msgid "    Size (GiB)"
+msgstr ""
+
+#: screens/installer_steps.go
+msgid "   %d more: type to narrow the list"
+msgstr ""
+
+#: screens/installer.go
+msgid "   %d of %d"
+msgstr ""
+
+#: screens/installer_steps.go
+msgid "   %d of %d disks · ↑ ↓ for the others"
+msgstr ""
+
+#: screens/exit.go
+msgid "  (Doctor)"
+msgstr ""
+
+#: screens/exit.go
+msgid "  (Store)"
+msgstr ""
+
+#: screens/exit.go
+msgid "  (Update)"
+msgstr ""
+
+#: screens/installer_steps.go
+msgid "  (connected)"
+msgstr ""
+
+#: app/view.go
+msgid "  +%d"
+msgstr ""
+
+#: screens/store.go
+msgid "  +%d queued"
+msgstr ""
+
+#: screens/doctor.go
+msgid "  only shows information"
+msgstr ""
+
+#: screens/doctor.go
+msgid "  or move to cancel"
+msgstr ""
+
+#: screens/update.go
+msgid "  your files are not touched; needs your password"
+msgstr ""
+
+#: screens/profiles.go
+msgid "  ·  a to apply, x to discard"
+msgstr ""
+
+#: screens/store.go
+msgid "  ·  use the buttons above, or ⏎ for more"
+msgstr ""
+
+#: screens/setup.go
+msgid " %d of %d · "
+msgstr ""
+
+#: screens/installer_steps.go
+msgid " Processor"
+msgstr ""
+
+#: app/view.go
+msgid " maxor "
+msgstr ""
+
+#: screens/release.go
+msgid " to install"
+msgstr ""
+
+#: screens/release.go
+msgid " to review"
+msgstr ""
+
+#: screens/installer_steps.go
+msgid " with "
+msgstr ""
+
+#: screens/profiles.go
+msgid " · +%d more"
+msgstr ""
+
+#: install/disks.go screens/installer_steps.go
+msgid "%.0f GB"
+msgstr ""
+
+#: install/disks.go
+msgid "%.0f MB"
+msgstr ""
+
+#: screens/installer_steps.go
+msgid "%.1f GB of memory"
+msgstr ""
+
+#: screens/store.go
+msgid "%.1f GiB"
+msgstr ""
+
+#: screens/store.go
+msgid "%.1f MiB"
+msgstr ""
+
+#: install/disks.go
+msgid "%.1f TB"
+msgstr ""
+
+#: screens/installer_steps.go
+msgid "%d GiB swap file"
+msgstr ""
+
+#: screens/store.go
+msgid "%d KiB"
+msgstr ""
+
+#: screens/store.go
+msgid "%d apps"
+msgstr ""
+
+#: screens/update.go
+msgid "%d configuration files changed (hidden)"
+msgstr ""
+
+#: screens/home.go
+msgid "%d installed"
+msgstr ""
+
+#: screens/profiles.go
+msgid "%d of %d active"
+msgstr ""
+
+#: screens/store.go
+msgid "%d of %d have a new version"
+msgstr ""
+
+#: install/disks.go
+msgid "%d partitions"
+msgstr ""
+
+#: screens/store.go
+msgid "%d selected"
+msgstr ""
+
+#: screens/themes.go
+msgid "%d themes"
+msgstr ""
+
+#: screens/store.go
+msgid "%s %d of them can be updated"
+msgstr ""
+
+#: screens/store.go
+msgid "%s %d selected "
+msgstr ""
+
+#: screens/store.go
+msgid "%s %s can be updated"
+msgstr ""
+
+#: screens/installer_steps.go
+msgid "%s (%s) on %s"
+msgstr ""
+
+#: screens/installer_steps.go
+msgid "%s (%s, now %s)"
+msgstr ""
+
+#: screens/store.go
+msgid "%s available"
+msgstr ""
+
+#: screens/home.go
+msgid "%s available · %s"
+msgstr ""
+
+#: screens/setup.go
+msgid "%s graphics %s"
+msgstr ""
+
+#: screens/store.go
+msgid "%s is already %s"
+msgstr ""
+
+#: screens/profiles.go
+msgid "%s to apply"
+msgstr ""
+
+#: screens/update.go
+msgid "%s%d changed"
+msgstr ""
+
+#: screens/update.go
+msgid "%s%d new   "
+msgstr ""
+
+#: screens/update.go
+msgid "%s%d removed   "
+msgstr ""
+
+#: screens/update.go
+msgid "%s%d updated   "
+msgstr ""
+
+#: screens/installer_steps.go
+msgid "1-9 edits that step (the numbers in the list on the left)"
+msgstr ""
+
+#: screens/doctor.go
+msgid "A Maxor font is not installed: maxor update brings it back."
+msgstr ""
+
+#: screens/installer_steps.go
+msgid "A few questions, and nothing changes until the end."
+msgstr ""
+
+#: screens/release.go
+msgid "A release was ignored: %s"
+msgstr ""
+
+#: screens/installer_steps.go
+msgid "A swap file needs between 1 and 128 GiB."
+msgstr ""
+
+#: screens/installer_steps.go
+msgid "A swap file on the disk: slower than zram, but it lets the computer hibernate."
+msgstr ""
+
+#: install/gpu.go
+msgid "AMD Radeon graphics"
+msgstr ""
+
+#: screens/home.go
+msgid "APPS"
+msgstr ""
+
+#: screens/installer_steps.go
+msgid "Account"
+msgstr ""
+
+#: screens/update.go
+msgid "Actions"
+msgstr ""
+
+#: screens/store.go
+msgid "Actions  ⏎"
+msgstr ""
+
+#: screens/runner.go
+msgid "Administrator password"
+msgstr ""
+
+#: screens/installer_steps.go
+msgid "Again"
+msgstr ""
+
+#: screens/installer_steps.go
+msgid "All done"
+msgstr ""
+
+#: screens/setup.go
+msgid "All saved"
+msgstr ""
+
+#: screens/installer_steps.go
+msgid "Alongside what is there, in the free space"
+msgstr ""
+
+#: screens/installer_steps.go
+msgid "Appearance"
+msgstr ""
+
+#: screens/profiles.go
+msgid "Applied the profiles"
+msgstr ""
+
+#: screens/setup.go screens/themes.go
+msgid "Applied theme %s"
+msgstr ""
+
+#: screens/profiles.go
+msgid "Apply  a"
+msgstr ""
+
+#: screens/themes.go screens/update.go
+msgid "Apply  ⏎"
+msgstr ""
+
+#: screens/doctor.go
+msgid "Apply a theme again from the Themes tab."
+msgstr ""
+
+#: app/palette.go screens/themes.go
+msgid "Applying %s"
+msgstr ""
+
+#: screens/profiles.go
+msgid "Applying rebuilds the system. You will see the progress here and type your password in this screen."
+msgstr ""
+
+#: screens/update.go
+msgid "Applying shows the progress here and asks for your password in this screen. Prefer the terminal? Press t."
+msgstr ""
+
+#: screens/themes.go
+msgid "Applying the theme"
+msgstr ""
+
+#: screens/update.go
+msgid "Applying the update"
+msgstr ""
+
+#: screens/profiles.go
+msgid "Applying your profiles"
+msgstr ""
+
+#: screens/installer_steps.go
+msgid "Asking the internet for the time zone"
+msgstr ""
+
+#: screens/setup.go
+msgid "Back  esc"
+msgstr ""
+
+#: screens/home.go
+msgid "Back up my setup"
+msgstr ""
+
+#: screens/exit.go
+msgid "Before you go"
+msgstr ""
+
+#: screens/installer_steps.go
+msgid "Between 1 and 128 GiB. To hibernate, at least the size of your memory."
+msgstr ""
+
+#: screens/runner.go
+msgid "Build the new system"
+msgstr ""
+
+#: screens/setup.go
+msgid "Build the system now  b"
+msgstr ""
+
+#: screens/update.go
+msgid "Building the new system and comparing it with the running one."
+msgstr ""
+
+#: screens/setup.go
+msgid "Built and applied the system"
+msgstr ""
+
+#: screens/runner.go
+msgid "Cancel  esc"
+msgstr ""
+
+#: screens/home.go
+msgid "Change theme"
+msgstr ""
+
+#: screens/runner.go
+msgid "Changing the system needs your password. It goes only to sudo and is never saved or shown."
+msgstr ""
+
+#: screens/store.go
+msgid "Check again  R"
+msgstr ""
+
+#: screens/home.go screens/store.go
+msgid "Check for updates"
+msgstr ""
+
+#: screens/installer_steps.go
+msgid "Checking everything"
+msgstr ""
+
+#: screens/data.go
+msgid "Checking for a new Maxor OS release"
+msgstr ""
+
+#: screens/data.go screens/update.go
+msgid "Checking for new versions"
+msgstr ""
+
+#: screens/runner.go
+msgid "Checking permissions"
+msgstr ""
+
+#: screens/runner.go
+msgid "Checking permissions…"
+msgstr ""
+
+#: install/engine.go
+msgid "Checking this machine"
+msgstr ""
+
+#: screens/doctor.go
+msgid "Checks"
+msgstr ""
+
+#: screens/installer_steps.go
+msgid "Choose a time zone from the list."
+msgstr ""
+
+#: screens/runner.go
+msgid "Close  ⏎"
+msgstr ""
+
+#: screens/installer_steps.go
+msgid "Computer name"
+msgstr ""
+
+#: screens/installer_steps.go
+msgid "Computer name: %s"
+msgstr ""
+
+#: screens/update.go
+msgid "Configuration"
+msgstr ""
+
+#: screens/installer_steps.go
+msgid "Connected through %s"
+msgstr ""
+
+#: screens/installer_steps.go
+msgid "Connected to the internet (%s)"
+msgstr ""
+
+#: screens/runner.go screens/setup.go
+msgid "Continue  ⏎"
+msgstr ""
+
+#: screens/themes.go
+msgid "Could not change the theme: %s"
+msgstr ""
+
+#: screens/store.go
+msgid "Could not delete the data of %s: %s"
+msgstr ""
+
+#: screens/installer_steps.go
+msgid "Could not detect the hardware. The installer will try again while installing."
+msgstr ""
+
+#: screens/setup.go
+msgid "Could not detect the hardware: %s"
+msgstr ""
+
+#: screens/update.go
+msgid "Could not go back: maxor logs --last"
+msgstr ""
+
+#: screens/store.go
+msgid "Could not install %s: %s"
+msgstr ""
+
+#: screens/installer_steps.go
+msgid "Could not list the disks"
+msgstr ""
+
+#: screens/profiles.go
+msgid "Could not load the profiles"
+msgstr ""
+
+#: screens/themes.go
+msgid "Could not load the themes"
+msgstr ""
+
+#: screens/store.go
+msgid "Could not load your apps"
+msgstr ""
+
+#: screens/store.go
+msgid "Could not open %s: %s"
+msgstr ""
+
+#: screens/installer_steps.go
+msgid "Could not prepare the installation: %s"
+msgstr ""
+
+#: screens/release.go
+msgid "Could not reach the release channel · %s"
+msgstr ""
+
+#: screens/update.go
+msgid "Could not read the generations: %s"
+msgstr ""
+
+#: screens/store.go
+msgid "Could not remove %s: %s"
+msgstr ""
+
+#: screens/doctor.go
+msgid "Could not run the checks"
+msgstr ""
+
+#: screens/home.go
+msgid "Could not save the backup: %s"
+msgstr ""
+
+#: screens/profiles.go
+msgid "Could not save: %s"
+msgstr ""
+
+#: screens/update.go
+msgid "Could not scan: %s"
+msgstr ""
+
+#: screens/store.go
+msgid "Could not update %s: %s"
+msgstr ""
+
+#: install/engine.go
+msgid "Creating the filesystems"
+msgstr ""
+
+#: screens/installer_steps.go screens/themes.go
+msgid "Dark"
+msgstr ""
+
+#: screens/store.go
+msgid "Delete data  y"
+msgstr ""
+
+#: screens/store.go
+msgid "Deleted the data of %s"
+msgstr ""
+
+#: screens/store.go
+msgid "Deleting the data of %s"
+msgstr ""
+
+#: screens/installer_steps.go
+msgid "Desktop"
+msgstr ""
+
+#: screens/doctor.go screens/profiles.go screens/store.go screens/update.go
+msgid "Details"
+msgstr ""
+
+#: app/model.go
+msgid "Details hidden. Press D to show them again"
+msgstr ""
+
+#: app/model.go
+msgid "Details shown"
+msgstr ""
+
+#: screens/installer_steps.go
+msgid "Detect automatically"
+msgstr ""
+
+#: screens/setup.go
+msgid "Detected"
+msgstr ""
+
+#: screens/installer_steps.go
+msgid "Detecting tells ipapi.co your address. Choosing a city sends nothing."
+msgstr ""
+
+#: screens/data.go screens/installer_steps.go
+msgid "Detecting your hardware"
+msgstr ""
+
+#: screens/setup.go
+msgid "Disabled profile %s"
+msgstr ""
+
+#: screens/profiles.go
+msgid "Discard  x"
+msgstr ""
+
+#: screens/installer_steps.go
+msgid "Disk"
+msgstr ""
+
+#: screens/doctor.go
+msgid "Doctor"
+msgstr ""
+
+#: screens/setup.go
+msgid "Done"
+msgstr ""
+
+#: screens/runner.go
+msgid "Done in %s"
+msgstr ""
+
+#: screens/doctor.go
+msgid "Done. Checking again…"
+msgstr ""
+
+#: screens/setup.go
+msgid "Enabled profile %s"
+msgstr ""
+
+#: screens/installer_steps.go
+msgid "Encrypted with LUKS2: the passphrase is asked every time the computer starts."
+msgstr ""
+
+#: install/engine.go
+msgid "Encrypting the system partition"
+msgstr ""
+
+#: screens/installer_steps.go
+msgid "Encryption"
+msgstr ""
+
+#: screens/installer_steps.go
+msgid "Encryption passphrase: %s"
+msgstr ""
+
+#: screens/installer_steps.go
+msgid "Encryption protects your files if the computer is lost or stolen. ← → turns it on."
+msgstr ""
+
+#: screens/installer_steps.go
+msgid "Erase the disk and install Maxor OS"
+msgstr ""
+
+#: screens/installer_steps.go
+msgid "Erase the whole disk"
+msgstr ""
+
+#: screens/update.go
+msgid "Every update or change keeps the previous one, so you can return to it."
+msgstr ""
+
+#: screens/store.go
+msgid "Everything is up to date"
+msgstr ""
+
+#: screens/installer_steps.go
+msgid "Everything on the disk will be erased."
+msgstr ""
+
+#: install/gpu.go
+msgid "Everything runs on the NVIDIA GPU. Fastest, but it uses more power."
+msgstr ""
+
+#: screens/exit.go
+msgid "Exit"
+msgstr ""
+
+#: screens/exit.go
+msgid "Exit  ⏎"
+msgstr ""
+
+#: screens/runner.go
+msgid "Exit code %d. More detail: maxor logs --last"
+msgstr ""
+
+#: screens/installer_steps.go
+msgid "Filesystem"
+msgstr ""
+
+#: screens/setup.go
+msgid "Finish  ⏎"
+msgstr ""
+
+#: install/engine.go
+msgid "Finishing"
+msgstr ""
+
+#: screens/doctor.go
+msgid "Fix"
+msgstr ""
+
+#: screens/installer_steps.go
+msgid "Gaming, development and the other profiles download their packages, so they need a network. Add them after installing with `maxor profile`."
+msgstr ""
+
+#: screens/update.go
+msgid "Generation %d"
+msgstr ""
+
+#: screens/update.go
+msgid "Generations"
+msgstr ""
+
+#: screens/installer_steps.go
+msgid "Generic graphics drivers"
+msgstr ""
+
+#: screens/update.go
+msgid "Go back  g"
+msgstr ""
+
+#: screens/update.go
+msgid "Go back to an earlier version of your system"
+msgstr ""
+
+#: screens/update.go
+msgid "Go back to this  ⏎"
+msgstr ""
+
+#: screens/themes.go
+msgid "Going back"
+msgstr ""
+
+#: screens/update.go
+msgid "Going back to generation %d"
+msgstr ""
+
+#: screens/home.go
+msgid "Good afternoon"
+msgstr ""
+
+#: screens/home.go
+msgid "Good evening"
+msgstr ""
+
+#: screens/home.go
+msgid "Good morning"
+msgstr ""
+
+#: screens/home.go
+msgid "Good night"
+msgstr ""
+
+#: screens/installer_steps.go
+msgid "Graphics"
+msgstr ""
+
+#: install/gpu.go
+msgid "Graphics adapter (%s)"
+msgstr ""
+
+#: screens/home.go
+msgid "Healthy"
+msgstr ""
+
+#: screens/home.go
+msgid "Home"
+msgstr ""
+
+#: screens/installer_steps.go
+msgid "How Maxor OS sits on the disk. ↑ ↓ moves, ← → changes."
+msgstr ""
+
+#: screens/installer_steps.go
+msgid "How to install"
+msgstr ""
+
+#: install/gpu.go
+msgid "Hybrid"
+msgstr ""
+
+#: screens/themes.go
+msgid "Hyprland"
+msgstr ""
+
+#: screens/themes.go
+msgid "Hyprland · fish  "
+msgstr ""
+
+#: screens/profiles.go
+msgid "Includes"
+msgstr ""
+
+#: screens/installer.go
+msgid "Install"
+msgstr ""
+
+#: screens/store.go
+msgid "Install  ⏎"
+msgstr ""
+
+#: screens/store.go
+msgid "Install %d"
+msgstr ""
+
+#: screens/update.go
+msgid "Install %s"
+msgstr ""
+
+#: screens/update.go
+msgid "Install Maxor OS %s"
+msgstr ""
+
+#: screens/installer_steps.go
+msgid "Install alongside %s"
+msgstr ""
+
+#: screens/installer_steps.go
+msgid "Install without a network"
+msgstr ""
+
+#: screens/store.go
+msgid "Installed %d"
+msgstr ""
+
+#: screens/store.go
+msgid "Installed %s"
+msgstr ""
+
+#: screens/store.go
+msgid "Installed %s. Find it in Super+Space, or press ⏎ here and choose Open"
+msgstr ""
+
+#: screens/installer_steps.go
+msgid "Installed Maxor OS on %s"
+msgstr ""
+
+#: screens/update.go
+msgid "Installed a new Maxor OS release"
+msgstr ""
+
+#: screens/installer_steps.go screens/store.go
+msgid "Installing"
+msgstr ""
+
+#: screens/store.go
+msgid "Installing %s"
+msgstr ""
+
+#: screens/installer_steps.go
+msgid "Installing Maxor OS"
+msgstr ""
+
+#: screens/update.go
+msgid "Installing Maxor OS %s"
+msgstr ""
+
+#: install/engine.go
+msgid "Installing the system"
+msgstr ""
+
+#: install/gpu.go
+msgid "Integrated only"
+msgstr ""
+
+#: install/gpu.go
+msgid "Intel graphics"
+msgstr ""
+
+#: screens/store.go
+msgid "It deletes the app and %s of saves and settings:"
+msgstr ""
+
+#: screens/runner.go
+msgid "It did not finish"
+msgstr ""
+
+#: screens/update.go
+msgid "It needs your password, and a reboot if the kernel is different."
+msgstr ""
+
+#: screens/installer_steps.go
+msgid "Join a network, or choose «Install without a network»."
+msgstr ""
+
+#: screens/installer_steps.go
+msgid "Joining %s"
+msgstr ""
+
+#: screens/installer_steps.go
+msgid "Joining the network"
+msgstr ""
+
+#: app/view.go
+msgid "KEYS"
+msgstr ""
+
+#: screens/store.go
+msgid "Keep  n"
+msgstr ""
+
+#: screens/store.go
+msgid "Kept their data. Delete it later: maxor remove <app> --purge"
+msgstr ""
+
+#: screens/installer_steps.go
+msgid "Keyboard"
+msgstr ""
+
+#: screens/installer_steps.go
+msgid "Language"
+msgstr ""
+
+#: screens/installer_steps.go
+msgid "Laptop"
+msgstr ""
+
+#: screens/setup.go
+msgid "Later  ⏎"
+msgstr ""
+
+#: screens/exit.go
+msgid "Leave Maxor"
+msgstr ""
+
+#: screens/installer_intro.go
+msgid "Let's install Maxor OS"
+msgstr ""
+
+#: screens/setup.go
+msgid "Let's set it up for this computer."
+msgstr ""
+
+#: screens/installer_steps.go screens/themes.go
+msgid "Light"
+msgstr ""
+
+#: screens/installer_steps.go
+msgid "Light or dark: the screen shows it as you choose. Other themes are in the Maxor app after installing."
+msgstr ""
+
+#: install/diskmap.go
+msgid "Linux"
+msgstr ""
+
+#: screens/data.go
+msgid "Loading profiles"
+msgstr ""
+
+#: screens/data.go
+msgid "Loading themes"
+msgstr ""
+
+#: screens/data.go screens/store.go
+msgid "Loading your apps"
+msgstr ""
+
+#: screens/installer_steps.go
+msgid "Login name"
+msgstr ""
+
+#: screens/installer_steps.go
+msgid "Login name: %s"
+msgstr ""
+
+#: screens/installer_steps.go screens/setup.go
+msgid "Look"
+msgstr ""
+
+#: screens/installer_steps.go
+msgid "Look and tools"
+msgstr ""
+
+#: screens/installer_steps.go
+msgid "Looking at the disks"
+msgstr ""
+
+#: screens/installer_steps.go
+msgid "Looking at the disks…"
+msgstr ""
+
+#: screens/installer_steps.go
+msgid "Looking at the network"
+msgstr ""
+
+#: screens/installer_steps.go
+msgid "Looking at the network…"
+msgstr ""
+
+#: screens/store.go
+msgid "Looking at their folders"
+msgstr ""
+
+#: screens/installer_steps.go
+msgid "Looking for Wi-Fi networks"
+msgstr ""
+
+#: screens/installer_steps.go
+msgid "Looking for a network…"
+msgstr ""
+
+#: screens/data.go
+msgid "Looking for new versions"
+msgstr ""
+
+#: screens/store.go
+msgid "Looking for new versions…"
+msgstr ""
+
+#: screens/installer_steps.go
+msgid "Low memory"
+msgstr ""
+
+#: screens/store.go
+msgid "Mark several with space"
+msgstr ""
+
+#: install/diskmap.go screens/themes.go
+msgid "Maxor OS"
+msgstr ""
+
+#: screens/exit.go screens/release.go
+msgid "Maxor OS %s is available"
+msgstr ""
+
+#: screens/release.go
+msgid "Maxor OS %s is the latest release"
+msgstr ""
+
+#: screens/installer_steps.go
+msgid "Maxor OS (%s)"
+msgstr ""
+
+#: screens/installer_steps.go
+msgid "Maxor OS needs at least 2 GB of memory to install."
+msgstr ""
+
+#: screens/release.go
+msgid "Maxor OS release"
+msgstr ""
+
+#: screens/update.go
+msgid "Maxor OS updated"
+msgstr ""
+
+#: app/view.go
+msgid "Maxor needs at least %d×%d. Now: %d×%d."
+msgstr ""
+
+#: screens/installer_steps.go
+msgid "Memory"
+msgstr ""
+
+#: screens/installer_steps.go
+msgid "Memory card"
+msgstr ""
+
+#: screens/installer_steps.go
+msgid "Method"
+msgstr ""
+
+#: screens/store.go
+msgid "More  ⏎"
+msgstr ""
+
+#: screens/store.go
+msgid "More…  ⏎"
+msgstr ""
+
+#: screens/setup.go
+msgid "Moving over a look previews it right here."
+msgstr ""
+
+#: install/gpu.go
+msgid "NVIDIA graphics"
+msgstr ""
+
+#: screens/doctor.go
+msgid "NVIDIA is present but the offload command is missing: check the hardware module."
+msgstr ""
+
+#: install/gpu.go screens/installer_steps.go
+msgid "NVIDIA only"
+msgstr ""
+
+#: screens/installer_steps.go
+msgid "NVMe disk"
+msgstr ""
+
+#: screens/installer_steps.go
+msgid "Name: %s"
+msgstr ""
+
+#: screens/installer_steps.go
+msgid "Need more room for Maxor OS? Shrink the Windows partition from Windows first (Disk Management), then come back."
+msgstr ""
+
+#: screens/doctor.go
+msgid "Needs attention"
+msgstr ""
+
+#: screens/installer_steps.go
+msgid "Network"
+msgstr ""
+
+#: screens/update.go
+msgid "New versions  c"
+msgstr ""
+
+#: screens/update.go
+msgid "New versions refreshes flake.lock. Undo it with git checkout flake.lock."
+msgstr ""
+
+#: screens/update.go
+msgid "NixOS   "
+msgstr ""
+
+#: screens/store.go
+msgid "No  esc"
+msgstr ""
+
+#: install/gpu.go
+msgid "No NVIDIA driver: the coolest and the longest battery, without NVIDIA acceleration."
+msgstr ""
+
+#: screens/installer_steps.go
+msgid "No Wi-Fi networks found (a wired connection works without any setup)."
+msgstr ""
+
+#: screens/doctor.go
+msgid "No automatic fix for this one."
+msgstr ""
+
+#: screens/doctor.go
+msgid "No automatic fix for this one: see the advice on the right"
+msgstr ""
+
+#: screens/installer_steps.go
+msgid "No disk to install on. Plug one in and press r."
+msgstr ""
+
+#: screens/installer_steps.go
+msgid "No disks found. Plug one in and press r."
+msgstr ""
+
+#: screens/installer_steps.go
+msgid "No internet connection"
+msgstr ""
+
+#: app/view.go
+msgid "No matches. Try: search brave · theme alba · go store"
+msgstr ""
+
+#: screens/installer_steps.go
+msgid "No network yet: connect in a moment, or install without one"
+msgstr ""
+
+#: screens/update.go
+msgid "No new Maxor OS release is waiting"
+msgstr ""
+
+#: screens/update.go
+msgid "No scan yet."
+msgstr ""
+
+#: screens/installer_steps.go
+msgid "No time zone matches: keep typing or delete a letter."
+msgstr ""
+
+#: screens/release.go
+msgid "Not checked yet."
+msgstr ""
+
+#: screens/home.go
+msgid "Not scanned yet"
+msgstr ""
+
+#: screens/store.go
+msgid "Nothing installed with maxor yet."
+msgstr ""
+
+#: screens/installer_steps.go
+msgid "Nothing is lost: r tries again from where it stopped, esc goes back."
+msgstr ""
+
+#: screens/store.go
+msgid "Nothing matches “%s”."
+msgstr ""
+
+#: screens/installer_steps.go
+msgid "Nothing matches. Keep typing, or delete a letter."
+msgstr ""
+
+#: screens/setup.go
+msgid "Nothing needed to change."
+msgstr ""
+
+#: screens/exit.go
+msgid "Nothing pending."
+msgstr ""
+
+#: screens/update.go
+msgid "Nothing scanned yet: press r"
+msgstr ""
+
+#: screens/update.go
+msgid "Nothing to apply."
+msgstr ""
+
+#: screens/profiles.go
+msgid "Nothing to apply: mark or unmark a profile first"
+msgstr ""
+
+#: screens/store.go
+msgid "Nothing to update there: it is already up to date"
+msgstr ""
+
+#: screens/release.go
+msgid "Nothing was changed. Do not trust this update. See: maxor release status"
+msgstr ""
+
+#: screens/installer_steps.go
+msgid "Nothing: when memory runs out, programs are closed."
+msgstr ""
+
+#: screens/installer_steps.go
+msgid "Off"
+msgstr ""
+
+#: screens/doctor.go
+msgid "Only shows information: nothing changes."
+msgstr ""
+
+#: screens/store.go
+msgid "Open"
+msgstr ""
+
+#: screens/store.go
+msgid "Open it, update it or remove it."
+msgstr ""
+
+#: screens/store.go
+msgid "Opening %s"
+msgstr ""
+
+#: screens/store.go
+msgid "Opening %s… give it a few seconds"
+msgstr ""
+
+#: screens/installer_steps.go
+msgid "Opening a text console"
+msgstr ""
+
+#: screens/runner.go
+msgid "Output"
+msgstr ""
+
+#: install/engine.go
+msgid "Partitioning the disk"
+msgstr ""
+
+#: screens/doctor.go
+msgid "Passing"
+msgstr ""
+
+#: screens/installer_steps.go
+msgid "Password"
+msgstr ""
+
+#: screens/installer_steps.go
+msgid "Password for %s"
+msgstr ""
+
+#: screens/installer_steps.go
+msgid "Password: %s"
+msgstr ""
+
+#: screens/setup.go
+msgid "Pick a look"
+msgstr ""
+
+#: screens/setup.go
+msgid "Pick any. You can change this later."
+msgstr ""
+
+#: screens/installer_steps.go
+msgid "Pick your layout, then type in the box to check that the keys are where you expect."
+msgstr ""
+
+#: screens/installer_steps.go
+msgid "Please do not turn the computer off."
+msgstr ""
+
+#: screens/installer_steps.go
+msgid "Power off"
+msgstr ""
+
+#: screens/installer_steps.go
+msgid "Power profiles and laptop settings"
+msgstr ""
+
+#: screens/runner.go
+msgid "Prefer to type it in the terminal? Cancel, then press t."
+msgstr ""
+
+#: screens/doctor.go
+msgid "Prepare fix  ⏎"
+msgstr ""
+
+#: screens/store.go
+msgid "Press / and search: brave, btop, org.mozilla.firefox…"
+msgstr ""
+
+#: app/view.go
+msgid "Press any key to close."
+msgstr ""
+
+#: screens/update.go
+msgid "Press r to scan."
+msgstr ""
+
+#: screens/themes.go
+msgid "Preview"
+msgstr ""
+
+#: screens/doctor.go
+msgid "Problem"
+msgstr ""
+
+#: screens/installer_steps.go
+msgid "Processor"
+msgstr ""
+
+#: screens/profiles.go screens/setup.go
+msgid "Profiles"
+msgstr ""
+
+#: screens/profiles.go
+msgid "Profiles add the apps and"
+msgstr ""
+
+#: screens/profiles.go
+msgid "Profiles applied"
+msgstr ""
+
+#: screens/setup.go
+msgid "Profiles saved: apply them with maxor update --no-lock"
+msgstr ""
+
+#: screens/home.go
+msgid "Quick actions"
+msgstr ""
+
+#: screens/data.go
+msgid "Reading the configuration"
+msgstr ""
+
+#: screens/update.go
+msgid "Reading the generations"
+msgstr ""
+
+#: screens/data.go
+msgid "Reading the last scan"
+msgstr ""
+
+#: screens/data.go
+msgid "Reading the release state"
+msgstr ""
+
+#: screens/installer_steps.go
+msgid "Reading the time zones"
+msgstr ""
+
+#: screens/installer_steps.go
+msgid "Reading the time zones…"
+msgstr ""
+
+#: screens/update.go
+msgid "Reading…"
+msgstr ""
+
+#: screens/doctor.go
+msgid "Reboot to start the kernel that is installed."
+msgstr ""
+
+#: screens/store.go
+msgid "Remove"
+msgstr ""
+
+#: screens/store.go
+msgid "Remove %d"
+msgstr ""
+
+#: screens/store.go
+msgid "Remove and delete its data"
+msgstr ""
+
+#: screens/store.go
+msgid "Remove and delete their data"
+msgstr ""
+
+#: screens/installer_steps.go
+msgid "Remove the installation medium (the USB stick), restart,"
+msgstr ""
+
+#: screens/store.go
+msgid "Removed %s"
+msgstr ""
+
+#: screens/store.go
+msgid "Removing"
+msgstr ""
+
+#: screens/store.go
+msgid "Removing %s"
+msgstr ""
+
+#: screens/update.go
+msgid "Rescan  r"
+msgstr ""
+
+#: screens/installer_steps.go
+msgid "Restart now"
+msgstr ""
+
+#: screens/runner.go
+msgid "Restart what changed"
+msgstr ""
+
+#: screens/installer_steps.go
+msgid "Restarting"
+msgstr ""
+
+#: screens/store.go
+msgid "Results %d"
+msgstr ""
+
+#: screens/installer_steps.go screens/setup.go
+msgid "Review"
+msgstr ""
+
+#: screens/home.go
+msgid "Run doctor"
+msgstr ""
+
+#: screens/doctor.go
+msgid "Run it  ⏎"
+msgstr ""
+
+#: screens/data.go screens/doctor.go
+msgid "Running checks"
+msgstr ""
+
+#: screens/installer_steps.go
+msgid "SD / eMMC"
+msgstr ""
+
+#: screens/home.go
+msgid "SYSTEM"
+msgstr ""
+
+#: screens/setup.go
+msgid "Save  ⏎"
+msgstr ""
+
+#: screens/home.go
+msgid "Saved %s (%s, %s)"
+msgstr ""
+
+#: screens/home.go
+msgid "Saved a backup: %s"
+msgstr ""
+
+#: screens/profiles.go screens/setup.go
+msgid "Saving your choices"
+msgstr ""
+
+#: screens/home.go
+msgid "Saving your setup"
+msgstr ""
+
+#: screens/update.go
+msgid "Scan"
+msgstr ""
+
+#: screens/update.go
+msgid "Scanning"
+msgstr ""
+
+#: screens/update.go
+msgid "Scanning for pending changes"
+msgstr ""
+
+#: screens/home.go
+msgid "Search apps"
+msgstr ""
+
+#: screens/store.go
+msgid "Search apps in nixpkgs and Flathub…"
+msgstr ""
+
+#: screens/store.go
+msgid "Search failed: %s"
+msgstr ""
+
+#: screens/store.go
+msgid "Search with /"
+msgstr ""
+
+#: screens/store.go
+msgid "Search with /  ·  space selects several apps"
+msgstr ""
+
+#: screens/store.go
+msgid "Searching %s"
+msgstr ""
+
+#: screens/store.go
+msgid "Select  space"
+msgstr ""
+
+#: install/engine.go
+msgid "Setting up the boot loader"
+msgstr ""
+
+#: screens/setup.go
+msgid "Setup"
+msgstr ""
+
+#: screens/themes.go
+msgid "Shell"
+msgstr ""
+
+#: screens/doctor.go
+msgid "Show it  ⏎"
+msgstr ""
+
+#: screens/installer_steps.go
+msgid "Sign in automatically"
+msgstr ""
+
+#: screens/setup.go
+msgid "Some choices were not saved"
+msgstr ""
+
+#: screens/installer_steps.go
+msgid "Stay in a text console"
+msgstr ""
+
+#: screens/installer_steps.go
+msgid "Still checking…"
+msgstr ""
+
+#: screens/setup.go
+msgid "Stopped: %s"
+msgstr ""
+
+#: screens/installer_steps.go
+msgid "Storage"
+msgstr ""
+
+#: screens/store.go
+msgid "Store"
+msgstr ""
+
+#: screens/runner.go
+msgid "Switch to it"
+msgstr ""
+
+#: screens/installer_steps.go
+msgid "System language"
+msgstr ""
+
+#: screens/update.go
+msgid "System updated"
+msgstr ""
+
+#: screens/home.go
+msgid "THEME"
+msgstr ""
+
+#: screens/doctor.go
+msgid "Take a look"
+msgstr ""
+
+#: screens/installer_intro.go
+msgid "Takes about ten minutes. You can go back at any step."
+msgstr ""
+
+#: screens/update.go
+msgid "That is the generation you are running"
+msgstr ""
+
+#: screens/runner.go
+msgid "That password did not work. Try again."
+msgstr ""
+
+#: screens/installer_steps.go
+msgid "The Intel graphics stack, with video acceleration"
+msgstr ""
+
+#: screens/doctor.go
+msgid "The NVIDIA driver may not be loaded: reboot, or check journalctl -b | grep -i nvidia."
+msgstr ""
+
+#: screens/installer_steps.go
+msgid "The NVIDIA driver, fetched while installing"
+msgstr ""
+
+#: screens/profiles.go screens/setup.go
+msgid "The build did not finish: maxor logs --last"
+msgstr ""
+
+#: screens/doctor.go
+msgid "The command ended with an error. Checking again…"
+msgstr ""
+
+#: screens/installer_steps.go
+msgid "The disk ran out of space. Go back and choose a bigger disk or a bigger free region."
+msgstr ""
+
+#: screens/installer_steps.go
+msgid "The disk reported a read or write error: it may be failing. Try another disk."
+msgstr ""
+
+#: screens/installer_steps.go
+msgid "The disk this installer started from is never offered."
+msgstr ""
+
+#: screens/update.go
+msgid "The first time can take several minutes. Nothing is applied."
+msgstr ""
+
+#: screens/installer_steps.go
+msgid "The guest tools of the virtual machine"
+msgstr ""
+
+#: screens/installer_steps.go
+msgid "The installation did not finish."
+msgstr ""
+
+#: screens/installer_steps.go
+msgid "The installer can download updates. It also works without a network."
+msgstr ""
+
+#: screens/installer_steps.go
+msgid "The installer does not accept these choices: %s"
+msgstr ""
+
+#: screens/installer_steps.go
+msgid "The installer stopped (exit code %d)."
+msgstr ""
+
+#: install/gpu.go
+msgid "The integrated GPU draws the desktop and the NVIDIA GPU works on demand (PRIME offload). Best battery and temperature."
+msgstr ""
+
+#: screens/installer_steps.go
+msgid "The log is /var/log/maxor-install.log"
+msgstr ""
+
+#: app/view.go
+msgid "The mouse works too: click tabs and rows, use the wheel."
+msgstr ""
+
+#: screens/installer_steps.go
+msgid "The network stopped answering while downloading. Check the connection, then press r to carry on."
+msgstr ""
+
+#: screens/installer_steps.go
+msgid "The open-source AMD graphics stack"
+msgstr ""
+
+#: screens/update.go
+msgid "The release was not installed: maxor logs --last"
+msgstr ""
+
+#: screens/update.go
+msgid "The system is already up to date"
+msgstr ""
+
+#: screens/update.go
+msgid "The system is up to date"
+msgstr ""
+
+#: screens/update.go
+msgid "The update did not finish: maxor logs --last"
+msgstr ""
+
+#: screens/store.go
+msgid "Their data is still here"
+msgstr ""
+
+#: screens/store.go
+msgid "Their data is still on disk (%s)"
+msgstr ""
+
+#: screens/store.go
+msgid "Their data stays on disk (%s): y deletes it, n keeps it"
+msgstr ""
+
+#: screens/themes.go
+msgid "Theme"
+msgstr ""
+
+#: screens/themes.go
+msgid "Themes"
+msgstr ""
+
+#: screens/installer_steps.go
+msgid "There is no way to recover the passphrase if you forget it. Write it down somewhere safe."
+msgstr ""
+
+#: screens/store.go
+msgid "These folders were left in your home. They may hold saves and settings (%s)."
+msgstr ""
+
+#: screens/store.go
+msgid "This cannot be undone"
+msgstr ""
+
+#: screens/installer_steps.go
+msgid "This computer needs a package that is not on the installation medium. Connect to a network (esc goes back to the network step), then press r: it will be downloaded."
+msgstr ""
+
+#: screens/installer_steps.go
+msgid "This disk cannot be used: %s"
+msgstr ""
+
+#: screens/installer_steps.go
+msgid "This disk cannot take Maxor OS. Go back and choose another."
+msgstr ""
+
+#: screens/installer_steps.go
+msgid "This is exactly what will happen. Nothing has been written yet."
+msgstr ""
+
+#: screens/installer_steps.go
+msgid "This is what was found. Maxor OS picks the drivers for it."
+msgstr ""
+
+#: screens/home.go
+msgid "This machine"
+msgstr ""
+
+#: screens/installer_steps.go
+msgid "This machine did not start in UEFI mode, and legacy BIOS is not supported yet. Restart it in UEFI mode."
+msgstr ""
+
+#: screens/installer_intro.go
+msgid "This medium starts the installer directly: there is no demo session to try first."
+msgstr ""
+
+#: screens/doctor.go
+msgid "This one passes: nothing to do."
+msgstr ""
+
+#: screens/doctor.go
+msgid "This one passes: nothing to fix"
+msgstr ""
+
+#: screens/doctor.go
+msgid "This takes a moment."
+msgstr ""
+
+#: screens/installer_steps.go
+msgid "Time zone"
+msgstr ""
+
+#: screens/profiles.go
+msgid "To apply"
+msgstr ""
+
+#: screens/installer_steps.go
+msgid "Tools for what you do"
+msgstr ""
+
+#: screens/store.go
+msgid "Try another word, or fewer letters."
+msgstr ""
+
+#: screens/installer_steps.go
+msgid "Try it"
+msgstr ""
+
+#: screens/profiles.go
+msgid "Turn off  ⏎"
+msgstr ""
+
+#: screens/profiles.go
+msgid "Turn on  ⏎"
+msgstr ""
+
+#: screens/installer_steps.go
+msgid "Turning the computer off"
+msgstr ""
+
+#: screens/installer_steps.go
+msgid "Type"
+msgstr ""
+
+#: screens/installer_steps.go
+msgid "Type %s"
+msgstr ""
+
+#: screens/installer_steps.go
+msgid "Type %s to confirm."
+msgstr ""
+
+#: screens/installer_steps.go
+msgid "UEFI firmware"
+msgstr ""
+
+#: screens/home.go
+msgid "UPDATES"
+msgstr ""
+
+#: screens/installer_steps.go
+msgid "USB drive"
+msgstr ""
+
+#: screens/installer_steps.go
+msgid "USB, removable"
+msgstr ""
+
+#: screens/update.go
+msgid "Uncommitted changes are included in the build."
+msgstr ""
+
+#: screens/themes.go
+msgid "Undo  u"
+msgstr ""
+
+#: screens/home.go
+msgid "Up to date"
+msgstr ""
+
+#: screens/store.go screens/update.go
+msgid "Update"
+msgstr ""
+
+#: screens/store.go
+msgid "Update  u"
+msgstr ""
+
+#: screens/store.go
+msgid "Update %d"
+msgstr ""
+
+#: screens/store.go
+msgid "Update all  U"
+msgstr ""
+
+#: screens/store.go
+msgid "Update all %d"
+msgstr ""
+
+#: screens/store.go
+msgid "Updated %s"
+msgstr ""
+
+#: screens/update.go
+msgid "Updated the system"
+msgstr ""
+
+#: screens/store.go
+msgid "Updating"
+msgstr ""
+
+#: screens/store.go
+msgid "Updating %s"
+msgstr ""
+
+#: screens/store.go
+msgid "Use the buttons above,"
+msgstr ""
+
+#: screens/installer_steps.go
+msgid "Use the whole disk, or share it with what is already there."
+msgstr ""
+
+#: screens/installer_steps.go
+msgid "Virtual disk"
+msgstr ""
+
+#: screens/installer_steps.go
+msgid "Virtual machine (%s)"
+msgstr ""
+
+#: screens/doctor.go
+msgid "Waiting for the checks."
+msgstr ""
+
+#: screens/profiles.go
+msgid "Waiting for the profiles."
+msgstr ""
+
+#: screens/themes.go
+msgid "Waiting for the themes."
+msgstr ""
+
+#: screens/setup.go
+msgid "Welcome"
+msgstr ""
+
+#: screens/setup.go
+msgid "Welcome to Maxor OS"
+msgstr ""
+
+#: screens/update.go
+msgid "Went back to an earlier generation"
+msgstr ""
+
+#: screens/themes.go
+msgid "Went back to the previous theme"
+msgstr ""
+
+#: screens/update.go
+msgid "Went back. A reboot may be needed if the kernel changed"
+msgstr ""
+
+#: screens/installer_steps.go
+msgid "What Maxor OS will set up"
+msgstr ""
+
+#: screens/store.go
+msgid "What do you want to do?"
+msgstr ""
+
+#: screens/setup.go
+msgid "What will you use it for?"
+msgstr ""
+
+#: screens/installer_steps.go
+msgid "What will you use it for?  (space to choose)"
+msgstr ""
+
+#: screens/installer_steps.go
+msgid "Where is this computer? It sets the clock. Type a city or a region."
+msgstr ""
+
+#: screens/installer_steps.go
+msgid "Where should Maxor OS go? Nothing is written yet."
+msgstr ""
+
+#: screens/installer_steps.go
+msgid "Which GPU should draw the desktop?"
+msgstr ""
+
+#: screens/installer_steps.go
+msgid "Who will use this computer?"
+msgstr ""
+
+#: screens/installer_steps.go
+msgid "Wi-Fi password"
+msgstr ""
+
+#: install/diskmap.go
+msgid "Windows recovery"
+msgstr ""
+
+#: screens/installer_steps.go
+msgid "Windows stays untouched and keeps its place in the boot menu."
+msgstr ""
+
+#: app/model.go
+msgid "Working on your system: wait until it finishes"
+msgstr ""
+
+#: screens/runner.go
+msgid "Working: wait until it finishes"
+msgstr ""
+
+#: install/engine.go
+msgid "Writing the machine configuration"
+msgstr ""
+
+#: screens/installer_steps.go
+msgid "Writing the plan"
+msgstr ""
+
+#: screens/store.go
+msgid "Yes, delete  ⏎"
+msgstr ""
+
+#: screens/exit.go
+msgid "You can also press q on any tab."
+msgstr ""
+
+#: screens/installer_steps.go
+msgid "You can change this later in your configuration."
+msgstr ""
+
+#: screens/installer_intro.go
+msgid "You will answer a few questions and review them. Nothing is written to any disk until you confirm at the end."
+msgstr ""
+
+#: screens/installer_steps.go
+msgid "Your account"
+msgstr ""
+
+#: screens/setup.go
+msgid "Your choices are saved now. Building the system with the"
+msgstr ""
+
+#: screens/installer_steps.go
+msgid "Your configuration is in ~/nixos-config, a git repository:"
+msgstr ""
+
+#: screens/update.go
+msgid "Your files and your data are not touched. Apps you installed with maxor stay."
+msgstr ""
+
+#: screens/installer_steps.go
+msgid "Your hardware"
+msgstr ""
+
+#: screens/installer_steps.go
+msgid "Your name"
+msgstr ""
+
+#: screens/exit.go
+msgid "Your terminal comes back exactly as you left it."
+msgstr ""
+
+#: install/disks.go
+msgid "a previous Maxor OS"
+msgstr ""
+
+#: screens/exit.go
+msgid "a system update is ready to apply"
+msgstr ""
+
+#: screens/profiles.go
+msgid "active"
+msgstr ""
+
+#: screens/installer_steps.go
+msgid "after"
+msgstr ""
+
+#: screens/installer_steps.go
+msgid "again"
+msgstr ""
+
+#: screens/store.go
+msgid "all"
+msgstr ""
+
+#: screens/home.go
+msgid "all checks pass"
+msgstr ""
+
+#: screens/doctor.go
+msgid "all good"
+msgstr ""
+
+#: screens/installer_frame.go
+msgid "alongside"
+msgstr ""
+
+#: screens/store.go
+msgid "and %d more"
+msgstr ""
+
+#: screens/store.go
+msgid "and act on them together."
+msgstr ""
+
+#: screens/installer_steps.go
+msgid "and sign in as %s."
+msgstr ""
+
+#: screens/home.go
+msgid "app"
+msgstr ""
+
+#: screens/exit.go
+msgid "app can be updated"
+msgstr ""
+
+#: screens/profiles.go screens/update.go
+msgid "apply"
+msgstr ""
+
+#: app/palette.go
+msgid "apply %s"
+msgstr ""
+
+#: screens/home.go
+msgid "apps"
+msgstr ""
+
+#: screens/exit.go
+msgid "apps can be updated"
+msgstr ""
+
+#: screens/installer.go screens/setup.go
+msgid "back"
+msgstr ""
+
+#: screens/themes.go
+msgid "back to current"
+msgstr ""
+
+#: app/palette.go app/view.go
+msgid "back to your terminal"
+msgstr ""
+
+#: screens/store.go
+msgid "being installed"
+msgstr ""
+
+#: screens/store.go
+msgid "being removed"
+msgstr ""
+
+#: screens/store.go
+msgid "being updated"
+msgstr ""
+
+#: screens/installer_steps.go
+msgid "btrfs: snapshots to roll back a bad change, and compression. Recommended."
+msgstr ""
+
+#: screens/runner.go
+msgid "cancel"
+msgstr ""
+
+#: screens/installer_steps.go
+msgid "cannot be used: %s"
+msgstr ""
+
+#: screens/themes.go
+msgid "careful"
+msgstr ""
+
+#: screens/profiles.go
+msgid "change"
+msgstr ""
+
+#: screens/profiles.go
+msgid "changes"
+msgstr ""
+
+#: app/palette.go
+msgid "check for updates"
+msgstr ""
+
+#: screens/store.go
+msgid "checking…"
+msgstr ""
+
+#: screens/installer.go screens/setup.go screens/store.go screens/update.go
+msgid "choose"
+msgstr ""
+
+#: screens/installer_steps.go
+msgid "city, e.g. Lima or Madrid"
+msgstr ""
+
+#: app/view.go screens/runner.go screens/store.go screens/update.go
+msgid "close"
+msgstr ""
+
+#: app/view.go
+msgid "command palette"
+msgstr ""
+
+#: app/view.go
+msgid "commands"
+msgstr ""
+
+#: screens/update.go
+msgid "compile again and compare"
+msgstr ""
+
+#: screens/installer_steps.go
+msgid "compressed memory"
+msgstr ""
+
+#: screens/installer_steps.go
+msgid "computer name"
+msgstr ""
+
+#: screens/installer.go
+msgid "confirm"
+msgstr ""
+
+#: screens/installer.go screens/runner.go screens/setup.go
+msgid "continue"
+msgstr ""
+
+#: screens/home.go screens/store.go
+msgid "could not check"
+msgstr ""
+
+#: screens/home.go
+msgid "could not load"
+msgstr ""
+
+#: screens/release.go
+msgid "could not read the release state: maxor logs --last"
+msgstr ""
+
+#: screens/installer_steps.go
+msgid "ctrl+p goes back to the summary"
+msgstr ""
+
+#: screens/installer_steps.go
+msgid "ctrl+p shows the exact steps"
+msgstr ""
+
+#: screens/store.go
+msgid "delete their data"
+msgstr ""
+
+#: screens/store.go
+msgid "deletes %s and its data%s"
+msgstr ""
+
+#: screens/installer_frame.go
+msgid "detected"
+msgstr ""
+
+#: screens/profiles.go
+msgid "discard"
+msgstr ""
+
+#: screens/store.go
+msgid "do it"
+msgstr ""
+
+#: screens/themes.go
+msgid "done"
+msgstr ""
+
+#: screens/installer_steps.go
+msgid "drivers chosen while installing"
+msgstr ""
+
+#: screens/installer_steps.go
+msgid "encrypted"
+msgstr ""
+
+#: screens/installer_steps.go
+msgid "encrypted (LUKS2)"
+msgstr ""
+
+#: screens/installer_frame.go
+msgid "erase disk"
+msgstr ""
+
+#: screens/store.go
+msgid "esc clears the selection"
+msgstr ""
+
+#: screens/installer_steps.go
+msgid "esc goes back through the steps to change one"
+msgstr ""
+
+#: screens/installer_steps.go
+msgid "ext4: the classic Linux filesystem, plain and proven, without snapshots."
+msgstr ""
+
+#: screens/themes.go
+msgid "failed"
+msgstr ""
+
+#: screens/installer_steps.go
+msgid "fair"
+msgstr ""
+
+#: screens/setup.go
+msgid "finish"
+msgstr ""
+
+#: screens/doctor.go
+msgid "fix ⏎ "
+msgstr ""
+
+#: screens/store.go
+msgid "frees %s"
+msgstr ""
+
+#: screens/installer_steps.go
+msgid "from your internet connection"
+msgstr ""
+
+#: screens/update.go
+msgid "generation %d is running"
+msgstr ""
+
+#: screens/home.go
+msgid "go"
+msgstr ""
+
+#: screens/update.go
+msgid "go back"
+msgstr ""
+
+#: screens/update.go
+msgid "go back to it"
+msgstr ""
+
+#: screens/installer_steps.go
+msgid "good"
+msgstr ""
+
+#: app/view.go
+msgid "help"
+msgstr ""
+
+#: screens/installer_steps.go
+msgid "hybrid (integrated + NVIDIA on demand)"
+msgstr ""
+
+#: screens/setup.go
+msgid "hybrid graphics: the integrated GPU for the desktop, NVIDIA on demand"
+msgstr ""
+
+#: screens/themes.go
+msgid "in use"
+msgstr ""
+
+#: install/disks.go
+msgid "in use (something on it is mounted)"
+msgstr ""
+
+#: screens/update.go
+msgid "includes a new kernel: reboot after applying"
+msgstr ""
+
+#: screens/store.go
+msgid "install"
+msgstr ""
+
+#: screens/update.go
+msgid "install release"
+msgstr ""
+
+#: screens/installer.go
+msgid "installing: please wait"
+msgstr ""
+
+#: screens/store.go
+msgid "installing…"
+msgstr ""
+
+#: screens/installer_steps.go
+msgid "integrated only"
+msgstr ""
+
+#: screens/release.go
+msgid "it could not be verified"
+msgstr ""
+
+#: screens/release.go
+msgid "it has no signature"
+msgstr ""
+
+#: screens/release.go
+msgid "it is malformed"
+msgstr ""
+
+#: screens/release.go
+msgid "it is older than one already seen"
+msgstr ""
+
+#: screens/installer_steps.go
+msgid "it is yours to change. The log is /var/log/maxor-install.log."
+msgstr ""
+
+#: screens/release.go
+msgid "its signature is not valid"
+msgstr ""
+
+#: app/view.go
+msgid "jump to a tab"
+msgstr ""
+
+#: screens/store.go
+msgid "keep it"
+msgstr ""
+
+#: screens/store.go
+msgid "keeps your saves and settings"
+msgstr ""
+
+#: screens/update.go
+msgid "kernel  "
+msgstr ""
+
+#: screens/release.go
+msgid "last verified %s"
+msgstr ""
+
+#: screens/store.go
+msgid "leave"
+msgstr ""
+
+#: screens/store.go
+msgid "list"
+msgstr ""
+
+#: screens/installer_steps.go
+msgid "login name"
+msgstr ""
+
+#: screens/setup.go
+msgid "look      "
+msgstr ""
+
+#: screens/installer_steps.go
+msgid "look again"
+msgstr ""
+
+#: screens/installer_steps.go
+msgid "look around first"
+msgstr ""
+
+#: app/palette.go
+msgid "look for it in nixpkgs and Flathub"
+msgstr ""
+
+#: screens/doctor.go
+msgid "look ⏎ "
+msgstr ""
+
+#: screens/setup.go
+msgid "mark"
+msgstr ""
+
+#: screens/store.go
+msgid "more"
+msgstr ""
+
+#: app/view.go screens/home.go screens/profiles.go screens/setup.go
+msgid "move"
+msgstr ""
+
+#: screens/installer_steps.go
+msgid "navy and violet"
+msgstr ""
+
+#: screens/release.go
+msgid "never verified"
+msgstr ""
+
+#: screens/home.go
+msgid "new kernel · %s"
+msgstr ""
+
+#: screens/setup.go
+msgid "new profiles happens next, and needs your password."
+msgstr ""
+
+#: screens/store.go
+msgid "new version %s"
+msgstr ""
+
+#: screens/update.go
+msgid "new versions"
+msgstr ""
+
+#: screens/setup.go
+msgid "next"
+msgstr ""
+
+#: app/view.go
+msgid "next · previous tab"
+msgstr ""
+
+#: screens/home.go
+msgid "nix %d · flathub %d"
+msgstr ""
+
+#: screens/update.go
+msgid "nixpkgs %s · %s · locked %s"
+msgstr ""
+
+#: screens/store.go
+msgid "no"
+msgstr ""
+
+#: screens/store.go
+msgid "no extra folders to delete"
+msgstr ""
+
+#: install/disks.go
+msgid "no free region of %d GiB or more"
+msgstr ""
+
+#: screens/installer_steps.go
+msgid "no password at the login screen"
+msgstr ""
+
+#: screens/installer_steps.go
+msgid "no swap"
+msgstr ""
+
+#: screens/installer_steps.go
+msgid "none"
+msgstr ""
+
+#: screens/installer_steps.go
+msgid "none detected"
+msgstr ""
+
+#: screens/installer_steps.go
+msgid "none: installing without internet"
+msgstr ""
+
+#: screens/update.go
+msgid "not a git repository"
+msgstr ""
+
+#: screens/installer_steps.go
+msgid "not encrypted"
+msgstr ""
+
+#: screens/release.go
+msgid "nothing was changed"
+msgstr ""
+
+#: screens/profiles.go
+msgid "off "
+msgstr ""
+
+#: screens/installer_steps.go
+msgid "offline "
+msgstr ""
+
+#: app/palette.go
+msgid "open %s"
+msgstr ""
+
+#: screens/home.go
+msgid "open Update to scan"
+msgstr ""
+
+#: screens/doctor.go
+msgid "or move away to cancel"
+msgstr ""
+
+#: screens/store.go
+msgid "or press ⏎ for more options."
+msgstr ""
+
+#: screens/update.go
+msgid "out of date: press r"
+msgstr ""
+
+#: screens/installer_steps.go
+msgid "passphrase"
+msgstr ""
+
+#: screens/runner.go
+msgid "password  "
+msgstr ""
+
+#: screens/update.go
+msgid "pending changes"
+msgstr ""
+
+#: screens/installer_steps.go
+msgid "plan %s"
+msgstr ""
+
+#: screens/release.go
+msgid "press"
+msgstr ""
+
+#: screens/home.go
+msgid "press d for details"
+msgstr ""
+
+#: screens/home.go
+msgid "press t to change"
+msgstr ""
+
+#: screens/setup.go
+msgid "preview"
+msgstr ""
+
+#: app/view.go
+msgid "previous · next tab"
+msgstr ""
+
+#: screens/doctor.go
+msgid "problems found"
+msgstr ""
+
+#: screens/setup.go
+msgid "profiles  "
+msgstr ""
+
+#: screens/store.go
+msgid "queued"
+msgstr ""
+
+#: app/view.go screens/setup.go
+msgid "quit"
+msgstr ""
+
+#: screens/installer_steps.go
+msgid "r tries again"
+msgstr ""
+
+#: screens/installer_steps.go
+msgid "recommended"
+msgstr ""
+
+#: screens/update.go
+msgid "refresh nixpkgs, then scan"
+msgstr ""
+
+#: screens/store.go
+msgid "remove"
+msgstr ""
+
+#: screens/store.go
+msgid "removes the app and its folders"
+msgstr ""
+
+#: screens/store.go
+msgid "removing…"
+msgstr ""
+
+#: screens/update.go
+msgid "rescan"
+msgstr ""
+
+#: screens/store.go
+msgid "results"
+msgstr ""
+
+#: screens/update.go
+msgid "return to an earlier version"
+msgstr ""
+
+#: app/view.go
+msgid "run"
+msgstr ""
+
+#: screens/doctor.go
+msgid "run again"
+msgstr ""
+
+#: app/palette.go
+msgid "run the health checks"
+msgstr ""
+
+#: screens/update.go
+msgid "running  "
+msgstr ""
+
+#: screens/setup.go
+msgid "save"
+msgstr ""
+
+#: app/palette.go
+msgid "save your setup in one file"
+msgstr ""
+
+#: screens/home.go
+msgid "scanned %s"
+msgstr ""
+
+#: screens/update.go
+msgid "scanned %s · %s"
+msgstr ""
+
+#: screens/update.go
+msgid "scroll"
+msgstr ""
+
+#: screens/store.go
+msgid "search"
+msgstr ""
+
+#: screens/store.go
+msgid "select"
+msgstr ""
+
+#: screens/profiles.go
+msgid "services for a way of using"
+msgstr ""
+
+#: screens/home.go
+msgid "shortcuts"
+msgstr ""
+
+#: app/view.go
+msgid "show or hide the details"
+msgstr ""
+
+#: app/palette.go
+msgid "show or hide the details panel"
+msgstr ""
+
+#: screens/release.go
+msgid "signed and verified · press "
+msgstr ""
+
+#: screens/update.go
+msgid "signed release, then rebuild"
+msgstr ""
+
+#: install/disks.go
+msgid "smaller than %d GiB"
+msgstr ""
+
+#: screens/installer_steps.go
+msgid "soft white, pink and violet"
+msgstr ""
+
+#: screens/store.go
+msgid "source   "
+msgstr ""
+
+#: screens/profiles.go
+msgid "space or ⏎ turns it on or off"
+msgstr ""
+
+#: screens/store.go
+msgid "space selects apps to remove or update"
+msgstr ""
+
+#: screens/store.go
+msgid "space selects several apps to install together"
+msgstr ""
+
+#: app/palette.go
+msgid "start %s"
+msgstr ""
+
+#: screens/store.go
+msgid "start it now"
+msgstr ""
+
+#: screens/exit.go
+msgid "stay: pick another tab"
+msgstr ""
+
+#: screens/installer_steps.go
+msgid "strong"
+msgstr ""
+
+#: screens/installer_steps.go
+msgid "swap file"
+msgstr ""
+
+#: screens/store.go
+msgid "switch"
+msgstr ""
+
+#: app/view.go
+msgid "tab  shift+tab"
+msgstr ""
+
+#: screens/installer_steps.go
+msgid "tab switches between the list and the test box"
+msgstr ""
+
+#: app/view.go
+msgid "tabs"
+msgstr ""
+
+#: screens/profiles.go
+msgid "the computer."
+msgstr ""
+
+#: screens/store.go
+msgid "their folders"
+msgstr ""
+
+#: screens/exit.go
+msgid "thing needs attention"
+msgstr ""
+
+#: screens/exit.go
+msgid "things need attention"
+msgstr ""
+
+#: screens/doctor.go
+msgid "this changes your system"
+msgstr ""
+
+#: app/view.go
+msgid "this help"
+msgstr ""
+
+#: screens/themes.go
+msgid "this is the theme in use"
+msgstr ""
+
+#: screens/update.go
+msgid "this is your current one"
+msgstr ""
+
+#: screens/profiles.go
+msgid "toggle"
+msgstr ""
+
+#: screens/installer_steps.go
+msgid "too weak"
+msgstr ""
+
+#: screens/installer_steps.go
+msgid "try your keys here, accents included"
+msgstr ""
+
+#: screens/update.go
+msgid "uncommitted file"
+msgstr ""
+
+#: screens/update.go
+msgid "uncommitted files"
+msgstr ""
+
+#: screens/store.go
+msgid "up to date"
+msgstr ""
+
+#: screens/home.go screens/store.go
+msgid "update"
+msgstr ""
+
+#: screens/home.go
+msgid "updates"
+msgstr ""
+
+#: screens/store.go
+msgid "updating…"
+msgstr ""
+
+#: screens/release.go
+msgid "verified %s"
+msgstr ""
+
+#: screens/store.go
+msgid "version  "
+msgstr ""
+
+#: screens/doctor.go
+msgid "warning"
+msgstr ""
+
+#: screens/doctor.go
+msgid "warnings"
+msgstr ""
+
+#: screens/installer_steps.go
+msgid "weak"
+msgstr ""
+
+#: screens/installer_steps.go
+msgid "what is already there"
+msgstr ""
+
+#: screens/profiles.go
+msgid "will disable "
+msgstr ""
+
+#: screens/profiles.go
+msgid "will enable "
+msgstr ""
+
+#: screens/update.go
+msgid "with fresh inputs"
+msgstr ""
+
+#: screens/runner.go
+msgid "working: please wait"
+msgstr ""
+
+#: screens/doctor.go
+msgid "works, with %s"
+msgstr ""
+
+#: screens/store.go
+msgid "yes, delete"
+msgstr ""
+
+#: screens/release.go
+msgid "you have %s"
+msgstr ""
+
+#: screens/installer_steps.go
+msgid "your name"
+msgstr ""
+
+#: screens/installer_steps.go
+msgid "zram: compressed memory, fast and easy on the disk. Recommended."
+msgstr ""
+
+#: screens/store.go
+msgid "↑ or / to search "
+msgstr ""
+
+#: screens/store.go
+msgid "⏎ search · ↓ results · esc "
+msgstr ""
