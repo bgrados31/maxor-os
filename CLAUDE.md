@@ -12,6 +12,36 @@ the hand-off between sessions: the rules, how to work here, and where the work s
 - Never `git reset --hard` or anything that drops changes in a dirty tree. Never push with failing tests.
 - Do not spend tokens on the unnecessary: measure, then change; no long explorations without a reason.
 
+## Working with Jev and workers (from Bryan, 2026-10-05; adapted to this project)
+
+Decisions go through Jev (TypeSafe System One; skill `typesafe:typesafe-ai`).
+
+**Jev and profiles**
+1. Before starting a Claude worker, ask Jev once to pick a host-approved profile of one or two sessions, each with its
+   model and effort. No selection, or Jev unreachable (no key, offline): use the host default and say so to Bryan.
+2. The host checks the selection and fixes model and effort before each session starts; they do not change mid-session.
+   The host controls permissions and approvals. A worker never publishes, pushes, tags or releases (see Rules).
+3. Sonnet 5.5 at medium effort for clear coding (Nix, bash, Go edits). Higher effort for complex reasoning: installer
+   stages, LUKS/disk, bootloader, Nix module merging, and JSON contracts (`installer/schema/answers.v1.json`). A second
+   Claude only for independent research or a review Bryan asked for.
+4. Brief a second Claude with: the task, the exact files, limits (branch `development`, no publishing, no
+   `git reset --hard`), and how to know it is done. It returns findings with evidence (command + output) to the lead,
+   which verifies them before relying on them.
+
+**Scope**
+5. Do what was asked, nothing more: no extra features, tests, files, docs, refactors or review rounds. Ask only when
+   blocked or before an action that needs approval. When done and checked, stop and report. Exception: a change that
+   alters behaviour documented in `docs/` or in this file updates that text in the same commit.
+
+**Checks before saying "done"** (run the one that covers what changed; if none can run, say which and why)
+6. Go in `tui/` → `go test ./...` · bash in `home/maxor/` or `tests/` → `bats tests/` · `.nix`, `flake.nix` →
+   `nix eval`/`nix build --dry-run` of `nitro`, plus bats · installer engine or stages → `installer-full` check ·
+   `.po`/translations → `scripts/i18n.sh check` · lock screen, wallpaper, Hyprland, greeter → cannot be seen without
+   Bryan's screen: say "not verified on screen". Report the real result, including failures. New files `git add`ed
+   before any `nix build`.
+7. Performance work: measure first (`systemd-analyze blame` / `critical-chain`), change, measure again, and report
+   both numbers.
+
 ## Layout
 
 - `flake.nix`: systems (`nitro` = Bryan's laptop, `maxor-vm`, `maxor-generic*`, `maxor-iso`), packages, checks.

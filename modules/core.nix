@@ -40,6 +40,7 @@
     description = "Añadir el repositorio Flathub a Flatpak";
     # Cuelga de network-online, no de multi-user: con red lenta retenía graphical.target ~6 s sin que nada lo necesite.
     wantedBy = [ "network-online.target" ];
+    wants = [ "network-online.target" ];
     after = [ "network-online.target" ];
     path = [ pkgs.flatpak ];
     script = "flatpak remote-add --system --if-not-exists flathub https://dl.flathub.org/repo/flathub.flatpakrepo";
