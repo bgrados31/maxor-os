@@ -23,6 +23,8 @@ the hand-off between sessions: the rules, how to work here, and where the work s
   install, bootloader, finish). `installer/iso/`: the ISO. `installer/schema/answers.v1.json`: the TUI → engine contract.
 - `themes/<id>/`: colors.json, theme.toml, style.json, optional gradient.json (wallpaper gradient).
 - `docs/`: INSTALLER.md, THEMING.md, IDENTITY.md, RELEASING.md, UPDATES.md…
+- `web/`: the website (static landing, no build; see web/README.md). Published to GitHub Pages by
+  `.github/workflows/pages.yml` from `main`; `python3 web/tools/check.py` runs in CI.
 
 ## How to check work
 
@@ -32,6 +34,7 @@ nix shell nixpkgs#bats nixpkgs#jq nixpkgs#openssl nixpkgs#util-linux nixpkgs#ncu
 nix build .#checks.x86_64-linux.installer-full       # installs offline (in Spanish) in a VM and boots it, ~7 min
 nix build .#iso                                       # the installer ISO, ~25 min, ~4.6 GB
 scripts/tui-gallery.sh OUT                            # photographs every installer step at 4 sizes (vhs), ~2 min
+python3 web/tools/check.py                            # the website: i18n, themes in sync, CSP hygiene, links
 ```
 
 New files must be `git add`ed before any `nix build` (flakes only see tracked files).
@@ -51,6 +54,11 @@ Done and on `development`: offline install from the ISO in any language (all gli
 no flicker (theme written before the login, greetd waits only on the first boot), boot ~3.5 s faster (no boot menu with
 a single OS; dual boot keeps 3 s), the installer redesign (disk maps, storage, motion, keyboard and time zone proposed
 from the language, readable review, failures explained), the new identity above.
+
+Website (2026-10-05, branch `claude/blissful-johnson-99ty2v`): `web/` landing in Spanish + English, live
+release card from the GitHub API, the tour desktop painted with the real themes. Not published yet: Bryan has to
+merge it and enable Pages (Settings → Pages → Source: GitHub Actions). Its og:image/canonical assume
+`https://bgrados31.github.io/maxor-os/`; change them if a domain is bought.
 
 Next, in order:
 1. **Verify the latest ISO** (`nix build .#iso`) with a full install in a VM (Spanish, offline) to the desktop.

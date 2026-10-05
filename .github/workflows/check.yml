@@ -33,3 +33,5 @@ jobs:
         run: nix build .#packages.x86_64-linux.maxor-tui --print-build-logs
       - name: Installer engine (builds, shellcheck)
         run: nix build .#packages.x86_64-linux.maxor-install --print-build-logs
+      - name: Website (i18n, themes in sync, CSP hygiene, local links)
+        run: python3 web/tools/check.py
