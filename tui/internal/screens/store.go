@@ -262,7 +262,7 @@ func (s *Store) menuEntries(env *core.Env) []menuEntry {
 		}
 	}
 	if len(upd) > 0 {
-		hint := fmt.Sprintf(tr("%d of %d have a new version"), len(upd), len(items))
+		hint := trn("%d of %d has a new version", "%d of %d have a new version", len(upd), len(upd), len(items))
 		if single {
 			hint = "to " + upd[0].Latest
 			if upd[0].Current != "" {
@@ -750,7 +750,7 @@ func (s *Store) menuLines(env *core.Env, w int) []ui.Line {
 	mn := s.menu
 	title := mn.items[0].Name
 	if len(mn.items) > 1 {
-		title = fmt.Sprintf(tr("%d apps"), len(mn.items))
+		title = trn("%d app", "%d apps", len(mn.items))
 	}
 	lines := []ui.Line{heading(env, tr("What do you want to do?")), gap(), ui.T(p.Bold, title)}
 	if len(mn.items) > 1 {
@@ -857,7 +857,7 @@ func (s *Store) tabsRow(env *core.Env, w int) ui.Line {
 	}
 	if right == nil {
 		if n := s.markedCount(s.items(env)); n > 0 {
-			right = []ui.Seg{ui.S(p.Ac, fmt.Sprintf(tr("%s %d selected "), ui.G.On, n))}
+			right = []ui.Seg{ui.S(p.Ac, ui.G.On+" "+trn("%d selected", "%d selected", n)+" ")}
 		}
 	}
 	return ui.Line{L: ui.Spread(left, right, w, p.Fill)}
@@ -1067,7 +1067,7 @@ func (s *Store) Side(env *core.Env, w, h int) []ui.Line {
 	inst := s.installedView()
 	// con apps marcadas, el panel es el de las acciones en bloque
 	if n := s.markedCount(its); n > 0 {
-		lines := []ui.Line{heading(env, fmt.Sprintf(tr("%d selected"), n)), gap()}
+		lines := []ui.Line{heading(env, trn("%d selected", "%d selected", n)), gap()}
 		shown := 0
 		upd := 0
 		for _, it := range its {
@@ -1087,7 +1087,7 @@ func (s *Store) Side(env *core.Env, w, h int) []ui.Line {
 		}
 		lines = append(lines, gap())
 		if inst && upd > 0 {
-			lines = append(lines, ui.T(p.Warn, fmt.Sprintf(tr("%s %d of them can be updated"), ui.G.Up, upd)), gap())
+			lines = append(lines, ui.T(p.Warn, ui.G.Up+" "+trn("%d of them can be updated", "%d of them can be updated", upd)), gap())
 		}
 		return append(lines, muted(env, tr("Use the buttons above,")), muted(env, tr("or press ⏎ for more options.")))
 	}
@@ -1123,7 +1123,7 @@ func (s *Store) Side(env *core.Env, w, h int) []ui.Line {
 		lines = append(lines, ui.Of(button(env, true, tr("Install  ⏎")), space(1), button(env, false, tr("Select  space"))))
 	}
 	if n := len(env.Data.AppUpdates); inst && n > 0 {
-		lines = append(lines, gap(), ui.T(p.Warn, fmt.Sprintf(tr("%s %s can be updated"), ui.G.Up, plural(n, "app", "apps"))), ui.Of(button(env, false, tr("Update all  U"))))
+		lines = append(lines, gap(), ui.T(p.Warn, ui.G.Up+" "+trn("%d app can be updated", "%d apps can be updated", n)), ui.Of(button(env, false, tr("Update all  U"))))
 	}
 	return lines
 }
@@ -1243,7 +1243,7 @@ func (s *Store) Brief(env *core.Env, w int) []ui.Line {
 		mn := s.menu
 		title := mn.items[0].Name
 		if len(mn.items) > 1 {
-			title = fmt.Sprintf(tr("%d apps"), len(mn.items))
+			title = trn("%d app", "%d apps", len(mn.items))
 		}
 		if mn.confirm {
 			size := ""
@@ -1264,7 +1264,7 @@ func (s *Store) Brief(env *core.Env, w int) []ui.Line {
 	its := s.items(env)
 	inst := s.installedView()
 	if n := s.markedCount(its); n > 0 {
-		return []ui.Line{ui.Of(ui.S(p.Ac, ui.G.On+" "), ui.S(p.Text, fmt.Sprintf(tr("%d selected"), n)), ui.S(p.Mu, tr("  ·  use the buttons above, or ⏎ for more")))}
+		return []ui.Line{ui.Of(ui.S(p.Ac, ui.G.On+" "), ui.S(p.Text, trn("%d selected", "%d selected", n)), ui.S(p.Mu, tr("  ·  use the buttons above, or ⏎ for more")))}
 	}
 	if len(its) == 0 || s.list.sel >= len(its) {
 		return []ui.Line{muted(env, tr("Search with /  ·  space selects several apps"))}

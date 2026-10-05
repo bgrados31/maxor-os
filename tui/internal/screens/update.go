@@ -266,7 +266,7 @@ func (u *Update) configLines(env *core.Env) []ui.Line {
 	case st.Branch == "":
 		lines = append(lines, muted(env, tr("not a git repository")))
 	case st.Dirty:
-		lines = append(lines, ui.Of(ui.S(p.Ac, ui.G.Branch+"  "), ui.S(p.Bold, st.Branch), ui.S(p.Mu, " · "+st.Commit+" · "), ui.S(p.Warn, plural(st.Files, tr("uncommitted file"), tr("uncommitted files")))))
+		lines = append(lines, ui.Of(ui.S(p.Ac, ui.G.Branch+"  "), ui.S(p.Bold, st.Branch), ui.S(p.Mu, " · "+st.Commit+" · "), ui.S(p.Warn, trn("%d uncommitted file", "%d uncommitted files", st.Files))))
 	default:
 		lines = append(lines, ui.Of(ui.S(p.Ac, ui.G.Branch+"  "), ui.S(p.Bold, st.Branch), ui.S(p.Mu, " · "+st.Commit+" · "), ui.S(p.Ok, "clean")))
 	}
@@ -386,7 +386,7 @@ func (u *Update) Main(env *core.Env, w, h int) []ui.Line {
 		lines = append(lines, ui.T(p.Warn, ui.G.Warn+"  "+tr("includes a new kernel: reboot after applying")))
 	}
 	if c.Config > 0 {
-		lines = append(lines, muted(env, fmt.Sprintf(tr("%d configuration files changed (hidden)"), c.Config)))
+		lines = append(lines, muted(env, trn("%d configuration file changed (hidden)", "%d configuration files changed (hidden)", c.Config)))
 	}
 	lines = append(lines, gap())
 	from, to := u.list.window(len(up.Changes), max(u.rows, 1))

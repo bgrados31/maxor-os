@@ -105,7 +105,7 @@ func (h *Home) Update(env *core.Env, msg tea.Msg) (core.Screen, tea.Cmd) {
 			}
 			b, _ := m.Value.(maxor.BackupInfo)
 			path := strings.Replace(b.Path, os.Getenv("HOME"), "~", 1)
-			return h, tea.Batch(core.Toast("ok", fmt.Sprintf(tr("Saved %s (%s, %s)"), path, humanBytes(b.Bytes), plural(b.Apps, tr("app"), tr("apps")))), core.Note("ok", tr("Saved a backup: %s", path)))
+			return h, tea.Batch(core.Toast("ok", tr("Saved %s (%s, %s)", path, humanBytes(b.Bytes), trn("%d app", "%d apps", b.Apps))), core.Note("ok", tr("Saved a backup: %s", path)))
 		}
 	}
 	if k, ok := msg.(tea.KeyMsg); ok {
@@ -168,9 +168,9 @@ func (h *Home) Main(env *core.Env, w, hh int) []ui.Line {
 		doc := d.Doctor
 		switch {
 		case doc.Fails > 0:
-			sys = h.tile(env, tr("SYSTEM"), false, []ui.Seg{ui.S(p.Bad.Bold(true), ui.G.Bad+" "+plural(doc.Fails, "problem", "problems"))}, "maxor doctor")
+			sys = h.tile(env, tr("SYSTEM"), false, []ui.Seg{ui.S(p.Bad.Bold(true), ui.G.Bad+" "+trn("%d problem", "%d problems", doc.Fails))}, "maxor doctor")
 		case doc.Warns > 0:
-			sys = h.tile(env, tr("SYSTEM"), false, []ui.Seg{ui.S(p.Warn.Bold(true), ui.G.Warn+" "+plural(doc.Warns, "warning", "warnings"))}, tr("press d for details"))
+			sys = h.tile(env, tr("SYSTEM"), false, []ui.Seg{ui.S(p.Warn.Bold(true), ui.G.Warn+" "+trn("%d warning", "%d warnings", doc.Warns))}, tr("press d for details"))
 		default:
 			sys = h.tile(env, tr("SYSTEM"), false, []ui.Seg{ui.S(p.Ok.Bold(true), ui.G.Tick+" "+tr("Healthy"))}, tr("all checks pass"))
 		}
@@ -195,7 +195,7 @@ func (h *Home) Main(env *core.Env, w, hh int) []ui.Line {
 		if d.Update.Kernel {
 			sub = tr("new kernel · %s", sub)
 		}
-		upd = h.tile(env, tr("UPDATES"), false, []ui.Seg{ui.S(p.Warn.Bold(true), plural(n, "change", "changes"))}, sub)
+		upd = h.tile(env, tr("UPDATES"), false, []ui.Seg{ui.S(p.Warn.Bold(true), trn("%d change", "%d changes", n))}, sub)
 	}
 
 	// Apps
@@ -209,11 +209,11 @@ func (h *Home) Main(env *core.Env, w, hh int) []ui.Line {
 				nix++
 			}
 		}
-		main := []ui.Seg{ui.S(p.Ac.Bold(true), fmt.Sprintf(tr("%d installed"), len(d.Apps)))}
+		main := []ui.Seg{ui.S(p.Ac.Bold(true), trn("%d app installed", "%d apps installed", len(d.Apps)))}
 		sub := fmt.Sprintf(tr("nix %d · flathub %d"), nix, fp)
 		if n := len(d.AppUpdates); n > 0 {
 			main = append(main, ui.S(p.Warn.Bold(true), fmt.Sprintf("  %s%d", ui.G.Up, n)))
-			sub = tr("%s available · %s", plural(n, tr("update"), tr("updates")), sub)
+			sub = trn("%d update available · %s", "%d updates available · %s", n, n, sub)
 		}
 		apps = h.tile(env, tr("APPS"), false, main, sub)
 	} else {

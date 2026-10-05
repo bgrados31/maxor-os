@@ -863,3 +863,16 @@ func TestAFailureSaysWhatHappenedInWords(t *testing.T) {
 		t.Fatalf("an offline build failure is explained:\n%s", out)
 	}
 }
+
+func TestEveryStepFitsInAPseudoLanguage(t *testing.T) {
+	i18n.SetPseudo(true)
+	t.Cleanup(func() { i18n.SetPseudo(false) })
+	m := installModel(t, newInstallEnv(windowsDisk()))
+	for i := 0; i < 12; i++ {
+		out := view(m)
+		if lines := strings.Split(out, "\n"); len(lines) != m.h {
+			t.Fatalf("step %d: %d rows in a %d-row window:\n%s", i, len(lines), m.h, out)
+		}
+		send(m, key("ctrl+n"))
+	}
+}

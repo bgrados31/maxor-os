@@ -42,10 +42,10 @@ func (e *Exit) Main(env *core.Env, w, h int) []ui.Line {
 	// lo que queda pendiente, para no irte sin verlo
 	var pending []ui.Line
 	if n := len(env.Data.AppUpdates); n > 0 {
-		pending = append(pending, ui.Of(ui.S(p.Warn, ui.G.Up+" "), ui.S(p.Text, plural(n, tr("app can be updated"), tr("apps can be updated"))), ui.S(p.Mu, tr("  (Store)"))))
+		pending = append(pending, ui.Of(ui.S(p.Warn, ui.G.Up+" "), ui.S(p.Text, trn("%d app can be updated", "%d apps can be updated", n)), ui.S(p.Mu, tr("  (Store)"))))
 	}
 	if d := env.Data.Doctor; d != nil && (d.Warns > 0 || d.Fails > 0) {
-		pending = append(pending, ui.Of(ui.S(p.Warn, ui.G.Warn+" "), ui.S(p.Text, plural(d.Warns+d.Fails, tr("thing needs attention"), tr("things need attention"))), ui.S(p.Mu, tr("  (Doctor)"))))
+		pending = append(pending, ui.Of(ui.S(p.Warn, ui.G.Warn+" "), ui.S(p.Text, trn("%d thing needs attention", "%d things need attention", d.Warns+d.Fails)), ui.S(p.Mu, tr("  (Doctor)"))))
 	}
 	if releaseAvailable(env) {
 		pending = append(pending, ui.Of(ui.S(p.Warn, ui.G.Up+" "), ui.S(p.Text, tr("Maxor OS %s is available", env.Data.Release.Latest)), ui.S(p.Mu, tr("  (Update)"))))

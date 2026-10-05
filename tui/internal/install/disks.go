@@ -72,7 +72,7 @@ func (d Disk) Contents() string {
 		kinds = append(kinds, tr("a previous Maxor OS"))
 	}
 	n := len(d.Partitions)
-	desc := fmt.Sprintf(tr("%d partitions"), n)
+	desc := trn("%d partition", "%d partitions", n)
 	if n == 1 {
 		desc = "1 partition"
 	}

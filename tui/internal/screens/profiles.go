@@ -176,7 +176,7 @@ func (p *Profiles) Main(env *core.Env, w, h int) []ui.Line {
 	if l, ok := working(env, "profiles.save", tr("Saving your choices")); ok {
 		head = l
 	} else if on, off := p.pending(env); len(on)+len(off) > 0 {
-		head = ui.Of(ui.S(pt.Warn, ui.G.Warn+" "+tr("%s to apply", plural(len(on)+len(off), tr("change"), tr("changes")))), ui.S(pt.Mu, tr("  ·  a to apply, x to discard")))
+		head = ui.Of(ui.S(pt.Warn, ui.G.Warn+" "+trn("%d change to apply", "%d changes to apply", len(on)+len(off))), ui.S(pt.Mu, tr("  ·  a to apply, x to discard")))
 	} else {
 		head = heading(env, fmt.Sprintf(tr("%d of %d active"), active, len(ps)))
 	}
@@ -303,7 +303,7 @@ func (p *Profiles) Brief(env *core.Env, w int) []ui.Line {
 	pr := ps[p.list.sel]
 	lines := []ui.Line{ui.Of(ui.S(pt.Bold, pr.Title), ui.S(pt.Mu, "  "+briefIncludes(pr, 4)))}
 	if on, off := p.pending(env); len(on)+len(off) > 0 {
-		row := []ui.Seg{ui.S(pt.Warn, ui.G.Warn+" "+tr("%s to apply", plural(len(on)+len(off), tr("change"), tr("changes")))+"  "), button(env, true, tr("Apply  a")), space(1), button(env, false, tr("Discard  x"))}
+		row := []ui.Seg{ui.S(pt.Warn, ui.G.Warn+" "+trn("%d change to apply", "%d changes to apply", len(on)+len(off))+"  "), button(env, true, tr("Apply  a")), space(1), button(env, false, tr("Discard  x"))}
 		return append(lines, ui.Of(row...))
 	}
 	return append(lines, muted(env, tr("space or ⏎ turns it on or off")))

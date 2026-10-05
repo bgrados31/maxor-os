@@ -140,16 +140,54 @@ msgstr ""
 msgid "%d KiB"
 msgstr ""
 
-#: screens/store.go
-msgid "%d apps"
-msgstr ""
+#: screens/home.go screens/store.go
+msgid "%d app"
+msgid_plural "%d apps"
+msgstr[0] ""
+msgstr[1] ""
 
-#: screens/update.go
-msgid "%d configuration files changed (hidden)"
-msgstr ""
+#: screens/exit.go screens/store.go
+msgid "%d app can be updated"
+msgid_plural "%d apps can be updated"
+msgstr[0] ""
+msgstr[1] ""
 
 #: screens/home.go
-msgid "%d installed"
+msgid "%d app installed"
+msgid_plural "%d apps installed"
+msgstr[0] ""
+msgstr[1] ""
+
+#: screens/home.go
+msgid "%d change"
+msgid_plural "%d changes"
+msgstr[0] ""
+msgstr[1] ""
+
+#: screens/profiles.go
+msgid "%d change to apply"
+msgid_plural "%d changes to apply"
+msgstr[0] ""
+msgstr[1] ""
+
+#: screens/update.go
+msgid "%d configuration file changed (hidden)"
+msgid_plural "%d configuration files changed (hidden)"
+msgstr[0] ""
+msgstr[1] ""
+
+#: screens/util.go
+msgid "%d day ago"
+msgid_plural "%d days ago"
+msgstr[0] ""
+msgstr[1] ""
+
+#: screens/util.go
+msgid "%d h ago"
+msgstr ""
+
+#: screens/util.go
+msgid "%d min ago"
 msgstr ""
 
 #: screens/profiles.go
@@ -157,32 +195,64 @@ msgid "%d of %d active"
 msgstr ""
 
 #: screens/store.go
-msgid "%d of %d have a new version"
-msgstr ""
+msgid "%d of %d has a new version"
+msgid_plural "%d of %d have a new version"
+msgstr[0] ""
+msgstr[1] ""
+
+#: screens/store.go
+msgid "%d of them can be updated"
+msgid_plural "%d of them can be updated"
+msgstr[0] ""
+msgstr[1] ""
 
 #: install/disks.go
-msgid "%d partitions"
-msgstr ""
+msgid "%d partition"
+msgid_plural "%d partitions"
+msgstr[0] ""
+msgstr[1] ""
+
+#: screens/home.go
+msgid "%d problem"
+msgid_plural "%d problems"
+msgstr[0] ""
+msgstr[1] ""
 
 #: screens/store.go
 msgid "%d selected"
-msgstr ""
+msgid_plural "%d selected"
+msgstr[0] ""
+msgstr[1] ""
 
 #: screens/themes.go
-msgid "%d themes"
-msgstr ""
+msgid "%d theme"
+msgid_plural "%d themes"
+msgstr[0] ""
+msgstr[1] ""
 
-#: screens/store.go
-msgid "%s %d of them can be updated"
-msgstr ""
+#: screens/exit.go
+msgid "%d thing needs attention"
+msgid_plural "%d things need attention"
+msgstr[0] ""
+msgstr[1] ""
 
-#: screens/store.go
-msgid "%s %d selected "
-msgstr ""
+#: screens/update.go
+msgid "%d uncommitted file"
+msgid_plural "%d uncommitted files"
+msgstr[0] ""
+msgstr[1] ""
 
-#: screens/store.go
-msgid "%s %s can be updated"
-msgstr ""
+#: screens/home.go
+msgid "%d update available · %s"
+msgid_plural "%d updates available · %s"
+msgstr[0] ""
+msgstr[1] ""
+
+#: screens/home.go
+msgid "%d warning"
+msgid_plural "%d warnings"
+msgstr[0] ""
+msgstr[1] ""
 
 #: screens/installer_steps.go
 msgid "%s (%s) on %s"
@@ -196,20 +266,12 @@ msgstr ""
 msgid "%s available"
 msgstr ""
 
-#: screens/home.go
-msgid "%s available · %s"
-msgstr ""
-
 #: screens/setup.go
 msgid "%s graphics %s"
 msgstr ""
 
 #: screens/store.go
 msgid "%s is already %s"
-msgstr ""
-
-#: screens/profiles.go
-msgid "%s to apply"
 msgstr ""
 
 #: screens/update.go
@@ -2064,28 +2126,12 @@ msgstr ""
 msgid "and sign in as %s."
 msgstr ""
 
-#: screens/home.go
-msgid "app"
-msgstr ""
-
-#: screens/exit.go
-msgid "app can be updated"
-msgstr ""
-
 #: screens/profiles.go screens/update.go
 msgid "apply"
 msgstr ""
 
 #: app/palette.go
 msgid "apply %s"
-msgstr ""
-
-#: screens/home.go
-msgid "apps"
-msgstr ""
-
-#: screens/exit.go
-msgid "apps can be updated"
 msgstr ""
 
 #: screens/installer.go screens/setup.go
@@ -2126,14 +2172,6 @@ msgstr ""
 
 #: screens/themes.go
 msgid "careful"
-msgstr ""
-
-#: screens/profiles.go
-msgid "change"
-msgstr ""
-
-#: screens/profiles.go
-msgid "changes"
 msgstr ""
 
 #: app/palette.go
@@ -2372,6 +2410,10 @@ msgstr ""
 msgid "jump to a tab"
 msgstr ""
 
+#: screens/util.go
+msgid "just now"
+msgstr ""
+
 #: screens/store.go
 msgid "keep it"
 msgstr ""
@@ -2434,6 +2476,10 @@ msgstr ""
 
 #: screens/installer_steps.go
 msgid "navy and violet"
+msgstr ""
+
+#: screens/util.go
+msgid "never"
 msgstr ""
 
 #: screens/release.go
@@ -2768,14 +2814,6 @@ msgstr ""
 msgid "their folders"
 msgstr ""
 
-#: screens/exit.go
-msgid "thing needs attention"
-msgstr ""
-
-#: screens/exit.go
-msgid "things need attention"
-msgstr ""
-
 #: screens/doctor.go
 msgid "this changes your system"
 msgstr ""
@@ -2804,24 +2842,12 @@ msgstr ""
 msgid "try your keys here, accents included"
 msgstr ""
 
-#: screens/update.go
-msgid "uncommitted file"
-msgstr ""
-
-#: screens/update.go
-msgid "uncommitted files"
-msgstr ""
-
 #: screens/store.go
 msgid "up to date"
 msgstr ""
 
-#: screens/home.go screens/store.go
+#: screens/store.go
 msgid "update"
-msgstr ""
-
-#: screens/home.go
-msgid "updates"
 msgstr ""
 
 #: screens/store.go
@@ -2834,14 +2860,6 @@ msgstr ""
 
 #: screens/store.go
 msgid "version  "
-msgstr ""
-
-#: screens/doctor.go
-msgid "warning"
-msgstr ""
-
-#: screens/doctor.go
-msgid "warnings"
 msgstr ""
 
 #: screens/installer_steps.go
@@ -2869,8 +2887,10 @@ msgid "working: please wait"
 msgstr ""
 
 #: screens/doctor.go
-msgid "works, with %s"
-msgstr ""
+msgid "works, with %d warning"
+msgid_plural "works, with %d warnings"
+msgstr[0] ""
+msgstr[1] ""
 
 #: screens/store.go
 msgid "yes, delete"

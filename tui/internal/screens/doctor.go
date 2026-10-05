@@ -164,7 +164,7 @@ func (d *Doctor) Main(env *core.Env, w, h int) []ui.Line {
 	case doc.Fails > 0:
 		summary = ui.T(p.Bad.Bold(true), ui.G.Bad+"  "+tr("problems found"))
 	case doc.Warns > 0:
-		summary = ui.T(p.Warn.Bold(true), ui.G.Warn+"  "+tr("works, with %s", plural(doc.Warns, tr("warning"), tr("warnings"))))
+		summary = ui.T(p.Warn.Bold(true), ui.G.Warn+"  "+trn("works, with %d warning", "works, with %d warnings", doc.Warns))
 	default:
 		summary = ui.T(p.Ok.Bold(true), ui.G.Tick+"  "+tr("all good"))
 	}

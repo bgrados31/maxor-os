@@ -198,7 +198,7 @@ func (t *Themes) Main(env *core.Env, w, h int) []ui.Line {
 	if l, ok := working(env, "themes.apply", tr("Applying the theme")); ok {
 		lines = append(lines, l)
 	} else {
-		lines = append(lines, heading(env, fmt.Sprintf(tr("%d themes"), len(list))))
+		lines = append(lines, heading(env, trn("%d theme", "%d themes", len(list))))
 	}
 	lines = append(lines, gap())
 	for i := t.top; i < len(rows) && i < t.top+avail; i++ {

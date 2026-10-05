@@ -594,6 +594,20 @@ func TestTranslating(t *testing.T) {
 	if got := goVerbs("%2$s then %1$s"); fmt.Sprintf(got, "a", "b") != "b then a" {
 		t.Errorf("positional verbs: %q", got)
 	}
+	// the real catalogs: each language counts by its own rule
+	for lang, cases := range map[string]map[int]string{
+		"es": {0: "0 temas", 1: "1 tema", 2: "2 temas"},
+		"fr": {0: "0 thème", 1: "1 thème", 2: "2 thèmes"}, // French counts 0 as singular
+		"de": {1: "1 Design", 5: "5 Designs"},
+	} {
+		Set(lang)
+		for n, want := range cases {
+			if got := N("%d theme", "%d themes", n); got != want {
+				t.Errorf("%s: %d → %q, want %q", lang, n, got, want)
+			}
+		}
+	}
+	Set("es")
 	SetPseudo(true)
 	defer SetPseudo(false)
 	if got := T("Hello"); got != "[Hello~~]" {

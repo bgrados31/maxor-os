@@ -533,7 +533,7 @@ func TestUpdateAplicarCedeLaTerminal(t *testing.T) {
 func TestHomeCargaTodoEnSegundoPlanoYEnlazaLasAcciones(t *testing.T) {
 	m, f := setup(t, Options{})
 	out := view(m)
-	for _, want := range []string{"1 warning", "1 installed", "Sakura nocturna", "13th Gen Intel", "Quick actions"} {
+	for _, want := range []string{"1 warning", "1 app installed", "Sakura nocturna", "13th Gen Intel", "Quick actions"} {
 		if !has(out, want) {
 			t.Fatalf("falta %q:\n%s", want, out)
 		}
@@ -1300,7 +1300,7 @@ func TestRYElToastDeInstalarAyudanAEncontrarLaApp(t *testing.T) {
 func TestInicioAvisaDeAppsConVersionNueva(t *testing.T) {
 	m, _ := setupWith(t, bulkCLI(), Options{})
 	out := view(m)
-	if !strings.Contains(out, "3 installed") || !strings.Contains(out, "↑2") || !has(out, "2 updates available") {
+	if !strings.Contains(out, "3 apps installed") || !strings.Contains(out, "↑2") || !has(out, "2 updates available") {
 		t.Fatalf("la tarjeta de apps avisa de las versiones nuevas:\n%s", out)
 	}
 }
@@ -1822,5 +1822,19 @@ func TestEveryTabFitsInEveryLanguage(t *testing.T) {
 				t.Fatalf("help: %d rows in a %d-row window", len(lines), m.h)
 			}
 		})
+	}
+}
+
+// A language longer than any we ship must not break the layout either: the pseudo-language lengthens every
+// text by 40%, so this test keeps working for languages that do not exist yet.
+func TestEveryTabFitsInAPseudoLanguage(t *testing.T) {
+	i18n.SetPseudo(true)
+	t.Cleanup(func() { i18n.SetPseudo(false) })
+	m, _ := setup(t, Options{})
+	for i := 0; i < len(m.screens); i++ {
+		if lines := strings.Split(view(m), "\n"); len(lines) != m.h {
+			t.Fatalf("%s: %d rows in a %d-row window", m.screens[m.active].ID(), len(lines), m.h)
+		}
+		send(m, key("tab"))
 	}
 }

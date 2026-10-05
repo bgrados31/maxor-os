@@ -3,7 +3,6 @@
 package screens
 
 import (
-	"fmt"
 	"strings"
 	"time"
 
@@ -166,29 +165,21 @@ func button(env *core.Env, primary bool, label string) ui.Seg {
 
 func space(n int) ui.Seg { return ui.Seg{T: strings.Repeat(" ", n)} }
 
-// plural devuelve «1 cosa» o «2 cosas».
-func plural(n int, one, many string) string {
-	if n == 1 {
-		return fmt.Sprintf("%d %s", n, one)
-	}
-	return fmt.Sprintf("%d %s", n, many)
-}
-
 // ago dice hace cuánto fue un instante (segundos Unix) con palabras sencillas.
 func ago(now time.Time, unix int64) string {
 	if unix <= 0 {
-		return "never"
+		return tr("never")
 	}
 	d := now.Sub(time.Unix(unix, 0))
 	switch {
 	case d < 90*time.Second:
-		return "just now"
+		return tr("just now")
 	case d < 90*time.Minute:
-		return fmt.Sprintf("%d min ago", int(d.Round(time.Minute)/time.Minute))
+		return tr("%d min ago", int(d.Round(time.Minute)/time.Minute))
 	case d < 36*time.Hour:
-		return fmt.Sprintf("%d h ago", int(d.Round(time.Hour)/time.Hour))
+		return tr("%d h ago", int(d.Round(time.Hour)/time.Hour))
 	}
-	return fmt.Sprintf("%d days ago", int(d.Round(24*time.Hour)/(24*time.Hour)))
+	return trn("%d day ago", "%d days ago", int(d.Round(24*time.Hour)/(24*time.Hour)))
 }
 
 // tr translates a text of the interface (see package i18n); the English text is the key.
