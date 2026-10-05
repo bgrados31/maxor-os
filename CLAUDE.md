@@ -87,7 +87,7 @@ Next, in order:
    manifest for `maxor update`) only takes X.Y.Z and needs Bryan's key password: not for the beta.
 3. Waiting on Bryan: apply to his laptop (`sudo nixos-rebuild switch --flake ~/nixos-config#nitro`), test on real
    hardware (NVIDIA hybrid, Windows beside it), decide Limine vs systemd-boot (only after testing with Windows).
-4. Ideas noted, not done: translate the installer UI (today English only), zone list shown as «Lima, Perú · UTC−5»,
+4. Ideas noted, not done: zone list shown as «Lima, Perú · UTC−5»,
    ~300 ms black between the greeter's Hyprland and the session's (inherent to the compositor hand-off), the initrd
    takes ~2.2 s (switch-root ~1.1 s): look for savings without losing the splash.
 

@@ -39,7 +39,8 @@ Today the project sits between **phases 2 and 3 of 7** (see the [roadmap](docs/R
 |---|---|
 | **Session** | Hyprland 0.55 configured in Lua, `xdg-desktop-portal-hyprland` and `-gtk` portals, login with greetd |
 | **Shell** | **Maxor Shell** ([DankMaterialShell](https://github.com/AvengeMedia/DankMaterialShell) with Maxor's identity): bar, launcher, notifications, control center and login screen |
-| **Lock screen** | hyprlock with its own design and idle handling with hypridle; the palette comes from the active theme |
+| **Lock screen** | hyprlock with its own design (spaced Cinzel mark, light clock, glass card, gradient password field) and idle handling with hypridle that dims, locks and sleeps the screen; the palette comes from the active theme |
+| **Languages** | the installer, the full-screen app and the `maxor` tool speak Spanish, Portuguese, French, German and Italian; plurals and word order follow each language, and a new language is a standard gettext file anyone can send ([how](docs/TRANSLATING.md)) |
 | **Theme engine** | `maxor theme` CLI: ten themes (five light and five dark), install and export, no `rebuild` and no `sudo` |
 | **Terminal** | kitty, fish, starship, zoxide, eza, bat, btop, fastfetch |
 | **Boot** | systemd-boot with an XBOOTLDR partition, its own Plymouth theme and a quiet boot |
@@ -149,6 +150,7 @@ docs/                          documentation
 - [Hardware detection](docs/HARDWARE.md)
 - [Theme engine](docs/THEMING.md)
 - [Visual identity](docs/IDENTITY.md)
+- [Translating Maxor OS](docs/TRANSLATING.md)
 - [Troubleshooting](docs/TROUBLESHOOTING.md)
 - [Roadmap](docs/ROADMAP.md) · [Base plan](docs/PLAN-BASE.md) · [Releasing](docs/RELEASING.md)
 - [Third-party licenses](THIRD_PARTY.md)

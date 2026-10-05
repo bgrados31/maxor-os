@@ -90,6 +90,16 @@ Se imprime en tu terminal normal un resumen de 2 a 4 líneas, con los mismos gli
 
 Si no hiciste nada, no deja nada.
 
+## Idioma
+
+Todo el texto de la pantalla y del instalador está traducido (español, portugués, francés, alemán e italiano; el
+inglés es el original). La pantalla toma el idioma de `MAXOR_LANG`, `LC_ALL` o `LANG` al arrancar, y el instalador
+cambia al idioma que se elige en su primer paso. Le pide a la CLI que conteste en el mismo idioma, así lo que
+muestra Doctor o la Tienda coincide con el resto. Los textos con número usan la regla de plurales de cada idioma,
+y los catálogos son archivos gettext (`tui/internal/i18n/lang/*.po`): cómo traducir o añadir un idioma está en
+[TRANSLATING.md](TRANSLATING.md). Las pruebas recorren cada pestaña y cada paso del instalador en todos los
+idiomas, y en un pseudo-idioma un 40 % más largo, para que ningún texto largo rompa la pantalla.
+
 ## Cómo está hecha
 
 Go y [Bubble Tea](https://github.com/charmbracelet/bubbletea) con Lip Gloss, en `tui/`. Es un

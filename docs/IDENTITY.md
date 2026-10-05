@@ -50,14 +50,17 @@ The three main fonts are free (SIL OFL).
 | Transparency | Translucent: panels at ~74 % with moderate blur |
 | Bar | Floating island, centered |
 | Background | Plain with a soft vignette, generated from the palette |
-| Motion | Fluid, `cubic-bezier(.4, 0, .2, 1)`, ~380 ms |
+| Motion | Fluid, `cubic-bezier(.4, 0, .2, 1)` (the `maxor` curve in `home/hyprland/settings.lua`; `maxor-out` decelerates what appears), ~380 ms |
 | Icons | Papirus |
 | Cursor | Bibata Modern |
 
 ## Screens
 
-- **Lock screen:** large centered clock, date below, a rounded password field and the brand at the
-  bottom. Background: a blurred screenshot.
+- **Lock screen:** the spaced mark «M A X O R  O S» (Cinzel) on top, a large light clock with a short accent
+  rule and the date below, and a glass card holding the user name and a pill-shaped password field whose outline is
+  a gradient of the two accents. Background: a blurred screenshot. The screen dims after 150 s, locks at 300 s.
+- **Wallpaper:** every theme shares one signature (a vignette, a glow of the second accent in the top-right corner
+  with three thin orbits, and fine grain), softer on light themes. See [THEMING.md](THEMING.md).
 - **Boot:** `MAXOR OS` in Krona One over the palette background and a thin progress bar in the
   accent color.
 - **Login:** the DMS greeter with the Maxor Shell package (see [SHELL.md](SHELL.md)).
