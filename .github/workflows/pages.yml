@@ -25,6 +25,8 @@ jobs:
         run: python3 web/tools/check.py
       - name: Assemble the site (the tools and the README stay out)
         run: rsync -a --exclude tools/ --exclude README.md web/ _site/
+      - name: Stamp the version on every reference (no mixed caches after a deploy)
+        run: python3 web/tools/stamp.py _site
       - uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5
         with:
           path: _site

@@ -49,30 +49,33 @@
         <span class="mark" aria-hidden="true"></span>
         <span class="bar__word">Maxor OS</span>
       </a>
-      <ul class="bar__links">
+      <ul class="bar__links" id="bar-links">
         <li><a href="#escritorio" data-i18n="nav.desktop">Escritorio</a></li>
         <li><a href="#nix" data-i18n="nav.nix">Declarativo</a></li>
         <li><a href="#instalador" data-i18n="nav.installer">Instalador</a></li>
         <li><a href="#descargar" data-i18n="nav.download">Descargar</a></li>
+        <li class="bar__ink" aria-hidden="true"></li>
       </ul>
       <div class="bar__tools">
-        <button class="tool tool--site" type="button" data-site-reset hidden>
-          <span class="site-dot" aria-hidden="true"></span><span data-site-name></span>
-          <svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 7l10 10M17 7 7 17"/></svg>
-        </button>
-        <button class="tool" type="button" data-term-open aria-label="Abrir la terminal (Ctrl K)" data-i18n-attr="aria-label:nav.term">
+        <div class="seg" role="group" aria-label="Idioma" data-i18n-attr="aria-label:nav.langGroup">
+          <button type="button" data-lang-set="es" aria-pressed="true" lang="es" title="Español">ES</button>
+          <button type="button" data-lang-set="en" aria-pressed="false" lang="en" title="English">EN</button>
+        </div>
+        <button class="tool" type="button" data-term-open aria-label="Abrir la terminal (Ctrl K)" title="Terminal · Ctrl K" data-i18n-attr="aria-label:nav.term">
           <svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="m5 7 5 5-5 5M12.5 17.5H19"/></svg>
         </button>
-        <button class="tool" type="button" data-lang-toggle aria-label="Read in English" data-i18n-attr="aria-label:nav.lang">EN</button>
-        <button class="tool" type="button" data-theme-toggle aria-label="Cambiar a apariencia clara">
-          <svg class="i i--sun" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4.2"/><path d="M12 2.5v2.2M12 19.3v2.2M2.5 12h2.2M19.3 12h2.2M5.3 5.3l1.6 1.6M17.1 17.1l1.6 1.6M5.3 18.7l1.6-1.6M17.1 6.9l1.6-1.6"/></svg>
-          <svg class="i i--moon" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 14.6A8.2 8.2 0 0 1 9.4 4a8.2 8.2 0 1 0 10.6 10.6Z"/></svg>
+        <button class="tool tool--look" type="button" popovertarget="look" aria-label="Apariencia y temas" title="Apariencia y temas" data-i18n-attr="aria-label:look.open" aria-expanded="false" data-look-button>
+          <span class="look-dot" aria-hidden="true"></span>
         </button>
-        <a class="tool" href="https://github.com/bgrados31/maxor-os" rel="noopener noreferrer" aria-label="Código en GitHub" data-i18n-attr="aria-label:nav.github">
+        <a class="tool tool--gh" href="https://github.com/bgrados31/maxor-os" rel="noopener noreferrer" aria-label="Código en GitHub" data-i18n-attr="aria-label:nav.github">
           <svg class="i i--fill" viewBox="0 0 16 16" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0 0 16 8c0-4.42-3.58-8-8-8Z"/></svg>
         </a>
         <a class="btn btn--sm btn--accent bar__cta" href="#descargar" data-i18n="nav.cta">Descargar</a>
+        <button class="tool bar__menu" type="button" aria-expanded="false" aria-controls="bar-links" aria-label="Menú" data-i18n-attr="aria-label:nav.menu" data-menu>
+          <span class="burger" aria-hidden="true"><i></i><i></i></span>
+        </button>
       </div>
+      <div class="bar__progress" aria-hidden="true"><i></i></div>
     </nav>
   </header>
 
@@ -421,6 +424,18 @@ sudo nixos-rebuild switch --flake .#nitro</code></pre>
     </div>
     <p class="foot__fine" data-i18n="foot.fine">Maxor OS no está afiliado a NixOS ni a Hyprland. Los nombres son de sus dueños.</p>
   </footer>
+  <div class="look" id="look" popover data-look role="dialog" aria-labelledby="look-title">
+    <p class="look__h" id="look-title" data-i18n="look.title">Apariencia</p>
+    <div class="seg seg--wide" role="group" aria-labelledby="look-title">
+      <button type="button" data-mode="system" aria-pressed="false" data-i18n="look.system">Sistema</button>
+      <button type="button" data-mode="dark" aria-pressed="false" data-i18n="look.dark">Oscuro</button>
+      <button type="button" data-mode="light" aria-pressed="false" data-i18n="look.light">Claro</button>
+    </div>
+    <p class="look__h" id="look-themes" data-i18n="look.themes">Temas de Maxor OS</p>
+    <div class="look__grid" role="group" aria-labelledby="look-themes" data-look-themes></div>
+    <p class="look__note"><span data-i18n="look.note">Lo mismo, desde la terminal:</span> <code>maxor theme apply</code></p>
+  </div>
+
   <dialog class="term" data-term aria-labelledby="term-title">
     <div class="term__bar">
       <span class="dots" aria-hidden="true"><i></i><i></i><i></i></span>

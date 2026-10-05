@@ -23,10 +23,16 @@ python3 web/tools/check.py                # i18n, temas, CSP, enlaces locales (t
 | `assets/js/term.js` | La terminal (Ctrl/⌘ K, la tecla ` o el botón `>_`): `help`, `maxor theme list/apply/undo`, `maxor rollback`, `fastfetch`, `maxor version`, `download`… |
 | `assets/js/motion.js` | La capa cinematográfica: scroll suave, parallax del hero (scroll y puntero), la pantalla que se enciende, títulos palabra por palabra, contadores, la marquesina de temas que reacciona a la velocidad del scroll, botones magnéticos. |
 | `assets/js/release.js` | La última versión, leída de la API pública de GitHub (pre-releases incluidas). |
+| `assets/js/bar.js` | La barra: la sección actual (una tinta que se desliza), el progreso de lectura, el menú en móvil y el panel Apariencia (Sistema / Oscuro / Claro y los 12 temas). |
 | `assets/js/effects.js` | Apariciones sin librerías, las escenas que avanzan con el scroll (generaciones, instalador), copiar, apariencia. |
 | `assets/data/themes.json` | Copia de `themes/*/colors.json`. Se regenera con `python3 web/tools/sync-themes.py`. |
 | `assets/brand/` | La «M» de Cinzel en SVG (`tools/make-brand.py`), la imagen para redes y el ícono táctil (`tools/render-images.mjs`). |
 | `assets/fonts/` | Cinzel, Figtree y Red Hat Mono en WOFF2 (latin y latin-ext), con sus licencias OFL. |
+
+## Publicar
+
+`pages.yml` copia `web/` sin `tools/`, sella una versión en cada referencia local (`tools/stamp.py`: así un
+despliegue nunca mezcla archivos nuevos con viejos de la caché de 10 minutos de Pages) y publica.
 
 ## Seguridad
 
