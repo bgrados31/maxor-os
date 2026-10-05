@@ -3,7 +3,6 @@
   "skip": "Skip to content",
   "nav.label": "Main",
   "nav.home": "Maxor OS, home",
-  "nav.lang": "Leer en español",
   "nav.github": "Source on GitHub",
   "nav.desktop": "Desktop",
   "nav.nix": "Declarative",
@@ -106,5 +105,14 @@
   "band.sudo": "times you need sudo to theme it",
   "band.boot": "faster to boot, no menu and no flicker",
   "term.close": "Close the terminal",
-  "term.input": "Command"
+  "term.input": "Command",
+  "nav.langGroup": "Language",
+  "nav.menu": "Menu",
+  "look.open": "Appearance and themes",
+  "look.title": "Appearance",
+  "look.system": "System",
+  "look.dark": "Dark",
+  "look.light": "Light",
+  "look.themes": "Maxor OS themes",
+  "look.note": "The same, from the terminal:"
 }

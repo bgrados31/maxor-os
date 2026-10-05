@@ -2,7 +2,7 @@
 // workspaces the way Hyprland slides them and applies each step's theme to the picture; the picker
 // (and the terminal) theme the whole site, and the picture follows at once.
 
-import { applySiteTheme, loadThemes, mix, siteTheme } from "./themes.js";
+import { applySiteTheme, loadThemes, mix, shownTheme, siteTheme } from "./themes.js";
 
 const motion = () => document.documentElement.classList.contains("motion");
 
@@ -133,8 +133,8 @@ export async function initDesk() {
   }
 
   // Whatever themes the site (the picker, the terminal, a remembered choice) also themes the picture.
-  document.addEventListener("maxor:theme", (e) => apply(e.detail.id ?? e.detail.desk ?? "maxor-dark"));
-  paint(siteTheme() ?? "maxor-dark");
+  document.addEventListener("maxor:theme", (e) => apply(e.detail.shown));
+  paint(shownTheme());
 
   const clock = desk.querySelector("[data-desk-clock]");
   const tick = () => { clock.textContent = new Intl.DateTimeFormat(undefined, { hour: "2-digit", minute: "2-digit", hour12: false }).format(new Date()); };

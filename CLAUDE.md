@@ -111,8 +111,8 @@ the project at hosted.weblate.org with the two components listed in docs/TRANSLA
 
 Website (2026-10-05, branch `claude/blissful-johnson-99ty2v`): `web/` landing in Spanish + English, live
 release card from the GitHub API, the tour desktop painted with the real themes. Cinematic layer (GSAP + ScrollTrigger + Lenis,
-vendored), a terminal on the page (Ctrl K) and whole-site theming with `maxor theme apply`. Not published yet: Bryan has to
-merge it and enable Pages (Settings → Pages → Source: GitHub Actions). Its og:image/canonical assume
+vendored), a terminal on the page (Ctrl K) and whole-site theming with `maxor theme apply`. Published on GitHub Pages: after
+merging to `development`, run the **Website** workflow by hand (pages.yml only runs by itself on `main`). Its og:image/canonical assume
 `https://bgrados31.github.io/maxor-os/`; change them if a domain is bought.
 
 Next, in order:

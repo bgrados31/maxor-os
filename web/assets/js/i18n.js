@@ -26,9 +26,7 @@ const dynamic = {
     "rel.more": "y {n} cambios más en las notas completas.",
     "copy.done": "Copiado",
     "copy.fail": "Selecciona y copia",
-    "nav.toLight": "Cambiar a apariencia clara",
-    "nav.toDark": "Cambiar a apariencia oscura",
-    "site.reset": "Tema {name}: volver a Maxor",
+    "look.now": "Ahora",
   },
   en: {
     "meta.title": "Maxor OS · The declarative Hyprland desktop",
@@ -48,9 +46,7 @@ const dynamic = {
     "rel.more": "and {n} more changes in the full notes.",
     "copy.done": "Copied",
     "copy.fail": "Select and copy",
-    "nav.toLight": "Switch to light appearance",
-    "nav.toDark": "Switch to dark appearance",
-    "site.reset": "{name} theme: back to Maxor",
+    "look.now": "Now",
   },
 };
 
@@ -113,8 +109,7 @@ async function apply(next) {
     desc.dataset.es ??= desc.content;
     desc.content = dict?.["meta.description"] ?? desc.dataset.es;
   }
-  const btn = document.querySelector("[data-lang-toggle]");
-  if (btn) btn.textContent = next === "es" ? "EN" : "ES";
+  document.querySelectorAll("[data-lang-set]").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.langSet === next)));
   root.classList.remove("i18n-wait");
   document.dispatchEvent(new CustomEvent("maxor:lang", { detail: next }));
 }
@@ -129,9 +124,13 @@ export function setText(el, text) {
 
 export async function initI18n() {
   await apply(lang());
-  document.querySelector("[data-lang-toggle]")?.addEventListener("click", () => {
-    const next = lang() === "es" ? "en" : "es";
+  document.querySelectorAll("[data-lang-set]").forEach((b) => b.addEventListener("click", () => {
+    const next = b.dataset.langSet;
+    if (next === lang()) return;
     try { localStorage.setItem(STORE, next); } catch { /* private mode: it lasts this visit */ }
+    // ?lang= in the address would win on the next load: keep it in step with the choice
+    const url = new URL(location.href);
+    if (url.searchParams.has("lang")) { url.searchParams.set("lang", next); history.replaceState(history.state, "", url); }
     apply(next);
-  });
+  }));
 }

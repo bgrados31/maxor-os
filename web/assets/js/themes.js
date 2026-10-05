@@ -1,9 +1,12 @@
-// The official themes (assets/data/themes.json, synced from themes/) and the whole-site theming: picking a
-// theme in the tour or in the terminal repaints the page itself, the way `maxor theme apply` repaints the
-// system. The choice is remembered; boot.js paints it again before the first frame of the next visit.
+// The official themes (assets/data/themes.json, synced from themes/) and the site's appearance.
+// The appearance is one of: the system's (Maxor Dark or Maxor Light by prefers-color-scheme), Maxor Dark,
+// Maxor Light, or any official theme, which repaints the whole page the way `maxor theme apply` repaints
+// the system. The state lives here, synchronously; the page is painted after (inside a View Transition),
+// so asking right after a change always gets the new answer. boot.js repaints it before the first frame.
 
 const root = document.documentElement;
-const STORE = "maxor-site-theme";
+const THEME_KEY = "maxor-site-theme"; // {id, mode, vars}
+const MODE_KEY = "maxor-theme"; // "light" | "dark"; absent = the system's
 let loading;
 
 export function loadThemes() {
@@ -11,9 +14,9 @@ export function loadThemes() {
     .then((r) => { if (!r.ok) throw new Error(`themes.json: ${r.status}`); return r.json(); });
   return loading;
 }
-
 export async function themeById(id) {
-  return (await loadThemes()).find((t) => t.id === id) ?? null;
+  const key = String(id ?? "").toLowerCase();
+  return (await loadThemes()).find((t) => t.id === key || t.name.toLowerCase() === key) ?? null;
 }
 
 function hex(c) {
@@ -25,8 +28,7 @@ export function mix(a, b, w) {
   return "#" + x.map((v, i) => Math.round(v * w + y[i] * (1 - w)).toString(16).padStart(2, "0")).join("");
 }
 
-// The site's tokens (site.css :root) from a theme. Every pair the page uses is a pair the theme already
-// guarantees (text on background, accent on its own text colour).
+// The site's tokens (site.css :root) from a theme: every pair the page uses is one the theme guarantees.
 function siteVars(th) {
   const dark = th.mode === "dark";
   const vars = {
@@ -37,92 +39,89 @@ function siteVars(th) {
     "--glass": `color-mix(in oklab, ${th.s} ${dark ? 62 : 72}%, transparent)`,
     "--ok": dark ? "#6ee7b7" : "#0f7a4f", "--bad": dark ? "#ff7b7b" : "#c4262e",
   };
-  // The hero stays night; on a dark theme it borrows the accent too.
-  if (dark) vars["--hero-ac"] = th.ac;
+  if (dark) vars["--hero-ac"] = th.ac; // the hero stays night; a dark theme lends it its accent
   return vars;
 }
-
 const KEYS = ["--bg", "--bg2", "--s", "--s2", "--fg", "--mu", "--ac", "--ac2", "--on", "--line", "--line2", "--glass", "--ok", "--bad", "--hero-ac"];
 
-function paintSite(vars, mode, id) {
-  for (const k of KEYS) root.style.removeProperty(k);
-  if (id) {
-    for (const [k, v] of Object.entries(vars)) root.style.setProperty(k, v);
-    root.setAttribute("data-theme", mode);
-    root.setAttribute("data-site-theme", id);
-  } else {
-    root.removeAttribute("data-site-theme");
-  }
-  document.querySelectorAll('meta[name="theme-color"]').forEach((m) => {
-    m.dataset.orig ??= m.content;
-    m.content = id ? vars["--bg"] : m.dataset.orig;
-  });
-}
+function read(key) { try { return localStorage.getItem(key); } catch { return null; } }
+function write(key, v) { try { v == null ? localStorage.removeItem(key) : localStorage.setItem(key, v); } catch { /* this visit only */ } }
 
-export const siteTheme = () => root.getAttribute("data-site-theme");
+// ── state ──
+const sys = matchMedia("(prefers-color-scheme: light)");
+const state = {
+  theme: root.getAttribute("data-site-theme"), // set by boot.js from a saved choice
+  mode: (() => { const m = read(MODE_KEY); return m === "light" || m === "dark" ? m : "system"; })(),
+};
+const past = []; // for `maxor theme undo`: earlier {theme, mode}
+
+export const siteTheme = () => state.theme;
+export const appearanceMode = () => state.mode;
+export const effectiveMode = () => (state.theme ? root.getAttribute("data-theme") : state.mode === "system" ? (sys.matches ? "light" : "dark") : state.mode);
+// The theme id the page shows right now (Maxor Dark/Light when no theme was picked).
+export const shownTheme = () => state.theme ?? (effectiveMode() === "light" ? "maxor-light" : "maxor-dark");
+
+function announce() {
+  document.dispatchEvent(new CustomEvent("maxor:theme", { detail: { id: state.theme, mode: state.mode, shown: shownTheme() } }));
+}
 
 // A circle of the new colours grows from where the visitor clicked (View Transitions, where supported).
 function transition(change, at) {
-  const motion = root.classList.contains("motion");
-  if (!motion || !document.startViewTransition) { change(); return; }
+  if (!root.classList.contains("motion") || !document.startViewTransition) { change(); return; }
   const x = at?.x ?? innerWidth / 2;
   const y = at?.y ?? innerHeight / 2;
   const r = Math.hypot(Math.max(x, innerWidth - x), Math.max(y, innerHeight - y));
   const vt = document.startViewTransition(change);
-  vt.ready.then(() => {
-    root.animate(
-      { clipPath: [`circle(0px at ${x}px ${y}px)`, `circle(${r}px at ${x}px ${y}px)`] },
-      { duration: 750, easing: "cubic-bezier(.16, 1, .3, 1)", pseudoElement: "::view-transition-new(root)" },
-    );
-  }).catch(() => {});
+  vt.ready.then(() => root.animate(
+    { clipPath: [`circle(0px at ${x}px ${y}px)`, `circle(${r}px at ${x}px ${y}px)`] },
+    { duration: 650, easing: "cubic-bezier(.16, 1, .3, 1)", pseudoElement: "::view-transition-new(root)" },
+  )).catch(() => {});
 }
 
-let history = [];
-
-export async function applySiteTheme(id, at, { remember = true } = {}) {
-  const th = await themeById(id);
-  if (!th) return null;
-  if (remember && siteTheme() !== id) history.push(siteTheme());
-  const vars = siteVars(th);
-  transition(() => paintSite(vars, th.mode, th.id), at);
-  try { localStorage.setItem(STORE, JSON.stringify({ id: th.id, mode: th.mode, vars })); } catch { /* lasts this visit */ }
-  document.dispatchEvent(new CustomEvent("maxor:theme", { detail: { id: th.id, name: th.name, site: true } }));
-  return th;
+function paint(th) {
+  for (const k of KEYS) root.style.removeProperty(k);
+  if (th) {
+    for (const [k, v] of Object.entries(siteVars(th))) root.style.setProperty(k, v);
+    root.setAttribute("data-theme", th.mode);
+    root.setAttribute("data-site-theme", th.id);
+  } else {
+    root.removeAttribute("data-site-theme");
+    if (state.mode === "system") root.removeAttribute("data-theme"); else root.setAttribute("data-theme", state.mode);
+  }
+  const bg = getComputedStyle(root).getPropertyValue("--bg").trim();
+  document.querySelectorAll('meta[name="theme-color"]').forEach((m) => {
+    m.dataset.orig ??= m.content;
+    m.content = th || state.mode !== "system" ? bg : m.dataset.orig;
+  });
 }
 
-function storedAppearance() {
-  try { const v = localStorage.getItem("maxor-theme"); return v === "light" || v === "dark" ? v : null; } catch { return null; }
+async function set(next, at, { record = true } = {}) {
+  const th = next.theme ? await themeById(next.theme) : null;
+  if (next.theme && !th) return null;
+  const same = (th?.id ?? null) === state.theme && next.mode === state.mode;
+  if (same) return th ?? true;
+  if (record) past.push({ theme: state.theme, mode: state.mode });
+  state.theme = th?.id ?? null;
+  state.mode = next.mode;
+  write(MODE_KEY, state.mode === "system" ? null : state.mode);
+  write(THEME_KEY, th ? JSON.stringify({ id: th.id, mode: th.mode, vars: siteVars(th) }) : null);
+  transition(() => paint(th), at);
+  announce();
+  return th ?? true;
 }
 
-export function resetSiteTheme(at) {
-  if (!siteTheme()) return;
-  history.push(siteTheme());
-  const mode = storedAppearance();
-  transition(() => {
-    paintSite({}, null, null);
-    if (mode) root.setAttribute("data-theme", mode); else root.removeAttribute("data-theme");
-  }, at);
-  try { localStorage.removeItem(STORE); } catch { /* none */ }
-  const light = mode ? mode === "light" : matchMedia("(prefers-color-scheme: light)").matches;
-  document.dispatchEvent(new CustomEvent("maxor:theme", { detail: { id: null, desk: light ? "maxor-light" : "maxor-dark" } }));
-}
-
-// The sun/moon button: Maxor Light or Maxor Dark, dropping any theme picked before.
-export function setAppearance(mode, at) {
-  if (siteTheme()) history.push(siteTheme());
-  transition(() => {
-    paintSite({}, null, null);
-    root.setAttribute("data-theme", mode);
-  }, at);
-  try { localStorage.setItem("maxor-theme", mode); localStorage.removeItem(STORE); } catch { /* lasts this visit */ }
-  document.dispatchEvent(new CustomEvent("maxor:theme", { detail: { id: null, desk: mode === "light" ? "maxor-light" : "maxor-dark" } }));
-}
-
-// `maxor theme undo`: back to whatever was there before the last change.
+// Picks an official theme for the whole site (null if there is no such theme).
+export const applySiteTheme = (id, at) => set({ theme: id, mode: state.mode }, at);
+// Back to Maxor (Dark or Light, as the mode says): `maxor rollback`.
+export const resetSiteTheme = (at) => set({ theme: null, mode: state.mode }, at);
+// "system" | "dark" | "light": Maxor's own look, dropping any theme picked before.
+export const setAppearance = (mode, at) => set({ theme: null, mode }, at);
+// `maxor theme undo`: false when there is nothing to undo.
 export async function undoSiteTheme(at) {
-  if (!history.length) return false;
-  const prev = history.pop();
-  if (prev) await applySiteTheme(prev, at, { remember: false });
-  else { resetSiteTheme(at); history.pop(); }
+  const prev = past.pop();
+  if (!prev) return false;
+  await set(prev, at, { record: false });
   return true;
 }
+
+sys.addEventListener?.("change", () => { if (!state.theme && state.mode === "system") announce(); });

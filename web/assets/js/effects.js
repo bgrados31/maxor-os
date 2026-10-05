@@ -3,7 +3,6 @@
 // none of this runs and the page shows its final state.
 
 import { t } from "./i18n.js";
-import { resetSiteTheme, setAppearance, siteTheme, themeById } from "./themes.js";
 
 const root = document.documentElement;
 const motion = root.classList.contains("motion");
@@ -84,7 +83,7 @@ function scroll() {
     // The bar steps aside while reading down and comes back on the way up.
     if (bar) {
       const y = scrollY;
-      if (y > vh * 0.6 && y > lastY + 4) bar.setAttribute("data-hidden", "");
+      if (y > vh * 0.6 && y > lastY + 4 && !bar.hasAttribute("data-locked")) bar.setAttribute("data-hidden", "");
       else if (y < lastY - 4 || y < vh * 0.6) bar.removeAttribute("data-hidden");
       lastY = y;
     }
@@ -95,17 +94,6 @@ function scroll() {
   frame();
   // Keyboard users never lose the bar.
   bar?.addEventListener("focusin", () => bar.removeAttribute("data-hidden"));
-}
-
-function navCurrent() {
-  const links = new Map([...document.querySelectorAll(".bar__links a")].map((a) => [a.getAttribute("href").slice(1), a]));
-  const io = new IntersectionObserver((entries) => {
-    for (const e of entries) {
-      if (!e.isIntersecting) continue;
-      links.forEach((a, id) => (id === e.target.id ? a.setAttribute("aria-current", "true") : a.removeAttribute("aria-current")));
-    }
-  }, { rootMargin: "-45% 0px -50% 0px" });
-  links.forEach((_, id) => { const s = document.getElementById(id); if (s) io.observe(s); });
 }
 
 function glow() {
@@ -139,54 +127,9 @@ function copy() {
   });
 }
 
-// Appearance: follows the system until the visitor picks one (or a theme); the choice is remembered.
-function appearance() {
-  const btn = document.querySelector("[data-theme-toggle]");
-  if (!btn) return;
-  const sys = matchMedia("(prefers-color-scheme: light)");
-  const effective = () => root.getAttribute("data-theme") || (sys.matches ? "light" : "dark");
-  const label = () => btn.setAttribute("aria-label", effective() === "dark" ? t("nav.toLight") : t("nav.toDark"));
-  btn.addEventListener("click", () => {
-    const r = btn.getBoundingClientRect();
-    setAppearance(effective() === "dark" ? "light" : "dark", { x: r.left + r.width / 2, y: r.top + r.height / 2 });
-    label();
-  });
-  sys.addEventListener?.("change", label);
-  document.addEventListener("maxor:lang", label);
-  document.addEventListener("maxor:theme", () => requestAnimationFrame(label));
-  label();
-}
-
-// The bar shows the theme picked for the site, and a way back to Maxor.
-function siteChip() {
-  const chip = document.querySelector("[data-site-reset]");
-  if (!chip) return;
-  const name = chip.querySelector("[data-site-name]");
-  const dot = chip.querySelector(".site-dot");
-  const show = async () => {
-    const id = siteTheme();
-    chip.hidden = !id;
-    if (!id) return;
-    const th = await themeById(id);
-    name.textContent = th?.name ?? id;
-    dot.style.setProperty("background", th ? `linear-gradient(135deg, ${th.ac}, ${th.ac2})` : "");
-    chip.setAttribute("aria-label", t("site.reset", { name: th?.name ?? id }));
-  };
-  chip.addEventListener("click", () => {
-    const r = chip.getBoundingClientRect();
-    resetSiteTheme({ x: r.left + r.width / 2, y: r.top + r.height / 2 });
-  });
-  document.addEventListener("maxor:theme", () => requestAnimationFrame(show));
-  document.addEventListener("maxor:lang", show);
-  show();
-}
-
 export function initEffects() {
   reveals();
   scroll();
-  navCurrent();
   glow();
   copy();
-  appearance();
-  siteChip();
 }

@@ -3,7 +3,7 @@
 // built from text nodes only; nothing typed here is ever parsed as HTML or run as code.
 
 import { lang } from "./i18n.js";
-import { applySiteTheme, loadThemes, resetSiteTheme, siteTheme, undoSiteTheme } from "./themes.js";
+import { applySiteTheme, loadThemes, resetSiteTheme, shownTheme, siteTheme, themeById, undoSiteTheme } from "./themes.js";
 import { latestRelease } from "./release.js";
 import { lenis } from "./motion.js";
 
@@ -36,7 +36,10 @@ const S = {
     version: "Última versión",
     noVersion: "Todavía no se pudo leer la versión. Prueba otra vez en un momento.",
     going: "Vamos a la descarga…",
-    ls: "escritorio  temas  instalador  descarga",
+    ls: "escritorio/  temas/  instalador/  descarga/",
+    cd: "Aquí no hay carpetas de verdad: usa download, o los enlaces de arriba.",
+    man: "No hay manual en la web: escribe help. En Maxor OS, maxor help.",
+    arg: "tema",
     whoami: "ana, en una máquina que se configura en un archivo.",
     hyprland: "Hyprland 0.55, configurado en Lua y animado a 60 fps (o lo que dé tu pantalla).",
   },
@@ -68,7 +71,10 @@ const S = {
     version: "Latest release",
     noVersion: "The release could not be read yet. Try again in a moment.",
     going: "Off to the download…",
-    ls: "desktop  themes  installer  download",
+    ls: "desktop/  themes/  installer/  download/",
+    cd: "There are no real folders here: try download, or the links above.",
+    man: "No manual on the web: type help. On Maxor OS, maxor help.",
+    arg: "theme",
     whoami: "ana, on a machine configured in one file.",
     hyprland: "Hyprland 0.55, configured in Lua and animated at 60 fps (or whatever your screen does).",
   },
@@ -112,7 +118,7 @@ export function initTerm() {
   // ── commands ──
   async function themeList() {
     const themes = await loadThemes();
-    const cur = siteTheme() ?? "maxor-dark";
+    const cur = shownTheme();
     for (const mode of ["dark", "light"]) {
       line([`${s(mode)}`, "t-mu"]);
       for (const th of themes.filter((t) => t.mode === mode)) {
@@ -125,12 +131,12 @@ export function initTerm() {
     const cmd = raw.trim().replace(/\s+/g, " ");
     line(["~ ❯ ", "t-ac"], [cmd]);
     if (!cmd) return;
-    const [w0, w1, w2, w3] = cmd.split(" ");
     const low = cmd.toLowerCase();
+    const [w0, w1, w2, w3] = low.split(" ");
 
     if (low === "help" || low === "maxor help" || low === "?") {
       const rows = [
-        ["maxor theme list", "h_list"], ["maxor theme apply <tema>", "h_apply"], ["maxor theme undo", "h_undo"],
+        ["maxor theme list", "h_list"], [`maxor theme apply <${s("arg")}>`, "h_apply"], ["maxor theme undo", "h_undo"],
         ["maxor rollback", "h_rollback"], ["fastfetch", "h_fetch"], ["maxor version", "h_version"],
         ["download", "h_download"], ["clear", "h_clear"], ["exit", "h_exit"],
       ];
@@ -142,13 +148,12 @@ export function initTerm() {
     } else if (w0 === "maxor" && w1 === "theme" && (w2 === "list" || !w2)) {
       await themeList();
     } else if (w0 === "maxor" && w1 === "theme" && w2 === "current") {
-      const th = (await loadThemes()).find((t) => t.id === (siteTheme() ?? "maxor-dark"));
+      const th = (await themeById(shownTheme()));
       line([`${s("current")}: `, "t-mu"], [th?.name ?? "Maxor Dark", "t-b"]);
     } else if (w0 === "maxor" && w1 === "theme" && w2 === "apply") {
       if (!w3) { line([s("usage"), "t-bad"]); return; }
-      const id = w3.toLowerCase();
-      const th = (await loadThemes()).find((t) => t.id === id || t.name.toLowerCase() === id);
-      if (!th) { line([s("unknownTheme", w3), "t-bad"]); return; }
+      const th = await themeById(w3);
+      if (!th) { line([s("unknownTheme", cmd.split(" ")[3]), "t-bad"]); return; }
       await applySiteTheme(th.id);
       rail("maxor theme", [[[th.name, "t-b"]]], s("applied"));
     } else if (w0 === "maxor" && w1 === "theme" && w2 === "undo") {
@@ -157,7 +162,7 @@ export function initTerm() {
       resetSiteTheme();
       rail("maxor rollback", [[[s("rolledBack"), "t-b"]]]);
     } else if (low === "fastfetch" || low === "neofetch") {
-      const th = (await loadThemes()).find((t) => t.id === (siteTheme() ?? "maxor-dark"));
+      const th = (await themeById(shownTheme()));
       const rows = [["OS", "Maxor OS · NixOS 26.05"], ["WM", "Hyprland 0.55"], ["Shell", "fish"], ["Theme", th?.name ?? "Maxor Dark"],
         ["Font", "Figtree · Red Hat Mono"], ["Browser", navigator.userAgent.match(/(Firefox|Edg|Chrome|Safari)\/[\d.]+/)?.[0] ?? "—"]];
       line(["ana", "t-b"], ["@", "t-mu"], ["maxor", "t-b"]);
@@ -179,8 +184,22 @@ export function initTerm() {
       line([s("install", w2 ?? "firefox"), "t-mu"]);
     } else if (/^rm\s+-[a-z]*r[a-z]*f?\b|^rm\s+-[a-z]*f[a-z]*r/.test(low)) {
       line([s("rm"), "t-mu"]);
-    } else if (low === "ls") {
+    } else if (w0 === "ls" || w0 === "dir") {
       line([s("ls"), "t-b"]);
+    } else if (w0 === "cd") {
+      line([s("cd"), "t-mu"]);
+    } else if (low === "pwd") {
+      line(["/home/ana/maxor-os"]);
+    } else if (w0 === "echo") {
+      line([cmd.slice(5)]);
+    } else if (low === "date") {
+      line([new Intl.DateTimeFormat(lang(), { dateStyle: "full", timeStyle: "short" }).format(new Date())]);
+    } else if (w0 === "uname") {
+      line(["Linux maxor 6.x NixOS 26.05 x86_64 GNU/Linux"]);
+    } else if (low === "history") {
+      past.forEach((c, i) => line([String(i + 1).padStart(4) + "  ", "t-mu"], [c]));
+    } else if (w0 === "man" || low === "--help" || low === "maxor --help") {
+      line([s("man"), "t-mu"]);
     } else if (low === "whoami") {
       line([s("whoami")]);
     } else if (low === "hyprland" || low === "hyprctl version") {
@@ -200,7 +219,12 @@ export function initTerm() {
     input.focus();
   }
   dlg.addEventListener("close", () => { lenis()?.start(); opener?.focus?.(); });
-  dlg.addEventListener("click", (e) => { if (e.target === dlg) dlg.close(); }); // the backdrop
+  dlg.addEventListener("click", (e) => {
+    if (e.target !== dlg) return;
+    const r = dlg.getBoundingClientRect();
+    const inside = e.clientX >= r.left && e.clientX <= r.right && e.clientY >= r.top && e.clientY <= r.bottom;
+    if (!inside) dlg.close(); // a click on the backdrop
+  });
   dlg.querySelector("[data-term-close]")?.addEventListener("click", () => dlg.close());
   document.querySelectorAll("[data-term-open]").forEach((b) => b.addEventListener("click", () => open(b)));
   document.addEventListener("keydown", (e) => {
