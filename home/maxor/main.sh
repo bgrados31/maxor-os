@@ -3,7 +3,7 @@
 #   --no-color      salida sin colores ni animaciones
 #   -q, --quiet     solo errores
 #   -v, --verbose   escribe el registro también en stderr
-#   --lang CÓDIGO   idioma de los mensajes (hoy solo en)
+#   --lang CÓDIGO   idioma de los mensajes (es, pt, fr, de, it, en; por defecto el del sistema)
 main() {
   log_init
   local args=()

@@ -58,15 +58,18 @@ Also on branch `claude/vigilant-ptolemy-ng8e4i` (2026-10-04, evening; not yet me
 outline, dims at 150 s); wallpaper signature (vignette, `ac2` glow top-right with three orbits, grain; light themes
 softer). None of this was seen on a real screen yet: check it on the laptop before the release.
 
-Translations (same branch): `tui/internal/i18n` (the English text is the key; catalogs `lang/<code>.json`, fallback
-to English, `go test ./internal/i18n -update` syncs them; tests check placeholders, that no text is built with `+`,
-and that every installer step and every tab fits a small window in each language). All of maxor-tui is wrapped in
-`tr(...)` (installer, Home, Store, Themes, Update, Doctor, Profiles, Setup, palette, help); the installer switches
-language when the user picks it, the rest follows `MAXOR_LANG`/`LC_ALL`/`LANG` at start. `es` is reviewed by me,
-`pt fr de it` are machine translations awaiting native review (docs/TRANSLATING.md invites the community by pull
-request). Palette command words (`go`, `theme`, `search`, `open`) stay English on purpose. NOT yet translated: keyboard
-layout names (`install/catalog.go`), the `maxor` CLI (still `lib/lang/en.sh` only: its output shows inside the TUI,
-e.g. doctor results), the engine's messages, the live ISO's boot menu, the tab mock-up in the theme preview.
+Translations (same branch), two catalogs with one workflow (docs/TRANSLATING.md): the TUI (`tui/internal/i18n`,
+English text as key, `lang/<code>.json`, `go test ./internal/i18n -update` syncs them) and the `maxor` CLI
+(`home/maxor/lib/lang/<code>.sh`, id as key, `scripts/i18n.sh new|missing|status`; the package picks up every file of
+that folder, no Nix edit). Everything the user reads is translated: installer, every TUI screen, palette, help, and
+all 304 CLI messages (help texts included). Languages: `es` reviewed by me, `pt fr de it` machine translations
+awaiting native review. Tests (apply to any future language): same `%s` in the same order, no stale keys, help example
+commands unchanged, shellcheck-safe quoting (no typographic apostrophes), reviewed languages complete, every installer
+step and every tab fits a small window in each language. The TUI runs the CLI with `MAXOR_LANG=<its language>` and
+reads Doctor advice by check `id`, not by text; `sudo`/`nixos-rebuild` streams run with `LC_MESSAGES=C` because the
+runner recognises their English lines. Palette command words (`go`, `theme`, `search`, `open`) stay English on
+purpose. Not translated on purpose: the engine/nixos-rebuild log, keyboard layout and language names (system data).
+Still open: the live ISO's boot menu; the maxor man page / completions if they ever carry text.
 
 Next, in order:
 1. **Verify the latest ISO** (`nix build .#iso`) with a full install in a VM (Spanish, offline) to the desktop.

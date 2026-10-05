@@ -15,7 +15,8 @@ isolate() {
   export MAXOR_FLAKE="$BATS_TEST_TMPDIR/flake" MAXOR_HOST="testhost"
   export NO_COLOR='' TERM=xterm
   mkdir -p "$HOME" "$MAXOR_FLAKE"
-  unset MAXOR_LANG MAXOR_QUIET MAXOR_VERBOSE
+  export MAXOR_LANG=en # los tests esperan inglés aunque la máquina que los corre hable otro idioma
+  unset LC_ALL MAXOR_QUIET MAXOR_VERBOSE
 }
 
 # load_lib [color]  → carga las bibliotecas; con «color» la interfaz dibuja ventanas.
@@ -23,10 +24,10 @@ load_lib() {
   isolate
   if [ "${1:-}" = color ]; then export MAXOR_FORCE_UI=1 COLUMNS=60; else unset MAXOR_FORCE_UI; fi
   local f
-  for f in lib/core.sh lib/i18n.sh lib/lang/en.sh lib/term.sh lib/frame.sh lib/loaders.sh \
-    lib/widgets.sh lib/style.sh lib/registry.sh; do
+  for f in "$SRC"/lib/core.sh "$SRC"/lib/i18n.sh "$SRC"/lib/lang/*.sh "$SRC"/lib/term.sh "$SRC"/lib/frame.sh \
+    "$SRC"/lib/loaders.sh "$SRC"/lib/widgets.sh "$SRC"/lib/style.sh "$SRC"/lib/registry.sh; do
     # shellcheck disable=SC1090
-    source "$SRC/$f"
+    source "$f"
   done
   for f in "$SRC"/cmd/*.sh; do
     # shellcheck disable=SC1090

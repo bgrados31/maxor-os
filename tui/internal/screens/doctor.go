@@ -130,13 +130,14 @@ func (d *Doctor) Update(env *core.Env, msg tea.Msg) (core.Screen, tea.Cmd) {
 	return d, nil
 }
 
-// advice son los consejos para los avisos sin arreglo automático.
-var advice = []struct{ match, text string }{
-	{"kernel is not the running one", i18n.Mark("Reboot to start the kernel that is installed.")},
-	{"theme missing", i18n.Mark("Apply a theme again from the Themes tab.")},
-	{"nvidia-smi does not respond", i18n.Mark("The NVIDIA driver may not be loaded: reboot, or check journalctl -b | grep -i nvidia.")},
-	{"nvidia-offload is missing", i18n.Mark("NVIDIA is present but the offload command is missing: check the hardware module.")},
-	{"missing font", i18n.Mark("A Maxor font is not installed: maxor update brings it back.")},
+// advice son los consejos para los avisos sin arreglo automático, por el id de la comprobación (el texto
+// de la CLI cambia con el idioma; el id no).
+var advice = []struct{ id, text string }{
+	{"kernel_mismatch", i18n.Mark("Reboot to start the kernel that is installed.")},
+	{"dms_warn", i18n.Mark("Apply a theme again from the Themes tab.")},
+	{"nv_warn", i18n.Mark("The NVIDIA driver may not be loaded: reboot, or check journalctl -b | grep -i nvidia.")},
+	{"offload_warn", i18n.Mark("NVIDIA is present but the offload command is missing: check the hardware module.")},
+	{"font_warn", i18n.Mark("A Maxor font is not installed: maxor update brings it back.")},
 }
 
 func (d *Doctor) Main(env *core.Env, w, h int) []ui.Line {
@@ -244,7 +245,7 @@ func (d *Doctor) Side(env *core.Env, w, h int) []ui.Line {
 			}
 		} else {
 			for _, a := range advice {
-				if strings.Contains(row.it.Text, a.match) {
+				if row.it.ID == a.id {
 					for _, l := range ui.Wrap(tr(a.text), w) {
 						lines = append(lines, muted(env, l))
 					}
@@ -304,7 +305,7 @@ func (d *Doctor) Brief(env *core.Env, w int) []ui.Line {
 		return append(lines, muted(env, tr("This one passes: nothing to do.")))
 	case row.it.Fix == "":
 		for _, a := range advice {
-			if strings.Contains(row.it.Text, a.match) {
+			if row.it.ID == a.id {
 				return append(lines, muted(env, tr(a.text)))
 			}
 		}

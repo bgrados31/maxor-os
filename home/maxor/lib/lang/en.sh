@@ -10,6 +10,8 @@ msgs_en() {
   MSG[err.cancelled]='Cancelled.'
   MSG[core.no_flake]='flake not found at %s (set MAXOR_FLAKE=/path)'
   MSG[ui.log_hint]='Details: maxor logs --last'
+  MSG[ui.yes_no]='[y/N]'
+  MSG[ui.yes_words]='y yes'
   MSG[ui.cause]='cause'
   MSG[ui.try]='try'
   MSG[ui.details]='details'
