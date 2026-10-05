@@ -3,6 +3,7 @@
 // none of this runs and the page shows its final state.
 
 import { t } from "./i18n.js";
+import { resetSiteTheme, setAppearance, siteTheme, themeById } from "./themes.js";
 
 const root = document.documentElement;
 const motion = root.classList.contains("motion");
@@ -138,7 +139,7 @@ function copy() {
   });
 }
 
-// Appearance: follows the system until the visitor picks one; the choice is remembered.
+// Appearance: follows the system until the visitor picks one (or a theme); the choice is remembered.
 function appearance() {
   const btn = document.querySelector("[data-theme-toggle]");
   if (!btn) return;
@@ -146,14 +147,38 @@ function appearance() {
   const effective = () => root.getAttribute("data-theme") || (sys.matches ? "light" : "dark");
   const label = () => btn.setAttribute("aria-label", effective() === "dark" ? t("nav.toLight") : t("nav.toDark"));
   btn.addEventListener("click", () => {
-    const next = effective() === "dark" ? "light" : "dark";
-    root.setAttribute("data-theme", next);
-    try { localStorage.setItem("maxor-theme", next); } catch { /* lasts this visit */ }
+    const r = btn.getBoundingClientRect();
+    setAppearance(effective() === "dark" ? "light" : "dark", { x: r.left + r.width / 2, y: r.top + r.height / 2 });
     label();
   });
   sys.addEventListener?.("change", label);
   document.addEventListener("maxor:lang", label);
+  document.addEventListener("maxor:theme", () => requestAnimationFrame(label));
   label();
+}
+
+// The bar shows the theme picked for the site, and a way back to Maxor.
+function siteChip() {
+  const chip = document.querySelector("[data-site-reset]");
+  if (!chip) return;
+  const name = chip.querySelector("[data-site-name]");
+  const dot = chip.querySelector(".site-dot");
+  const show = async () => {
+    const id = siteTheme();
+    chip.hidden = !id;
+    if (!id) return;
+    const th = await themeById(id);
+    name.textContent = th?.name ?? id;
+    dot.style.setProperty("background", th ? `linear-gradient(135deg, ${th.ac}, ${th.ac2})` : "");
+    chip.setAttribute("aria-label", t("site.reset", { name: th?.name ?? id }));
+  };
+  chip.addEventListener("click", () => {
+    const r = chip.getBoundingClientRect();
+    resetSiteTheme({ x: r.left + r.width / 2, y: r.top + r.height / 2 });
+  });
+  document.addEventListener("maxor:theme", () => requestAnimationFrame(show));
+  document.addEventListener("maxor:lang", show);
+  show();
 }
 
 export function initEffects() {
@@ -163,4 +188,5 @@ export function initEffects() {
   glow();
   copy();
   appearance();
+  siteChip();
 }
