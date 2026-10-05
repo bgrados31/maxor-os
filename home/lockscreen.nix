@@ -208,7 +208,7 @@ in
         # Antes de bloquear, baja el brillo (y lo devuelve al mover el ratón)
         { timeout = 150; on-timeout = "brightnessctl -s set 20%"; on-resume = "brightnessctl -r"; }
         { timeout = 300; on-timeout = "loginctl lock-session"; }
-        { timeout = 420; on-timeout = "hyprctl dispatch dpms off"; on-resume = "hyprctl dispatch dpms on"; }
+        { timeout = 330; on-timeout = "hyprctl dispatch dpms off"; on-resume = "hyprctl dispatch dpms on"; }
       ];
     };
   };
