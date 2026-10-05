@@ -39,7 +39,7 @@ type Update struct {
 }
 
 func (u *Update) loadGens(env *core.Env) tea.Cmd {
-	return env.Tasks.Start(task.Task{ID: "update.gens", Label: "Reading the generations", Run: func(ctx context.Context) (any, error) {
+	return env.Tasks.Start(task.Task{ID: "update.gens", Label: tr("Reading the generations"), Run: func(ctx context.Context) (any, error) {
 		return env.Client.Generations(ctx)
 	}})
 }
@@ -56,7 +56,7 @@ func (u *Update) Blocking() bool { return u.run.Blocking() }
 func (u *Update) Captures() bool { return u.run.Captures() }
 
 func (u *Update) ID() string    { return "update" }
-func (u *Update) Title() string { return "Update" }
+func (u *Update) Title() string { return tr("Update") }
 
 func (u *Update) Init(env *core.Env) tea.Cmd {
 	var cmds []tea.Cmd
@@ -95,9 +95,9 @@ func (u *Update) decide(env *core.Env) tea.Cmd {
 }
 
 func (u *Update) scan(env *core.Env, lock bool) tea.Cmd {
-	label := "Scanning for pending changes"
+	label := tr("Scanning for pending changes")
 	if lock {
-		label = "Checking for new versions"
+		label = tr("Checking for new versions")
 	}
 	u.lock = lock
 	u.list = listState{}
@@ -118,18 +118,18 @@ func applyCmd() *exec.Cmd {
 func (u *Update) afterApply(env *core.Env, err error) tea.Cmd {
 	env.Data.Update = nil
 	if err != nil {
-		return core.Toast("bad", "The update did not finish: maxor logs --last")
+		return core.Toast("bad", tr("The update did not finish: maxor logs --last"))
 	}
-	return tea.Batch(core.Toast("ok", "System updated"), core.Note("ok", "Updated the system"), LoadUpdateStatus(env, true), u.scan(env, false))
+	return tea.Batch(core.Toast("ok", tr("System updated")), core.Note("ok", tr("Updated the system")), LoadUpdateStatus(env, true), u.scan(env, false))
 }
 
 // afterRelease: lo que sigue a instalar una release de Maxor OS desde el panel.
 func (u *Update) afterRelease(env *core.Env, err error) tea.Cmd {
 	env.Data.Update = nil
 	if err != nil {
-		return tea.Batch(core.Toast("bad", "The release was not installed: maxor logs --last"), LoadReleaseCheck(env, true, true))
+		return tea.Batch(core.Toast("bad", tr("The release was not installed: maxor logs --last")), LoadReleaseCheck(env, true, true))
 	}
-	return tea.Batch(core.Toast("ok", "Maxor OS updated"), core.Note("ok", "Installed a new Maxor OS release"),
+	return tea.Batch(core.Toast("ok", tr("Maxor OS updated")), core.Note("ok", tr("Installed a new Maxor OS release")),
 		LoadUpdateStatus(env, true), LoadReleaseCheck(env, true, true), u.scan(env, false))
 }
 
@@ -137,10 +137,10 @@ func (u *Update) afterRelease(env *core.Env, err error) tea.Cmd {
 func (u *Update) afterRollback(env *core.Env, err error) tea.Cmd {
 	u.history = false
 	if err != nil {
-		return core.Toast("bad", "Could not go back: maxor logs --last")
+		return core.Toast("bad", tr("Could not go back: maxor logs --last"))
 	}
 	u.gensOK = false
-	return tea.Batch(core.Toast("ok", "Went back. A reboot may be needed if the kernel changed"), core.Note("ok", "Went back to an earlier generation"), LoadUpdateStatus(env, true), u.scan(env, false))
+	return tea.Batch(core.Toast("ok", tr("Went back. A reboot may be needed if the kernel changed")), core.Note("ok", tr("Went back to an earlier generation")), LoadUpdateStatus(env, true), u.scan(env, false))
 }
 
 func (u *Update) Update(env *core.Env, msg tea.Msg) (core.Screen, tea.Cmd) {
@@ -168,7 +168,7 @@ func (u *Update) Update(env *core.Env, msg tea.Msg) (core.Screen, tea.Cmd) {
 			return u, u.decide(env)
 		case "update.gens":
 			if m.Err != nil {
-				return u, core.Toast("bad", "Could not read the generations: "+oneLine(m.Err.Error()))
+				return u, core.Toast("bad", tr("Could not read the generations: %s", oneLine(m.Err.Error())))
 			}
 			u.gens, _ = m.Value.([]maxor.Generation)
 			u.gensOK = true
@@ -181,7 +181,7 @@ func (u *Update) Update(env *core.Env, msg tea.Msg) (core.Screen, tea.Cmd) {
 			return u, nil
 		case "update.check":
 			if m.Err != nil {
-				return u, core.Toast("bad", "Could not scan: "+oneLine(m.Err.Error()))
+				return u, core.Toast("bad", tr("Could not scan: %s", oneLine(m.Err.Error())))
 			}
 			v, _ := m.Value.(maxor.UpdateCheck)
 			env.Data.Update = &v
@@ -206,10 +206,10 @@ func (u *Update) Update(env *core.Env, msg tea.Msg) (core.Screen, tea.Cmd) {
 				if u.gsel.sel >= 0 && u.gsel.sel < len(u.gens) {
 					g := u.gens[u.gsel.sel]
 					if g.Current {
-						return u, core.Toast("info", "That is the generation you are running")
+						return u, core.Toast("info", tr("That is the generation you are running"))
 					}
 					u.runKind = "rollback"
-					return u, u.run.Begin(env, fmt.Sprintf("Going back to generation %d", g.Generation), "rollback", fmt.Sprint(g.Generation), "-y")
+					return u, u.run.Begin(env, fmt.Sprintf(tr("Going back to generation %d"), g.Generation), "rollback", fmt.Sprint(g.Generation), "-y")
 				}
 			}
 			return u, nil
@@ -232,23 +232,23 @@ func (u *Update) Update(env *core.Env, msg tea.Msg) (core.Screen, tea.Cmd) {
 			return u, tea.Batch(u.scan(env, true), LoadReleaseCheck(env, true, true))
 		case isKey(m, "v"):
 			if !releaseAvailable(env) {
-				return u, core.Toast("info", "No new Maxor OS release is waiting")
+				return u, core.Toast("info", tr("No new Maxor OS release is waiting"))
 			}
 			u.runKind = "release"
-			return u, u.run.Begin(env, "Installing Maxor OS "+env.Data.Release.Latest, "release", "apply", "--yes")
+			return u, u.run.Begin(env, tr("Installing Maxor OS %s", env.Data.Release.Latest), "release", "apply", "--yes")
 		case isKey(m, "a", "enter", "t"):
 			up := env.Data.Update
 			if up == nil {
-				return u, core.Toast("info", "Nothing scanned yet: press r")
+				return u, core.Toast("info", tr("Nothing scanned yet: press r"))
 			}
 			if up.UpToDate {
-				return u, core.Toast("ok", "The system is already up to date")
+				return u, core.Toast("ok", tr("The system is already up to date"))
 			}
 			if isKey(m, "t") {
 				return u, tea.ExecProcess(applyCmd(), func(err error) tea.Msg { return core.ExecDoneMsg{Tag: "update", Err: err} })
 			}
 			u.runKind = "apply"
-			return u, u.run.Begin(env, "Applying the update", "update", "--no-lock", "-y")
+			return u, u.run.Begin(env, tr("Applying the update"), "update", "--no-lock", "-y")
 		}
 	}
 	return u, nil
@@ -258,23 +258,23 @@ func (u *Update) Update(env *core.Env, msg tea.Msg) (core.Screen, tea.Cmd) {
 func (u *Update) configLines(env *core.Env) []ui.Line {
 	p := env.P
 	st := env.Data.UpdateStatus
-	lines := []ui.Line{heading(env, "Configuration")}
+	lines := []ui.Line{heading(env, tr("Configuration"))}
 	if st == nil {
 		return append(lines, ui.Skeleton(p, env.Frame, 22), ui.Skeleton(p, env.Frame+2, 34), ui.Skeleton(p, env.Frame+4, 18))
 	}
 	switch {
 	case st.Branch == "":
-		lines = append(lines, muted(env, "not a git repository"))
+		lines = append(lines, muted(env, tr("not a git repository")))
 	case st.Dirty:
-		lines = append(lines, ui.Of(ui.S(p.Ac, ui.G.Branch+"  "), ui.S(p.Bold, st.Branch), ui.S(p.Mu, " · "+st.Commit+" · "), ui.S(p.Warn, plural(st.Files, "uncommitted file", "uncommitted files"))))
+		lines = append(lines, ui.Of(ui.S(p.Ac, ui.G.Branch+"  "), ui.S(p.Bold, st.Branch), ui.S(p.Mu, " · "+st.Commit+" · "), ui.S(p.Warn, trn("%d uncommitted file", "%d uncommitted files", st.Files))))
 	default:
 		lines = append(lines, ui.Of(ui.S(p.Ac, ui.G.Branch+"  "), ui.S(p.Bold, st.Branch), ui.S(p.Mu, " · "+st.Commit+" · "), ui.S(p.Ok, "clean")))
 	}
 	if st.Channel != "" || st.NixpkgsRev != "" {
-		lines = append(lines, muted(env, fmt.Sprintf("nixpkgs %s · %s · locked %s", st.Channel, st.NixpkgsRev, ago(env.Now(), st.NixpkgsDate))))
+		lines = append(lines, muted(env, fmt.Sprintf(tr("nixpkgs %s · %s · locked %s"), st.Channel, st.NixpkgsRev, ago(env.Now(), st.NixpkgsDate))))
 	}
 	if st.Generation > 0 {
-		lines = append(lines, muted(env, fmt.Sprintf("generation %d is running", st.Generation)))
+		lines = append(lines, muted(env, fmt.Sprintf(tr("generation %d is running"), st.Generation)))
 	}
 	return lines
 }
@@ -283,16 +283,16 @@ func (u *Update) configLines(env *core.Env) []ui.Line {
 func (u *Update) historyLines(env *core.Env, w, h int) []ui.Line {
 	p := env.P
 	if !u.gensOK {
-		if l, ok := working(env, "update.gens", "Reading the generations"); ok {
+		if l, ok := working(env, "update.gens", tr("Reading the generations")); ok {
 			return []ui.Line{l}
 		}
-		lines := []ui.Line{heading(env, "Generations"), gap()}
+		lines := []ui.Line{heading(env, tr("Generations")), gap()}
 		for i := 0; i < 5; i++ {
 			lines = append(lines, ui.Skeleton(p, env.Frame+i*2, 4, 26))
 		}
 		return lines
 	}
-	lines := []ui.Line{heading(env, "Go back to an earlier version of your system"), muted(env, "Every update or change keeps the previous one, so you can return to it."), gap()}
+	lines := []ui.Line{heading(env, tr("Go back to an earlier version of your system")), muted(env, tr("Every update or change keeps the previous one, so you can return to it.")), gap()}
 	rows := max(h-len(lines)-1, 1)
 	from, to := u.gsel.window(len(u.gens), rows)
 	for i := from; i < to; i++ {
@@ -302,7 +302,7 @@ func (u *Update) historyLines(env *core.Env, w, h int) []ui.Line {
 		mark := ui.S(p.Mu, "  ")
 		if g.Current {
 			mark = ui.S(p.Ok, ui.G.Tick+" ")
-			right = []ui.Seg{ui.S(p.Ok, "running  "), ui.S(p.Mu, ago(env.Now(), when.Unix())+" ")}
+			right = []ui.Seg{ui.S(p.Ok, tr("running  ")), ui.S(p.Mu, ago(env.Now(), when.Unix())+" ")}
 		}
 		lines = append(lines, ui.Line{
 			L:   []ui.Seg{mark, ui.S(p.Bold, fmt.Sprintf("#%d", g.Generation)), ui.S(p.Mu, "  "+when.Format("Jan 2, 15:04"))},
@@ -315,22 +315,22 @@ func (u *Update) historyLines(env *core.Env, w, h int) []ui.Line {
 
 func (u *Update) historySide(env *core.Env, w int) []ui.Line {
 	p := env.P
-	lines := []ui.Line{heading(env, "Details"), gap()}
+	lines := []ui.Line{heading(env, tr("Details")), gap()}
 	if !u.gensOK || u.gsel.sel >= len(u.gens) {
-		return append(lines, muted(env, "Reading…"))
+		return append(lines, muted(env, tr("Reading…")))
 	}
 	g := u.gens[u.gsel.sel]
-	lines = append(lines, ui.T(p.Bold, fmt.Sprintf("Generation %d", g.Generation)), muted(env, genTime(g).Format("Monday, Jan 2 · 15:04")), gap(),
-		ui.Of(ui.S(p.Mu, "NixOS   "), ui.S(p.Text, g.Nixos)), ui.Of(ui.S(p.Mu, "kernel  "), ui.S(p.Text, g.Kernel)), gap())
+	lines = append(lines, ui.T(p.Bold, fmt.Sprintf(tr("Generation %d"), g.Generation)), muted(env, genTime(g).Format("Monday, Jan 2 · 15:04")), gap(),
+		ui.Of(ui.S(p.Mu, tr("NixOS   ")), ui.S(p.Text, g.Nixos)), ui.Of(ui.S(p.Mu, tr("kernel  ")), ui.S(p.Text, g.Kernel)), gap())
 	if g.Current {
-		return append(lines, ui.T(p.Ok, ui.G.Tick+" this is your current one"))
+		return append(lines, ui.T(p.Ok, ui.G.Tick+" "+tr("this is your current one")))
 	}
-	lines = append(lines, ui.Of(button(env, true, "Go back to this  ⏎")), gap())
-	for _, l := range ui.Wrap("Your files and your data are not touched. Apps you installed with maxor stay.", w) {
+	lines = append(lines, ui.Of(button(env, true, tr("Go back to this  ⏎"))), gap())
+	for _, l := range ui.Wrap(tr("Your files and your data are not touched. Apps you installed with maxor stay."), w) {
 		lines = append(lines, muted(env, l))
 	}
 	lines = append(lines, gap())
-	for _, l := range ui.Wrap("It needs your password, and a reboot if the kernel is different.", w) {
+	for _, l := range ui.Wrap(tr("It needs your password, and a reboot if the kernel is different."), w) {
 		lines = append(lines, muted(env, l))
 	}
 	return lines
@@ -347,46 +347,46 @@ func (u *Update) Main(env *core.Env, w, h int) []ui.Line {
 	lines := releaseLines(env)
 	lines = append(lines, gap())
 	lines = append(lines, u.configLines(env)...)
-	lines = append(lines, gap(), heading(env, "Scan"))
+	lines = append(lines, gap(), heading(env, tr("Scan")))
 	u.rows = h - len(lines) - 6
 
-	if l, ok := working(env, "update.check", "Scanning"); ok {
-		return append(lines, l, muted(env, "Building the new system and comparing it with the running one."),
-			muted(env, "The first time can take several minutes. Nothing is applied."))
+	if l, ok := working(env, "update.check", tr("Scanning")); ok {
+		return append(lines, l, muted(env, tr("Building the new system and comparing it with the running one.")),
+			muted(env, tr("The first time can take several minutes. Nothing is applied.")))
 	}
 	up := env.Data.Update
 	if up == nil {
 		if env.Data.CacheLoaded && env.Data.UpdateStatus != nil {
-			return append(lines, plain(env, "No scan yet."), muted(env, "Press r to scan."))
+			return append(lines, plain(env, tr("No scan yet.")), muted(env, tr("Press r to scan.")))
 		}
 		return append(lines, ui.Skeleton(p, env.Frame, 26), ui.Skeleton(p, env.Frame+3, 18))
 	}
 	// Cuándo se hizo y si sigue valiendo
 	when := ago(env.Now(), up.CheckedAt)
-	mode := "pending changes"
+	mode := tr("pending changes")
 	if up.Lock {
-		mode = "with fresh inputs"
+		mode = tr("with fresh inputs")
 	}
-	info := []ui.Seg{ui.S(p.Mu, "scanned "+when+" · "+mode)}
+	info := []ui.Seg{ui.S(p.Mu, tr("scanned %s · %s", when, mode))}
 	if u.stale(env) {
-		info = append(info, ui.S(p.Warn, "  "+ui.G.Warn+" out of date: press r"))
+		info = append(info, ui.S(p.Warn, "  "+ui.G.Warn+" "+tr("out of date: press r")))
 	}
 	lines = append(lines, ui.Of(info...))
 	if up.UpToDate {
-		return append(lines, gap(), ui.T(p.Ok.Bold(true), ui.G.Tick+"  The system is up to date"), muted(env, "Nothing to apply."))
+		return append(lines, gap(), ui.T(p.Ok.Bold(true), ui.G.Tick+"  "+tr("The system is up to date")), muted(env, tr("Nothing to apply.")))
 	}
 	c := up.Counts
 	lines = append(lines, gap(), ui.Of(
-		ui.S(p.Ok, fmt.Sprintf("%s%d new   ", ui.G.Add, c.New)),
-		ui.S(p.Warn, fmt.Sprintf("%s%d updated   ", ui.G.Up, c.Updated)),
-		ui.S(p.Bad, fmt.Sprintf("%s%d removed   ", ui.G.Del, c.Removed)),
-		ui.S(p.Mu, fmt.Sprintf("%s%d changed", ui.G.Chg, c.Changed)),
+		ui.S(p.Ok, fmt.Sprintf(tr("%s%d new   "), ui.G.Add, c.New)),
+		ui.S(p.Warn, fmt.Sprintf(tr("%s%d updated   "), ui.G.Up, c.Updated)),
+		ui.S(p.Bad, fmt.Sprintf(tr("%s%d removed   "), ui.G.Del, c.Removed)),
+		ui.S(p.Mu, fmt.Sprintf(tr("%s%d changed"), ui.G.Chg, c.Changed)),
 	))
 	if up.Kernel {
-		lines = append(lines, ui.T(p.Warn, ui.G.Warn+"  includes a new kernel: reboot after applying"))
+		lines = append(lines, ui.T(p.Warn, ui.G.Warn+"  "+tr("includes a new kernel: reboot after applying")))
 	}
 	if c.Config > 0 {
-		lines = append(lines, muted(env, fmt.Sprintf("%d configuration files changed (hidden)", c.Config)))
+		lines = append(lines, muted(env, trn("%d configuration file changed (hidden)", "%d configuration files changed (hidden)", c.Config)))
 	}
 	lines = append(lines, gap())
 	from, to := u.list.window(len(up.Changes), max(u.rows, 1))
@@ -419,32 +419,32 @@ func (u *Update) Side(env *core.Env, w, h int) []ui.Line {
 		return u.historySide(env, w)
 	}
 	p := env.P
-	lines := []ui.Line{heading(env, "Actions"), gap()}
+	lines := []ui.Line{heading(env, tr("Actions")), gap()}
 	up := env.Data.Update
 	canApply := up != nil && !up.UpToDate
 	if releaseAvailable(env) {
-		lines = append(lines, ui.Of(button(env, true, "Install Maxor OS "+env.Data.Release.Latest+"  v")), muted(env, "signed release, then rebuild"), gap())
+		lines = append(lines, ui.Of(button(env, true, tr("Install Maxor OS %s", env.Data.Release.Latest)+"  v")), muted(env, tr("signed release, then rebuild")), gap())
 	}
 	if canApply {
-		lines = append(lines, ui.Of(button(env, true, "Apply  ⏎")), gap())
+		lines = append(lines, ui.Of(button(env, true, tr("Apply  ⏎"))), gap())
 	}
 	lines = append(lines,
-		ui.Of(button(env, !canApply, "Rescan  r")), muted(env, "compile again and compare"), gap(),
-		ui.Of(button(env, false, "New versions  c")), muted(env, "refresh nixpkgs, then scan"), gap(),
-		ui.Of(button(env, false, "Go back  g")), muted(env, "return to an earlier version"), gap())
+		ui.Of(button(env, !canApply, tr("Rescan  r"))), muted(env, tr("compile again and compare")), gap(),
+		ui.Of(button(env, false, tr("New versions  c"))), muted(env, tr("refresh nixpkgs, then scan")), gap(),
+		ui.Of(button(env, false, tr("Go back  g"))), muted(env, tr("return to an earlier version")), gap())
 	if st := env.Data.UpdateStatus; st != nil && st.Dirty && canApply {
-		for _, l := range ui.Wrap("Uncommitted changes are included in the build.", w) {
+		for _, l := range ui.Wrap(tr("Uncommitted changes are included in the build."), w) {
 			lines = append(lines, ui.T(p.Warn, l))
 		}
 		lines = append(lines, gap())
 	}
 	if canApply {
-		for _, l := range ui.Wrap("Applying shows the progress here and asks for your password in this screen. Prefer the terminal? Press t.", w) {
+		for _, l := range ui.Wrap(tr("Applying shows the progress here and asks for your password in this screen. Prefer the terminal? Press t."), w) {
 			lines = append(lines, ui.T(p.Mu, l))
 		}
 		lines = append(lines, gap())
 	}
-	for _, l := range ui.Wrap("New versions refreshes flake.lock. Undo it with git checkout flake.lock.", w) {
+	for _, l := range ui.Wrap(tr("New versions refreshes flake.lock. Undo it with git checkout flake.lock."), w) {
 		lines = append(lines, ui.T(p.Mu, l))
 	}
 	return lines
@@ -455,14 +455,14 @@ func (u *Update) Hints(env *core.Env) []ui.Hint {
 		return u.run.Hints()
 	}
 	if u.history {
-		return []ui.Hint{{Key: "↑↓", Action: "choose"}, {Key: "⏎", Action: "go back to it"}, {Key: "esc", Action: "close"}}
+		return []ui.Hint{{Key: "↑↓", Action: tr("choose")}, {Key: "⏎", Action: tr("go back to it")}, {Key: "esc", Action: tr("close")}}
 	}
-	h := []ui.Hint{{Key: "r", Action: "rescan"}, {Key: "c", Action: "new versions"}, {Key: "g", Action: "go back"}}
+	h := []ui.Hint{{Key: "r", Action: tr("rescan")}, {Key: "c", Action: tr("new versions")}, {Key: "g", Action: tr("go back")}}
 	if releaseAvailable(env) {
-		h = append([]ui.Hint{{Key: "v", Action: "install release"}}, h...)
+		h = append([]ui.Hint{{Key: "v", Action: tr("install release")}}, h...)
 	}
 	if env.Data.Update != nil && !env.Data.Update.UpToDate {
-		h = append(h, ui.Hint{Key: "⏎", Action: "apply"}, ui.Hint{Key: "↑↓", Action: "scroll"})
+		h = append(h, ui.Hint{Key: "⏎", Action: tr("apply")}, ui.Hint{Key: "↑↓", Action: tr("scroll")})
 	}
 	return h
 }
@@ -489,28 +489,28 @@ func (u *Update) Brief(env *core.Env, w int) []ui.Line {
 	p := env.P
 	if u.history {
 		if !u.gensOK || u.gsel.sel >= len(u.gens) {
-			return []ui.Line{muted(env, "Reading…")}
+			return []ui.Line{muted(env, tr("Reading…"))}
 		}
 		g := u.gens[u.gsel.sel]
-		l1 := ui.Of(ui.S(p.Bold, fmt.Sprintf("Generation %d", g.Generation)), ui.S(p.Mu, "  "+genTime(g).Format("Jan 2, 15:04")+" · NixOS "+g.Nixos+" · kernel "+g.Kernel))
+		l1 := ui.Of(ui.S(p.Bold, fmt.Sprintf(tr("Generation %d"), g.Generation)), ui.S(p.Mu, "  "+genTime(g).Format("Jan 2, 15:04")+" · NixOS "+g.Nixos+" · kernel "+g.Kernel))
 		if g.Current {
-			return []ui.Line{l1, ui.T(p.Ok, ui.G.Tick+" this is your current one")}
+			return []ui.Line{l1, ui.T(p.Ok, ui.G.Tick+" "+tr("this is your current one"))}
 		}
-		return []ui.Line{l1, ui.Of(button(env, true, "Go back to this  ⏎"), ui.S(p.Mu, "  your files are not touched; needs your password"))}
+		return []ui.Line{l1, ui.Of(button(env, true, tr("Go back to this  ⏎")), ui.S(p.Mu, tr("  your files are not touched; needs your password")))}
 	}
 	up := env.Data.Update
 	canApply := up != nil && !up.UpToDate
 	var row []ui.Seg
 	if releaseAvailable(env) {
-		row = append(row, button(env, true, "Install "+env.Data.Release.Latest+"  v"), space(1))
+		row = append(row, button(env, true, tr("Install %s", env.Data.Release.Latest)+"  v"), space(1))
 	}
 	if canApply {
-		row = append(row, button(env, !releaseAvailable(env), "Apply  ⏎"), space(1))
+		row = append(row, button(env, !releaseAvailable(env), tr("Apply  ⏎")), space(1))
 	}
-	row = append(row, button(env, !canApply, "Rescan  r"), space(1), button(env, false, "New versions  c"), space(1), button(env, false, "Go back  g"))
+	row = append(row, button(env, !canApply, tr("Rescan  r")), space(1), button(env, false, tr("New versions  c")), space(1), button(env, false, tr("Go back  g")))
 	lines := []ui.Line{ui.Of(row...)}
 	if st := env.Data.UpdateStatus; st != nil && st.Dirty && canApply {
-		lines = append(lines, ui.T(p.Warn, "Uncommitted changes are included in the build."))
+		lines = append(lines, ui.T(p.Warn, tr("Uncommitted changes are included in the build.")))
 	}
 	return lines
 }

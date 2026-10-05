@@ -13,6 +13,7 @@ import (
 	"golang.org/x/term"
 
 	"github.com/bgrados31/maxor-os/tui/internal/app"
+	"github.com/bgrados31/maxor-os/tui/internal/i18n"
 	"github.com/bgrados31/maxor-os/tui/internal/install"
 	"github.com/bgrados31/maxor-os/tui/internal/maxor"
 	"github.com/bgrados31/maxor-os/tui/internal/theme"
@@ -28,6 +29,8 @@ func main() {
 	search := flag.String("search", "", "abre la Tienda con esta búsqueda ya lanzada")
 	showVersion := flag.Bool("version", false, "imprime la versión y sale")
 	flag.Parse()
+	// the interface speaks the language of the system (MAXOR_LANG forces one); the installer changes it when the user picks theirs
+	i18n.Set(firstNonEmpty(os.Getenv("MAXOR_LANG"), os.Getenv("LC_ALL"), os.Getenv("LC_MESSAGES"), os.Getenv("LANG")))
 	// the complete language and keyboard lists, if the package ships them; otherwise the short built-in ones
 	_ = install.LoadCatalogFromEnv()
 
@@ -77,4 +80,13 @@ func printSummary(m *app.Model) {
 		fmt.Printf("%s  %s\n", st(col).Render(g), l.Text)
 	}
 	fmt.Println()
+}
+
+func firstNonEmpty(v ...string) string {
+	for _, s := range v {
+		if s != "" {
+			return s
+		}
+	}
+	return ""
 }

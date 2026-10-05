@@ -136,7 +136,7 @@ theme_apply() {
   # 2) hyprlock: rellena la plantilla con la paleta
   if [ -f "$tpl/hyprlock.conf.tpl" ]; then
     local bright="0.60"; [ "$mode" = light ] && bright="0.95"
-    sed -e "s|@FG_RGB@|$(rgb "$fg")|g" -e "s|@AC_RGB@|$(rgb "$ac")|g" -e "s|@BG_RGB@|$(rgb "$bg")|g" \
+    sed -e "s|@FG_RGB@|$(rgb "$fg")|g" -e "s|@AC_RGB@|$(rgb "$ac")|g" -e "s|@AC2_RGB@|$(rgb "$ac2")|g" -e "s|@BG_RGB@|$(rgb "$bg")|g" \
       -e "s|@FG_HEX@|$(hex "$fg")|g" -e "s|@LOCK_BRIGHTNESS@|$bright|g" \
       "$tpl/hyprlock.conf.tpl" > "$cfg/current/hyprlock.conf"
     msg sm @theme.step_lock; steps+=("ok|$sm")

@@ -19,8 +19,10 @@ drive the same engine.
 - **Reproducible and verifiable.** The ISO comes from the flake, and ships with a checksum and a
   signature made by the release key, so the update system's trust root also covers it.
 
-Not goals for the first release: BIOS/legacy boot, ZFS, RAID, Secure Boot signing, and installing from
-a language other than English (the catalog is ready for more).
+Not goals for the first release: BIOS/legacy boot, ZFS, RAID and Secure Boot signing.
+
+The installer speaks Spanish, Portuguese, French, German and Italian (the language picked in the first step is the one
+it uses from the next screen on); see [TRANSLATING.md](TRANSLATING.md).
 
 ## Pieces
 
@@ -82,7 +84,7 @@ adding a file, not editing a flow.
 
 | # | Step | Decides | Gate |
 |---|---|---|---|
-| 1 | Welcome | language of the installer | none |
+| 1 | Welcome | language of the system, and the language the installer speaks from the next screen on | none |
 | 2 | Keyboard | console and desktop layout, with a test field | a valid layout |
 | 3 | Network | Ethernet or Wi-Fi (scan, password) | a working connection, or an explicit "offline" |
 | 4 | Region | timezone, locale | valid names |

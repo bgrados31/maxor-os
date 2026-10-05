@@ -30,8 +30,8 @@ home-manager as a NixOS module. The design rule is to separate four things:
 | `home/hyprland/*.lua` | `settings.lua` (appearance), `rules.lua` (rules), `binds.lua` (shortcuts), `theme.lua` (the active theme's shape), `user.lua.example` |
 | `home/lockscreen.nix` | hyprlock (design) and hypridle (idle handling) |
 | `home/maxor.nix` | Packaging of the CLI and of the official themes (generates their wallpapers), and the daily check for new app versions |
-| `home/maxor/` | The CLI in bash: `lib/` (core, messages, terminal, rail, loader, components) and `cmd/` (one file per group of commands). Package in `packages/maxor.nix` |
-| `tui/` | The full-screen app in Go (`maxor-tui`): home, store, themes, update, doctor, profiles. Package in `packages/maxor-tui.nix`; see [TUI.md](TUI.md) |
+| `home/maxor/` | The CLI in bash: `lib/` (core, messages, terminal, rail, loader, components) and `cmd/` (one file per group of commands), and `po/` with one gettext catalog per language. Package in `packages/maxor.nix` |
+| `tui/` | The full-screen app in Go (`maxor-tui`): home, store, themes, update, doctor, profiles. Its translations are `tui/internal/i18n/lang/*.po`. Package in `packages/maxor-tui.nix`; see [TUI.md](TUI.md) |
 | `themes/<id>/` | Official themes: `colors.json` and `theme.toml` |
 | `tests/` | bats tests for the CLI; the Go tests live next to the code in `tui/` |
 

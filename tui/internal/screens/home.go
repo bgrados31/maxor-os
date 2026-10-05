@@ -9,6 +9,7 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 
 	"github.com/bgrados31/maxor-os/tui/internal/core"
+	"github.com/bgrados31/maxor-os/tui/internal/i18n"
 	"github.com/bgrados31/maxor-os/tui/internal/maxor"
 	"github.com/bgrados31/maxor-os/tui/internal/task"
 	"github.com/bgrados31/maxor-os/tui/internal/ui"
@@ -24,7 +25,7 @@ type Home struct {
 func NewHome() *Home { return &Home{} }
 
 func (h *Home) ID() string    { return "home" }
-func (h *Home) Title() string { return "Home" }
+func (h *Home) Title() string { return tr("Home") }
 
 type action struct {
 	key, label, screen string
@@ -32,11 +33,11 @@ type action struct {
 }
 
 var homeActions = []action{
-	{"u", "Check for updates", "update", "check"},
-	{"s", "Search apps", "store", "search"},
-	{"t", "Change theme", "themes", ""},
-	{"d", "Run doctor", "doctor", ""},
-	{"b", "Back up my setup", "", "backup"},
+	{"u", i18n.Mark("Check for updates"), "update", "check"},
+	{"s", i18n.Mark("Search apps"), "store", "search"},
+	{"t", i18n.Mark("Change theme"), "themes", ""},
+	{"d", i18n.Mark("Run doctor"), "doctor", ""},
+	{"b", i18n.Mark("Back up my setup"), "", "backup"},
 }
 
 // CheckUpdateMsg y FocusSearchMsg los entiende la pantalla de destino.
@@ -75,7 +76,7 @@ func (h *Home) Init(env *core.Env) tea.Cmd {
 
 // backup guarda tu configuración en un archivo con `maxor backup` y lo cuenta al terminar.
 func (h *Home) backup(env *core.Env) tea.Cmd {
-	return env.Tasks.Start(task.Task{ID: "home.backup", Label: "Saving your setup", Run: func(ctx context.Context) (any, error) {
+	return env.Tasks.Start(task.Task{ID: "home.backup", Label: tr("Saving your setup"), Run: func(ctx context.Context) (any, error) {
 		return env.Client.Backup(ctx)
 	}})
 }
@@ -100,11 +101,11 @@ func (h *Home) Update(env *core.Env, msg tea.Msg) (core.Screen, tea.Cmd) {
 	case task.DoneMsg:
 		if m.ID == "home.backup" {
 			if m.Err != nil {
-				return h, core.Toast("bad", "Could not save the backup: "+oneLine(m.Err.Error()))
+				return h, core.Toast("bad", tr("Could not save the backup: %s", oneLine(m.Err.Error())))
 			}
 			b, _ := m.Value.(maxor.BackupInfo)
 			path := strings.Replace(b.Path, os.Getenv("HOME"), "~", 1)
-			return h, tea.Batch(core.Toast("ok", fmt.Sprintf("Saved %s (%s, %s)", path, humanBytes(b.Bytes), plural(b.Apps, "app", "apps"))), core.Note("ok", "Saved a backup: "+path))
+			return h, tea.Batch(core.Toast("ok", tr("Saved %s (%s, %s)", path, humanBytes(b.Bytes), trn("%d app", "%d apps", b.Apps))), core.Note("ok", tr("Saved a backup: %s", path)))
 		}
 	}
 	if k, ok := msg.(tea.KeyMsg); ok {
@@ -130,13 +131,13 @@ func (h *Home) Update(env *core.Env, msg tea.Msg) (core.Screen, tea.Cmd) {
 func greeting(env *core.Env) string {
 	switch hr := env.Now().Hour(); {
 	case hr < 6:
-		return "Good night"
+		return tr("Good night")
 	case hr < 12:
-		return "Good morning"
+		return tr("Good morning")
 	case hr < 19:
-		return "Good afternoon"
+		return tr("Good afternoon")
 	}
-	return "Good evening"
+	return tr("Good evening")
 }
 
 // tile es una tarjeta de cuatro filas: título, dato, detalle y un hueco.
@@ -167,34 +168,34 @@ func (h *Home) Main(env *core.Env, w, hh int) []ui.Line {
 		doc := d.Doctor
 		switch {
 		case doc.Fails > 0:
-			sys = h.tile(env, "SYSTEM", false, []ui.Seg{ui.S(p.Bad.Bold(true), ui.G.Bad+" "+plural(doc.Fails, "problem", "problems"))}, "maxor doctor")
+			sys = h.tile(env, tr("SYSTEM"), false, []ui.Seg{ui.S(p.Bad.Bold(true), ui.G.Bad+" "+trn("%d problem", "%d problems", doc.Fails))}, "maxor doctor")
 		case doc.Warns > 0:
-			sys = h.tile(env, "SYSTEM", false, []ui.Seg{ui.S(p.Warn.Bold(true), ui.G.Warn+" "+plural(doc.Warns, "warning", "warnings"))}, "press d for details")
+			sys = h.tile(env, tr("SYSTEM"), false, []ui.Seg{ui.S(p.Warn.Bold(true), ui.G.Warn+" "+trn("%d warning", "%d warnings", doc.Warns))}, tr("press d for details"))
 		default:
-			sys = h.tile(env, "SYSTEM", false, []ui.Seg{ui.S(p.Ok.Bold(true), ui.G.Tick+" Healthy")}, "all checks pass")
+			sys = h.tile(env, tr("SYSTEM"), false, []ui.Seg{ui.S(p.Ok.Bold(true), ui.G.Tick+" "+tr("Healthy"))}, tr("all checks pass"))
 		}
 	case d.Err["doctor"] != nil:
-		sys = h.tile(env, "SYSTEM", false, []ui.Seg{ui.S(p.Bad, "could not check")}, "maxor logs --last")
+		sys = h.tile(env, tr("SYSTEM"), false, []ui.Seg{ui.S(p.Bad, tr("could not check"))}, "maxor logs --last")
 	default:
-		sys = h.tile(env, "SYSTEM", true, nil, "")
+		sys = h.tile(env, tr("SYSTEM"), true, nil, "")
 	}
 
 	// Actualizaciones: lo que dejó el último escaneo, que la pestaña Update repite sola
 	var upd [][]ui.Seg
 	switch {
 	case d.Update == nil && !d.CacheLoaded:
-		upd = h.tile(env, "UPDATES", true, nil, "")
+		upd = h.tile(env, tr("UPDATES"), true, nil, "")
 	case d.Update == nil:
-		upd = h.tile(env, "UPDATES", false, []ui.Seg{ui.S(p.Mu, "Not scanned yet")}, "open Update to scan")
+		upd = h.tile(env, tr("UPDATES"), false, []ui.Seg{ui.S(p.Mu, tr("Not scanned yet"))}, tr("open Update to scan"))
 	case d.Update.UpToDate:
-		upd = h.tile(env, "UPDATES", false, []ui.Seg{ui.S(p.Ok.Bold(true), ui.G.Tick+" Up to date")}, "scanned "+ago(env.Now(), d.Update.CheckedAt))
+		upd = h.tile(env, tr("UPDATES"), false, []ui.Seg{ui.S(p.Ok.Bold(true), ui.G.Tick+" "+tr("Up to date"))}, tr("scanned %s", ago(env.Now(), d.Update.CheckedAt)))
 	default:
 		n := d.Update.Counts.New + d.Update.Counts.Updated + d.Update.Counts.Removed + d.Update.Counts.Changed
-		sub := "scanned " + ago(env.Now(), d.Update.CheckedAt)
+		sub := tr("scanned %s", ago(env.Now(), d.Update.CheckedAt))
 		if d.Update.Kernel {
-			sub = "new kernel · " + sub
+			sub = tr("new kernel · %s", sub)
 		}
-		upd = h.tile(env, "UPDATES", false, []ui.Seg{ui.S(p.Warn.Bold(true), plural(n, "change", "changes"))}, sub)
+		upd = h.tile(env, tr("UPDATES"), false, []ui.Seg{ui.S(p.Warn.Bold(true), trn("%d change", "%d changes", n))}, sub)
 	}
 
 	// Apps
@@ -208,23 +209,23 @@ func (h *Home) Main(env *core.Env, w, hh int) []ui.Line {
 				nix++
 			}
 		}
-		main := []ui.Seg{ui.S(p.Ac.Bold(true), fmt.Sprintf("%d installed", len(d.Apps)))}
-		sub := fmt.Sprintf("nix %d · flathub %d", nix, fp)
+		main := []ui.Seg{ui.S(p.Ac.Bold(true), trn("%d app installed", "%d apps installed", len(d.Apps)))}
+		sub := fmt.Sprintf(tr("nix %d · flathub %d"), nix, fp)
 		if n := len(d.AppUpdates); n > 0 {
 			main = append(main, ui.S(p.Warn.Bold(true), fmt.Sprintf("  %s%d", ui.G.Up, n)))
-			sub = plural(n, "update", "updates") + " available · " + sub
+			sub = trn("%d update available · %s", "%d updates available · %s", n, n, sub)
 		}
-		apps = h.tile(env, "APPS", false, main, sub)
+		apps = h.tile(env, tr("APPS"), false, main, sub)
 	} else {
-		apps = h.tile(env, "APPS", d.Err["apps"] == nil, []ui.Seg{ui.S(p.Bad, "could not load")}, "")
+		apps = h.tile(env, tr("APPS"), d.Err["apps"] == nil, []ui.Seg{ui.S(p.Bad, tr("could not load"))}, "")
 	}
 
 	// Tema
 	var th [][]ui.Seg
 	if t := ActiveTheme(env); t != nil {
-		th = h.tile(env, "THEME", false, []ui.Seg{ui.S(p.Ac2.Bold(true), t.Name)}, t.Mode+" · press t to change")
+		th = h.tile(env, tr("THEME"), false, []ui.Seg{ui.S(p.Ac2.Bold(true), t.Name)}, t.Mode+" · press t to change")
 	} else {
-		th = h.tile(env, "THEME", !d.ThemesLoaded, []ui.Seg{ui.S(p.Ac2.Bold(true), env.Theme.Name)}, "press t to change")
+		th = h.tile(env, tr("THEME"), !d.ThemesLoaded, []ui.Seg{ui.S(p.Ac2.Bold(true), env.Theme.Name)}, tr("press t to change"))
 	}
 
 	half := (w - 2) / 2
@@ -249,7 +250,7 @@ func (h *Home) Main(env *core.Env, w, hh int) []ui.Line {
 		if hw.Laptop {
 			kind = "laptop"
 		}
-		lines = append(lines, heading(env, "This machine"),
+		lines = append(lines, heading(env, tr("This machine")),
 			plain(env, hw.CPU.Model),
 			muted(env, kind+" · "+strings.Join(gpus, " + ")))
 	}
@@ -258,10 +259,10 @@ func (h *Home) Main(env *core.Env, w, hh int) []ui.Line {
 
 func (h *Home) Side(env *core.Env, w, hh int) []ui.Line {
 	p := env.P
-	lines := []ui.Line{heading(env, "Quick actions"), gap()}
+	lines := []ui.Line{heading(env, tr("Quick actions")), gap()}
 	for i, a := range homeActions {
 		lines = append(lines, ui.Line{
-			L:   []ui.Seg{ui.S(p.Ac, a.key), ui.S(p.Text, "  "+a.label)},
+			L:   []ui.Seg{ui.S(p.Ac, a.key), ui.S(p.Text, "  "+tr(a.label))},
 			Sel: i == h.list.sel,
 		})
 	}
@@ -269,7 +270,7 @@ func (h *Home) Side(env *core.Env, w, hh int) []ui.Line {
 }
 
 func (h *Home) Hints(env *core.Env) []ui.Hint {
-	return []ui.Hint{{Key: "↑↓", Action: "move"}, {Key: "⏎", Action: "go"}, {Key: "u s t d", Action: "shortcuts"}}
+	return []ui.Hint{{Key: "↑↓", Action: tr("move")}, {Key: "⏎", Action: tr("go")}, {Key: "u s t d", Action: tr("shortcuts")}}
 }
 
 

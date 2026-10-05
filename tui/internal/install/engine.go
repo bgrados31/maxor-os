@@ -1,6 +1,7 @@
 package install
 
 import (
+	"github.com/bgrados31/maxor-os/tui/internal/i18n"
 	"bufio"
 	"bytes"
 	"context"
@@ -25,14 +26,14 @@ type Event struct {
 
 // Stages, in the order the engine runs them, with the words the screen shows.
 var Stages = []struct{ ID, Title string }{
-	{"preflight", "Checking this machine"},
-	{"disk", "Partitioning the disk"},
-	{"luks", "Encrypting the system partition"},
-	{"filesystem", "Creating the filesystems"},
-	{"host", "Writing the machine configuration"},
-	{"install", "Installing the system"},
-	{"bootloader", "Setting up the boot loader"},
-	{"finish", "Finishing"},
+	{"preflight", i18n.Mark("Checking this machine")},
+	{"disk", i18n.Mark("Partitioning the disk")},
+	{"luks", i18n.Mark("Encrypting the system partition")},
+	{"filesystem", i18n.Mark("Creating the filesystems")},
+	{"host", i18n.Mark("Writing the machine configuration")},
+	{"install", i18n.Mark("Installing the system")},
+	{"bootloader", i18n.Mark("Setting up the boot loader")},
+	{"finish", i18n.Mark("Finishing")},
 }
 
 // Engine is what the wizard needs from the installer engine. The real one runs `maxor-install`; the tests

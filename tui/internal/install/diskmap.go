@@ -53,7 +53,7 @@ func (d Disk) Planned(strategy string) []Span {
 	maxor := func(bytes int64) []Span {
 		return []Span{
 			{Kind: "efi", Label: "boot", Bytes: BootBytes, New: true},
-			{Kind: "maxor", Label: "Maxor OS", Bytes: max(bytes-BootBytes, 0), New: true},
+			{Kind: "maxor", Label: tr("Maxor OS"), Bytes: max(bytes-BootBytes, 0), New: true},
 		}
 	}
 	if strategy != "alongside" {
@@ -77,18 +77,18 @@ func classify(p Partition) (kind, label string) {
 	fs := strings.ToLower(p.FSType)
 	switch {
 	case p.PartLabel == "maxor-root":
-		return "maxor", "Maxor OS"
+		return "maxor", tr("Maxor OS")
 	case p.PartLabel == "MAXOR-ESP":
 		return "efi", "boot"
 	case fs == "vfat" && p.Size <= 4<<30:
 		return "efi", "EFI"
 	case fs == "ntfs" || fs == "bitlocker":
 		if strings.Contains(strings.ToLower(p.Label), "recovery") || p.Size < 2<<30 {
-			return "windows", "Windows recovery"
+			return "windows", tr("Windows recovery")
 		}
 		return "windows", "Windows"
 	case fs == "ext4" || fs == "btrfs" || fs == "xfs" || fs == "f2fs":
-		return "linux", "Linux"
+		return "linux", tr("Linux")
 	case fs == "swap":
 		return "linux", "swap"
 	case fs == "crypto_luks":

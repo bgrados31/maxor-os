@@ -12,6 +12,36 @@ the hand-off between sessions: the rules, how to work here, and where the work s
 - Never `git reset --hard` or anything that drops changes in a dirty tree. Never push with failing tests.
 - Do not spend tokens on the unnecessary: measure, then change; no long explorations without a reason.
 
+## Working with Jev and workers (from Bryan, 2026-10-05; adapted to this project)
+
+Decisions go through Jev (TypeSafe System One; skill `typesafe:typesafe-ai`).
+
+**Jev and profiles**
+1. Before starting a Claude worker, ask Jev once to pick a host-approved profile of one or two sessions, each with its
+   model and effort. No selection, or Jev unreachable (no key, offline): use the host default and say so to Bryan.
+2. The host checks the selection and fixes model and effort before each session starts; they do not change mid-session.
+   The host controls permissions and approvals. A worker never publishes, pushes, tags or releases (see Rules).
+3. Sonnet 5.5 at medium effort for clear coding (Nix, bash, Go edits). Higher effort for complex reasoning: installer
+   stages, LUKS/disk, bootloader, Nix module merging, and JSON contracts (`installer/schema/answers.v1.json`). A second
+   Claude only for independent research or a review Bryan asked for.
+4. Brief a second Claude with: the task, the exact files, limits (branch `development`, no publishing, no
+   `git reset --hard`), and how to know it is done. It returns findings with evidence (command + output) to the lead,
+   which verifies them before relying on them.
+
+**Scope**
+5. Do what was asked, nothing more: no extra features, tests, files, docs, refactors or review rounds. Ask only when
+   blocked or before an action that needs approval. When done and checked, stop and report. Exception: a change that
+   alters behaviour documented in `docs/` or in this file updates that text in the same commit.
+
+**Checks before saying "done"** (run the one that covers what changed; if none can run, say which and why)
+6. Go in `tui/` → `go test ./...` · bash in `home/maxor/` or `tests/` → `bats tests/` · `.nix`, `flake.nix` →
+   `nix eval`/`nix build --dry-run` of `nitro`, plus bats · installer engine or stages → `installer-full` check ·
+   `.po`/translations → `scripts/i18n.sh check` · lock screen, wallpaper, Hyprland, greeter → cannot be seen without
+   Bryan's screen: say "not verified on screen". Report the real result, including failures. New files `git add`ed
+   before any `nix build`.
+7. Performance work: measure first (`systemd-analyze blame` / `critical-chain`), change, measure again, and report
+   both numbers.
+
 ## Layout
 
 - `flake.nix`: systems (`nitro` = Bryan's laptop, `maxor-vm`, `maxor-generic*`, `maxor-iso`), packages, checks.
@@ -55,6 +85,30 @@ no flicker (theme written before the login, greetd waits only on the first boot)
 a single OS; dual boot keeps 3 s), the installer redesign (disk maps, storage, motion, keyboard and time zone proposed
 from the language, readable review, failures explained), the new identity above.
 
+Also on branch `claude/vigilant-ptolemy-ng8e4i` (2026-10-04, evening): Hyprland tuned (every setting guarded with `pcall`, Maxor motion curves
+`maxor`/`maxor-out`, blur noise/vibrancy, DMS layer blur, idle inhibit on fullscreen); lock screen redesigned
+(spaced Cinzel mark on top, 168 px light clock, accent rule, glass card with a pill input and a two-accent gradient
+outline, dims at 150 s); wallpaper signature (vignette, `ac2` glow top-right with three orbits, grain; light themes
+softer). None of this was seen on a real screen yet: check it on the laptop before the release.
+
+Translations (same branch): standard gettext `.po` for both programs, one workflow (docs/TRANSLATING.md,
+`scripts/i18n.sh new|update|status|check`). TUI: `tui/internal/i18n/lang/<code>.po` + `maxor-tui.pot` (English text is
+the msgid; `tr`/`trn`/`trc`; `go test ./internal/i18n -update` extracts and merges; Go parser + CLDR plural evaluator in
+`po.go`/`plural.go`, no new dependency). CLI: `home/maxor/po/<code>.po` + `maxor-cli.pot` (msgctxt = id, msgid =
+English; `lib/lang/en.sh` stays the English source; `lib/i18n.sh` reads the active .po with an embedded POSIX awk,
+plurals via bash arithmetic on the Plural-Forms rule validated to `n`/digits/operators; counted keys have a `key#1`
+form and their FIRST argument is the number; `%2$s` positional placeholders work; the package sets `MAXOR_PO`, no IFD,
+so adding a language touches neither Nix nor tests). All 718 TUI texts and 308 CLI messages translated in es (reviewed
+by me) and pt fr de it (machine translations awaiting native review); real plurals everywhere a count appears. Tests
+for any future language: placeholders, plural forms/rule validity, stale keys, template up to date, help example
+commands intact, layout of every installer step and tab at a small size in each language AND in a 40%-longer
+pseudo-language (`i18n.SetPseudo`), fuzzy ignored, hostile Plural-Forms rejected. The TUI runs the CLI with
+`MAXOR_LANG=<its language>` and reads Doctor advice by check `id`; `sudo`/`nixos-rebuild` streams run with
+`LC_MESSAGES=C`. In bash never name a caller's variable like an internal local (`msg`/`i18n_format` use `__`
+names; a collision silently swallowed the result once). Not translated on purpose: engine/nixos-rebuild log,
+keyboard layout and language names (system data). Still open: the ISO's boot menu; setting up Weblate (Bryan: create
+the project at hosted.weblate.org with the two components listed in docs/TRANSLATING.md, "For maintainers").
+
 Website (2026-10-05, branch `claude/blissful-johnson-99ty2v`): `web/` landing in Spanish + English, live
 release card from the GitHub API, the tour desktop painted with the real themes. Not published yet: Bryan has to
 merge it and enable Pages (Settings → Pages → Source: GitHub Actions). Its og:image/canonical assume
@@ -71,7 +125,7 @@ Next, in order:
    manifest for `maxor update`) only takes X.Y.Z and needs Bryan's key password: not for the beta.
 3. Waiting on Bryan: apply to his laptop (`sudo nixos-rebuild switch --flake ~/nixos-config#nitro`), test on real
    hardware (NVIDIA hybrid, Windows beside it), decide Limine vs systemd-boot (only after testing with Windows).
-4. Ideas noted, not done: translate the installer UI (today English only), zone list shown as «Lima, Perú · UTC−5»,
+4. Ideas noted, not done: zone list shown as «Lima, Perú · UTC−5»,
    ~300 ms black between the greeter's Hyprland and the session's (inherent to the compositor hand-off), the initrd
    takes ~2.2 s (switch-root ~1.1 s): look for savings without losing the splash.
 

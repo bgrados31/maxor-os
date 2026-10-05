@@ -83,6 +83,15 @@ load helper
   ! grep -qE 'os\.|io\.|require|exec' <<< "$out"
 }
 
+@test "las animaciones generadas usan la curva de Maxor y no rompen si falla una" {
+  load_lib
+  echo '{"anim":150}' > "$BATS_TEST_TMPDIR/s.json"
+  out="$(theme_style_lua "$BATS_TEST_TMPDIR/s.json")"
+  [[ "$out" == *'bezier = MAXOR_CURVE or "default"'* ]]
+  [ "$(grep -c '^pcall(hl.animation' <<< "$out")" = 7 ]
+  [[ "$out" == *'leaf = "workspaces", enabled = true, speed = 7.5'* ]]
+}
+
 @test "mix mezcla dos colores por porcentaje" {
   load_lib
   [ "$(mix '#000000' '#ffffff' 50)" = '#7f7f7f' ]

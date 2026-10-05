@@ -1,6 +1,7 @@
 package maxor
 
 import (
+	"github.com/bgrados31/maxor-os/tui/internal/i18n"
 	"context"
 	"errors"
 	"os"
@@ -275,5 +276,25 @@ func TestReleaseStatusLeeLoGuardado(t *testing.T) {
 	r, err := c.ReleaseStatus(context.Background())
 	if err != nil || r.Status != "insecure" || r.Reason != "bad_signature" || !r.Stale {
 		t.Fatalf("status: %+v %v", r, err)
+	}
+}
+
+func TestCLIRunsInTheLanguageOfTheInterface(t *testing.T) {
+	i18n.Set("es")
+	defer i18n.Set("en")
+	env := cliEnv()
+	has := func(kv string) bool {
+		for _, e := range env {
+			if e == kv {
+				return true
+			}
+		}
+		return false
+	}
+	if !has("MAXOR_LANG=es") || !has("NO_COLOR=1") || !has("MAXOR_NO_TUI=1") {
+		t.Fatalf("the CLI must speak the language of the screen, without colors: %v", env)
+	}
+	if got := NewWith(nil).Command("version").Env; len(got) == 0 || got[len(got)-1] != "MAXOR_LANG=es" {
+		t.Fatalf("the CLI handed the terminal also speaks it: %v", got)
 	}
 }

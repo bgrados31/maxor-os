@@ -27,6 +27,8 @@ jobs:
         run: nix flake check --no-build --option allow-import-from-derivation false
       - name: Evaluate the nitro system
         run: nix eval --raw .#nixosConfigurations.nitro.config.system.build.toplevel.drvPath
+      - name: Translations (gettext files well formed, templates up to date)
+        run: nix shell nixpkgs#gettext -c scripts/i18n.sh check
       - name: CLI tests (bats, shellcheck, message catalog)
         run: nix build .#checks.x86_64-linux.cli-tests --print-build-logs
       - name: Full-screen app (builds and runs go test)

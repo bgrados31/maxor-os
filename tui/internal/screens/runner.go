@@ -59,7 +59,7 @@ func (r *Runner) Begin(env *core.Env, title string, args ...string) tea.Cmd {
 	r.mu.Lock()
 	r.lines = nil
 	r.mu.Unlock()
-	return env.Tasks.Start(task.Task{ID: r.idCheck(), Label: "Checking permissions", Quiet: true, Run: func(ctx context.Context) (any, error) {
+	return env.Tasks.Start(task.Task{ID: r.idCheck(), Label: tr("Checking permissions"), Quiet: true, Run: func(ctx context.Context) (any, error) {
 		return env.Client.SudoReady(ctx), nil
 	}})
 }
@@ -155,7 +155,7 @@ func (r *Runner) Handle(env *core.Env, msg tea.Msg) (cmd tea.Cmd, handled bool, 
 			r.pw.Key(m)
 			return nil, true, ""
 		case 3:
-			return core.Toast("info", "Working: wait until it finishes"), true, ""
+			return core.Toast("info", tr("Working: wait until it finishes")), true, ""
 		case 4:
 			if isKey(m, "enter", "esc", "q") {
 				r.stage = 0
@@ -190,22 +190,22 @@ func (r *Runner) Lines(env *core.Env, w, h int) []ui.Line {
 	p := env.P
 	switch r.stage {
 	case 1:
-		return []ui.Line{heading(env, r.title), gap(), ui.Of(ui.S(p.Ac, ui.Spin(env.Frame)+"  "), ui.S(p.Text, "Checking permissions…"))}
+		return []ui.Line{heading(env, r.title), gap(), ui.Of(ui.S(p.Ac, ui.Spin(env.Frame)+"  "), ui.S(p.Text, tr("Checking permissions…")))}
 	case 2:
-		lines := []ui.Line{heading(env, "Administrator password"), gap()}
-		for _, l := range ui.Wrap("Changing the system needs your password. It goes only to sudo and is never saved or shown.", w) {
+		lines := []ui.Line{heading(env, tr("Administrator password")), gap()}
+		for _, l := range ui.Wrap(tr("Changing the system needs your password. It goes only to sudo and is never saved or shown."), w) {
 			lines = append(lines, plain(env, l))
 		}
 		lines = append(lines, gap())
 		if r.wrong {
-			lines = append(lines, ui.T(p.Bad, ui.G.Bad+" That password did not work. Try again."), gap())
+			lines = append(lines, ui.T(p.Bad, ui.G.Bad+" "+tr("That password did not work. Try again.")), gap())
 		}
-		field := append([]ui.Seg{ui.S(p.Mu, "password  ")}, r.pw.Segs(p, true, max(w-14, 8))...)
-		lines = append(lines, ui.Of(field...), gap(), ui.Of(button(env, true, "Continue  ⏎"), space(1), button(env, false, "Cancel  esc")), gap())
-		return append(lines, muted(env, "Prefer to type it in the terminal? Cancel, then press t."))
+		field := append([]ui.Seg{ui.S(p.Mu, tr("password  "))}, r.pw.Segs(p, true, max(w-14, 8))...)
+		lines = append(lines, ui.Of(field...), gap(), ui.Of(button(env, true, tr("Continue  ⏎")), space(1), button(env, false, tr("Cancel  esc"))), gap())
+		return append(lines, muted(env, tr("Prefer to type it in the terminal? Cancel, then press t.")))
 	}
 	snap := r.snapshot()
-	steps := []string{"Build the new system", "Switch to it", "Restart what changed"}
+	steps := []string{tr("Build the new system"), tr("Switch to it"), tr("Restart what changed")}
 	cur := r.phase(snap)
 	lines := []ui.Line{}
 	switch r.stage {
@@ -214,9 +214,9 @@ func (r *Runner) Lines(env *core.Env, w, h int) []ui.Line {
 		lines = append(lines, ui.Of(ui.S(p.Ac, ui.Spin(env.Frame)+"  "), ui.S(p.Text.Bold(true), r.title), ui.S(p.Mu, "  "+el.String())), gap())
 	default:
 		if r.OK {
-			lines = append(lines, ui.T(p.Ok.Bold(true), ui.G.Tick+"  Done in "+r.took.Round(time.Second).String()), gap())
+			lines = append(lines, ui.T(p.Ok.Bold(true), ui.G.Tick+"  "+tr("Done in %s", r.took.Round(time.Second).String())), gap())
 		} else {
-			lines = append(lines, ui.T(p.Bad.Bold(true), ui.G.Bad+"  It did not finish"), gap())
+			lines = append(lines, ui.T(p.Bad.Bold(true), ui.G.Bad+"  "+tr("It did not finish")), gap())
 		}
 	}
 	for i, s := range steps {
@@ -234,7 +234,7 @@ func (r *Runner) Lines(env *core.Env, w, h int) []ui.Line {
 	// lo último que dijo el comando, atenuado
 	room := h - len(lines) - 5
 	if room > 0 && len(snap) > 0 {
-		lines = append(lines, gap(), heading(env, "Output"))
+		lines = append(lines, gap(), heading(env, tr("Output")))
 		if len(snap) > room {
 			snap = snap[len(snap)-room:]
 		}
@@ -245,9 +245,9 @@ func (r *Runner) Lines(env *core.Env, w, h int) []ui.Line {
 	if r.stage == 4 {
 		lines = append(lines, gap())
 		if !r.OK {
-			lines = append(lines, muted(env, fmt.Sprintf("Exit code %d. More detail: maxor logs --last", r.Code)))
+			lines = append(lines, muted(env, fmt.Sprintf(tr("Exit code %d. More detail: maxor logs --last"), r.Code)))
 		}
-		lines = append(lines, ui.Of(button(env, true, "Close  ⏎")))
+		lines = append(lines, ui.Of(button(env, true, tr("Close  ⏎"))))
 	}
 	return lines
 }
@@ -256,11 +256,11 @@ func (r *Runner) Lines(env *core.Env, w, h int) []ui.Line {
 func (r *Runner) Hints() []ui.Hint {
 	switch r.stage {
 	case 2:
-		return []ui.Hint{{Key: "⏎", Action: "continue"}, {Key: "esc", Action: "cancel"}}
+		return []ui.Hint{{Key: "⏎", Action: tr("continue")}, {Key: "esc", Action: tr("cancel")}}
 	case 3:
-		return []ui.Hint{{Key: "…", Action: "working: please wait"}}
+		return []ui.Hint{{Key: "…", Action: tr("working: please wait")}}
 	case 4:
-		return []ui.Hint{{Key: "⏎", Action: "close"}}
+		return []ui.Hint{{Key: "⏎", Action: tr("close")}}
 	}
 	return nil
 }

@@ -4,6 +4,7 @@
 package maxor
 
 import (
+	"github.com/bgrados31/maxor-os/tui/internal/i18n"
 	"bufio"
 	"bytes"
 	"context"
@@ -71,7 +72,7 @@ func (e execRunner) Run(ctx context.Context, args ...string) ([]byte, []byte, in
 	var out, errb bytes.Buffer
 	cmd.Stdout, cmd.Stderr = &out, &errb
 	// La pantalla habla con la CLI por JSON: sin colores ni animación.
-	cmd.Env = append(os.Environ(), "NO_COLOR=1", "MAXOR_NO_TUI=1")
+	cmd.Env = cliEnv()
 	err := cmd.Run()
 	code := 0
 	var ee *exec.ExitError
@@ -98,7 +99,17 @@ func NewWith(r Runner) *Client {
 }
 
 // Command devuelve un comando listo para ceder la terminal (p. ej. con sudo).
-func (c *Client) Command(args ...string) *exec.Cmd { return exec.Command(c.bin, args...) }
+func (c *Client) Command(args ...string) *exec.Cmd {
+	cmd := exec.Command(c.bin, args...)
+	cmd.Env = append(os.Environ(), "MAXOR_LANG="+i18n.Code())
+	return cmd
+}
+
+// cliEnv is the environment the CLI runs with when the screen reads its answers: no colors or
+// animation, and the language of the interface, so what the CLI says matches what the screen says.
+func cliEnv() []string {
+	return append(os.Environ(), "NO_COLOR=1", "MAXOR_NO_TUI=1", "MAXOR_LANG="+i18n.Code())
+}
 
 func (c *Client) run(ctx context.Context, args ...string) ([]byte, error) {
 	out, errb, code, err := c.r.Run(ctx, args...)
@@ -499,7 +510,10 @@ func (c *Client) Stream(ctx context.Context, stdin string, onLine func(string), 
 // Stream de la CLI real.
 func (e execRunner) Stream(ctx context.Context, stdin string, onLine func(string), args ...string) (int, error) {
 	cmd := exec.CommandContext(ctx, e.bin, args...)
-	cmd.Env = append(os.Environ(), "NO_COLOR=1", "MAXOR_NO_TUI=1")
+	cmd.Env = cliEnv()
+	// The screen recognises sudo's and nixos-rebuild's own lines (a wrong password, the phase of the
+	// switch) by their English text: those programs speak English here whatever the system language is.
+	cmd.Env = append(cmd.Env, "LC_MESSAGES=C", "LANGUAGE=")
 	if stdin != "" {
 		cmd.Stdin = strings.NewReader(stdin + "\n")
 		cmd.Env = append(cmd.Env, "MAXOR_SUDO_STDIN=1")

@@ -124,7 +124,7 @@ func (w *Installer) value(id string) string {
 	case "disk":
 		return strings.TrimPrefix(st.Disk, "/dev/")
 	case "strategy":
-		return map[string]string{"whole": "erase disk", "alongside": "alongside"}[st.Strategy]
+		return map[string]string{"whole": tr("erase disk"), "alongside": tr("alongside")}[st.Strategy]
 	case "storage":
 		v := st.Filesystem
 		if st.Encrypt {
@@ -137,7 +137,7 @@ func (w *Installer) value(id string) string {
 		return strings.ToLower(lookName(st.Theme))
 	case "hardware":
 		if st.GPU == "" || st.GPU == "auto" {
-			return "detected"
+			return tr("detected")
 		}
 		return st.GPU
 	}

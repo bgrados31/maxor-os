@@ -123,11 +123,16 @@ ui_swatch() { # ui_swatch #hex ...  → bloques de color
 }
 
 ui_confirm() { # ui_confirm pregunta|@clave [args…]  →  0 si el usuario acepta
-  local r q
+  local r q hint yes w
   msg q "$@"
+  msg hint @ui.yes_no
+  msg yes @ui.yes_words
   if [ "$UI_RAIL" = 1 ]; then ui_rail; fi
   UI_GAP=0
-  printf '%s%s%s  %s %s[y/N]%s ' "$E_AC" "$G_ASK" "$E_RST" "$q" "$E_MU" "$E_RST"
+  printf '%s%s%s  %s %s%s%s ' "$E_AC" "$G_ASK" "$E_RST" "$q" "$E_MU" "$hint" "$E_RST"
   read -r r
-  case "$r" in y | Y | yes | YES | s | S) return 0 ;; *) return 1 ;; esac
+  r="${r,,}"
+  # «y» y «yes» valen en todos los idiomas; cada catálogo añade sus palabras (ui.yes_words)
+  for w in y yes $yes; do [ "$r" = "$w" ] && return 0; done
+  return 1
 }

@@ -46,10 +46,14 @@ esos colores en vez del halo por defecto.
    Hyprland (bordes) y GTK.
 2. **Modo claro u oscuro**: se avisa a DMS (`dms ipc call theme light|dark`) según el `mode` del
    tema.
-3. **Lockscreen**: se rellena la plantilla de hyprlock y se escribe
-   `~/.config/maxor/current/hyprlock.conf`. En temas claros el fondo desenfocado se aclara para
-   que el texto oscuro se lea.
-4. **Forma**: si el tema trae `style.json`, se genera `~/.config/maxor/current/hyprland.lua` y se
+3. **Lockscreen**: se rellena la plantilla de hyprlock (`home/lockscreen.nix`; marcadores `@FG_RGB@`, `@AC_RGB@`,
+   `@AC2_RGB@`, `@BG_RGB@`…) y se escribe `~/.config/maxor/current/hyprlock.conf`. El diseño es el mismo en todos los
+   temas: la marca en Cinzel arriba, un reloj grande y ligero con una línea del segundo acento, y una tarjeta de
+   cristal con el usuario y un campo de contraseña en forma de píldora con borde en degradado de los dos acentos.
+   En temas claros el fondo desenfocado se aclara para que el texto oscuro se lea. `hypridle` baja el brillo a
+   los 150 s, bloquea a los 300 s y apaga la pantalla a los 420 s.
+4. **Forma**: si el tema trae `style.json`, se genera `~/.config/maxor/current/hyprland.lua` (la velocidad de las
+   animaciones usa las curvas de Maxor que define `home/hyprland/settings.lua`) y se
    recarga Hyprland (esquinas, espacios, desenfoque y velocidad de las animaciones). Esta forma se
    carga después de la de DMS, que genera su propio layout y de otro modo la pisaría.
 5. **Wallpaper**: si el tema trae `wallpaper.png`, se aplica con DMS.
@@ -170,8 +174,10 @@ Un tema solo aporta datos. `maxor theme install` y `apply`:
 ## Añadir un tema oficial
 
 Crea `themes/<id>/colors.json` y `themes/<id>/theme.toml` en el repositorio. El build genera el
-wallpaper (degradado radial entre `s2` y `bg`) y lo instala junto al resto; no hay que tocar
-código. Comprueba el contraste antes de proponerlo (ver [CONTRIBUTING.md](../CONTRIBUTING.md)).
+wallpaper y lo instala junto al resto; no hay que tocar código. Todos los wallpapers llevan la misma firma, que
+genera `home/maxor.nix` con ImageMagick: un degradado (el de `gradient.json`, o un halo de `s2` sobre `bg`), una
+viñeta suave, un resplandor del segundo acento (`ac2`) en la esquina superior derecha con tres órbitas finas, y
+grano fino que además evita las bandas. En los temas claros el resplandor es más tenue y las órbitas son oscuras. Comprueba el contraste antes de proponerlo (ver [CONTRIBUTING.md](../CONTRIBUTING.md)).
 
 ## Limitaciones conocidas
 

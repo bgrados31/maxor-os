@@ -110,12 +110,12 @@ const (
 
 func NewStore() *Store {
 	s := &Store{marks: map[string]bool{}, zone: zList, busy: map[string]string{}, hdr: storeHeader, itemH: storeItemH}
-	s.in.Placeholder = "Search apps in nixpkgs and Flathub…"
+	s.in.Placeholder = tr("Search apps in nixpkgs and Flathub…")
 	return s
 }
 
 func (s *Store) ID() string    { return "store" }
-func (s *Store) Title() string { return "Store" }
+func (s *Store) Title() string { return tr("Store") }
 
 func (s *Store) Init(env *core.Env) tea.Cmd {
 	var cmds []tea.Cmd
@@ -180,7 +180,7 @@ func (s *Store) enqueue(env *core.Env, jobs []job) tea.Cmd {
 	added := 0
 	for _, j := range jobs {
 		if st := s.busy[j.it.key()]; st != "" {
-			skipped = j.it.Name + " is already " + map[string]string{"queued": "queued", "installing": "being installed", "removing": "being removed", "updating": "being updated"}[st]
+			skipped = tr("%s is already %s", j.it.Name, map[string]string{"queued": tr("queued"), "installing": tr("being installed"), "removing": tr("being removed"), "updating": tr("being updated")}[st])
 			continue
 		}
 		s.busy[j.it.key()] = "queued"
@@ -204,13 +204,13 @@ func (s *Store) startNext(env *core.Env) tea.Cmd {
 	switch j.op {
 	case "update":
 		s.busy[it.key()] = "updating"
-		return env.Tasks.Start(task.Task{ID: "store.update", Label: "Updating " + it.Name, Run: func(ctx context.Context) (any, error) {
+		return env.Tasks.Start(task.Task{ID: "store.update", Label: tr("Updating %s", it.Name), Run: func(ctx context.Context) (any, error) {
 			return it, env.Client.UpdateApp(ctx, it.ID)
 		}})
 	case "remove":
 		s.busy[it.key()] = "removing"
 		purge := j.purge
-		return env.Tasks.Start(task.Task{ID: "store.remove", Label: "Removing " + it.Name, Run: func(ctx context.Context) (any, error) {
+		return env.Tasks.Start(task.Task{ID: "store.remove", Label: tr("Removing %s", it.Name), Run: func(ctx context.Context) (any, error) {
 			left, err := env.Client.Remove(ctx, it.ID)
 			if err == nil && purge && len(left) > 0 {
 				err = env.Client.Purge(ctx, it.ID)
@@ -220,7 +220,7 @@ func (s *Store) startNext(env *core.Env) tea.Cmd {
 		}})
 	}
 	s.busy[it.key()] = "installing"
-	return env.Tasks.Start(task.Task{ID: "store.install", Label: "Installing " + it.Name, Run: func(ctx context.Context) (any, error) {
+	return env.Tasks.Start(task.Task{ID: "store.install", Label: tr("Installing %s", it.Name), Run: func(ctx context.Context) (any, error) {
 		return it, env.Client.Install(ctx, it.Source, it.ID)
 	}})
 }
@@ -245,7 +245,7 @@ func (s *Store) finishRemovals(env *core.Env) tea.Cmd {
 		total += sumBytes(e.Left)
 	}
 	s.askAcc = nil
-	return core.Toast("warn", fmt.Sprintf("Their data stays on disk (%s): y deletes it, n keeps it", humanBytes(total)))
+	return core.Toast("warn", fmt.Sprintf(tr("Their data stays on disk (%s): y deletes it, n keeps it"), humanBytes(total)))
 }
 
 func (s *Store) menuEntries(env *core.Env) []menuEntry {
@@ -253,7 +253,7 @@ func (s *Store) menuEntries(env *core.Env) []menuEntry {
 	single := len(items) == 1
 	var out []menuEntry
 	if single {
-		out = append(out, menuEntry{"Open", "start it now", "open", "o"})
+		out = append(out, menuEntry{tr("Open"), tr("start it now"), "open", "o"})
 	}
 	var upd []maxor.AppUpdate
 	for _, it := range items {
@@ -262,25 +262,25 @@ func (s *Store) menuEntries(env *core.Env) []menuEntry {
 		}
 	}
 	if len(upd) > 0 {
-		hint := fmt.Sprintf("%d of %d have a new version", len(upd), len(items))
+		hint := trn("%d of %d has a new version", "%d of %d have a new version", len(upd), len(upd), len(items))
 		if single {
 			hint = "to " + upd[0].Latest
 			if upd[0].Current != "" {
 				hint = upd[0].Current + " → " + upd[0].Latest
 			}
 		}
-		out = append(out, menuEntry{"Update", hint, "update", "u"})
+		out = append(out, menuEntry{tr("Update"), hint, "update", "u"})
 	}
-	out = append(out, menuEntry{"Remove", "keeps your saves and settings", "remove", "r"})
-	hint := "removes the app and its folders"
+	out = append(out, menuEntry{tr("Remove"), tr("keeps your saves and settings"), "remove", "r"})
+	hint := tr("removes the app and its folders")
 	if s.menu.loaded && len(s.menu.data) > 0 {
-		hint = "frees " + humanBytes(sumBytes(s.menu.data))
+		hint = tr("frees %s", humanBytes(sumBytes(s.menu.data)))
 	} else if s.menu.loaded {
-		hint = "no extra folders to delete"
+		hint = tr("no extra folders to delete")
 	}
-	label := "Remove and delete its data"
+	label := tr("Remove and delete its data")
 	if !single {
-		label = "Remove and delete their data"
+		label = tr("Remove and delete their data")
 	}
 	return append(out, menuEntry{label, hint, "purge", "d"})
 }
@@ -317,7 +317,7 @@ func (s *Store) menuKey(env *core.Env, m tea.KeyMsg) (core.Screen, tea.Cmd) {
 		case "open":
 			it := mn.items[0]
 			s.menu = nil
-			return s, env.Tasks.Start(task.Task{ID: "store.open", Label: "Opening " + it.Name, Run: func(ctx context.Context) (any, error) {
+			return s, env.Tasks.Start(task.Task{ID: "store.open", Label: tr("Opening %s", it.Name), Run: func(ctx context.Context) (any, error) {
 				return it, env.Client.OpenApp(ctx, it.ID)
 			}})
 		case "update":
@@ -372,7 +372,7 @@ func (s *Store) openMenu(env *core.Env, items []item, sel string) tea.Cmd {
 	}
 	key := strings.Join(keys, ",")
 	s.menu.dataKey = key
-	return env.Tasks.Start(task.Task{ID: "store.data", Label: "Looking at their folders", Quiet: true, Run: func(ctx context.Context) (any, error) {
+	return env.Tasks.Start(task.Task{ID: "store.data", Label: tr("Looking at their folders"), Quiet: true, Run: func(ctx context.Context) (any, error) {
 		var all []maxor.Leftover
 		for _, it := range items {
 			l, err := env.Client.AppData(ctx, it.ID)
@@ -400,9 +400,9 @@ func (s *Store) OwnsHorizontal() bool { return s.zone == zChips }
 func (s *Store) chips(env *core.Env) []chipDef {
 	var out []chipDef
 	if s.searched {
-		out = append(out, chipDef{label: fmt.Sprintf("Results %d", len(s.results)), view: 1})
+		out = append(out, chipDef{label: fmt.Sprintf(tr("Results %d"), len(s.results)), view: 1})
 	}
-	inst := fmt.Sprintf("Installed %d", len(env.Data.Apps))
+	inst := fmt.Sprintf(tr("Installed %d"), len(env.Data.Apps))
 	if n := len(env.Data.AppUpdates); n > 0 {
 		inst += fmt.Sprintf(" %s%d", ui.G.Up, n)
 	}
@@ -468,7 +468,7 @@ func (s *Store) search(env *core.Env) tea.Cmd {
 		return nil
 	}
 	s.query = q
-	return env.Tasks.Start(task.Task{ID: "store.search", Label: "Searching " + q, Run: func(ctx context.Context) (any, error) {
+	return env.Tasks.Start(task.Task{ID: "store.search", Label: tr("Searching %s", q), Run: func(ctx context.Context) (any, error) {
 		return env.Client.Search(ctx, q)
 	}})
 }
@@ -484,7 +484,7 @@ func (s *Store) Update(env *core.Env, msg tea.Msg) (core.Screen, tea.Cmd) {
 		return s, s.search(env)
 	case OpenAppMsg:
 		it := item{ID: m.ID, Name: m.Name}
-		return s, env.Tasks.Start(task.Task{ID: "store.open", Label: "Opening " + m.Name, Run: func(ctx context.Context) (any, error) {
+		return s, env.Tasks.Start(task.Task{ID: "store.open", Label: tr("Opening %s", m.Name), Run: func(ctx context.Context) (any, error) {
 			return it, env.Client.OpenApp(ctx, it.ID)
 		}})
 	case task.DoneMsg:
@@ -494,7 +494,7 @@ func (s *Store) Update(env *core.Env, msg tea.Msg) (core.Screen, tea.Cmd) {
 		switch m.ID {
 		case "store.search":
 			if m.Err != nil {
-				return s, core.Toast("bad", "Search failed: "+oneLine(m.Err.Error()))
+				return s, core.Toast("bad", tr("Search failed: %s", oneLine(m.Err.Error())))
 			}
 			s.results, _ = m.Value.([]maxor.Result)
 			s.searched, s.showInst = true, false
@@ -504,22 +504,22 @@ func (s *Store) Update(env *core.Env, msg tea.Msg) (core.Screen, tea.Cmd) {
 			it, _ := m.Value.(item)
 			delete(s.busy, it.key())
 			if m.Err != nil {
-				return s, tea.Batch(core.Toast("bad", "Could not install "+it.Name+": "+oneLine(m.Err.Error())), s.startNext(env))
+				return s, tea.Batch(core.Toast("bad", tr("Could not install %s: %s", it.Name, oneLine(m.Err.Error()))), s.startNext(env))
 			}
 			delete(s.marks, it.key())
-			return s, tea.Batch(core.Toast("ok", "Installed "+it.Name+". Find it in Super+Space, or press ⏎ here and choose Open"), core.Note("ok", "Installed "+it.Name), LoadApps(env, true), LoadAppUpdates(env, true), s.startNext(env))
+			return s, tea.Batch(core.Toast("ok", tr("Installed %s. Find it in Super+Space, or press ⏎ here and choose Open", it.Name)), core.Note("ok", tr("Installed %s", it.Name)), LoadApps(env, true), LoadAppUpdates(env, true), s.startNext(env))
 		case "store.remove":
 			r, _ := m.Value.(removed)
 			delete(s.busy, r.it.key())
 			delete(s.marks, r.it.key())
 			if m.Err != nil {
-				return s, tea.Batch(core.Toast("bad", "Could not remove "+r.it.Name+": "+oneLine(m.Err.Error())), s.startNext(env), s.finishRemovals(env))
+				return s, tea.Batch(core.Toast("bad", tr("Could not remove %s: %s", r.it.Name, oneLine(m.Err.Error()))), s.startNext(env), s.finishRemovals(env))
 			}
-			cmds := []tea.Cmd{core.Note("ok", "Removed "+r.it.Name), LoadApps(env, true), LoadAppUpdates(env, true), s.startNext(env)}
+			cmds := []tea.Cmd{core.Note("ok", tr("Removed %s", r.it.Name)), LoadApps(env, true), LoadAppUpdates(env, true), s.startNext(env)}
 			if len(r.left) > 0 {
 				s.askAcc = append(s.askAcc, purgeEntry{ID: r.it.ID, Name: r.it.Name, Left: r.left})
 			} else {
-				cmds = append(cmds, core.Toast("ok", "Removed "+r.it.Name))
+				cmds = append(cmds, core.Toast("ok", tr("Removed %s", r.it.Name)))
 			}
 			cmds = append(cmds, s.finishRemovals(env))
 			return s, tea.Batch(cmds...)
@@ -531,23 +531,23 @@ func (s *Store) Update(env *core.Env, msg tea.Msg) (core.Screen, tea.Cmd) {
 		case "store.open":
 			it, _ := m.Value.(item)
 			if m.Err != nil {
-				return s, core.Toast("bad", "Could not open "+it.Name+": "+oneLine(m.Err.Error()))
+				return s, core.Toast("bad", tr("Could not open %s: %s", it.Name, oneLine(m.Err.Error())))
 			}
-			return s, core.Toast("ok", "Opening "+it.Name+"… give it a few seconds")
+			return s, core.Toast("ok", tr("Opening %s… give it a few seconds", it.Name))
 		case "store.update":
 			it, _ := m.Value.(item)
 			delete(s.busy, it.key())
 			delete(s.marks, it.key())
 			if m.Err != nil {
-				return s, tea.Batch(core.Toast("bad", "Could not update "+it.Name+": "+oneLine(m.Err.Error())), s.startNext(env))
+				return s, tea.Batch(core.Toast("bad", tr("Could not update %s: %s", it.Name, oneLine(m.Err.Error()))), s.startNext(env))
 			}
-			return s, tea.Batch(core.Toast("ok", "Updated "+it.Name), core.Note("ok", "Updated "+it.Name), LoadApps(env, true), LoadAppUpdates(env, true), s.startNext(env))
+			return s, tea.Batch(core.Toast("ok", tr("Updated %s", it.Name)), core.Note("ok", tr("Updated %s", it.Name)), LoadApps(env, true), LoadAppUpdates(env, true), s.startNext(env))
 		case "store.purge":
 			name, _ := m.Value.(string)
 			if m.Err != nil {
-				return s, core.Toast("bad", "Could not delete the data of "+name+": "+oneLine(m.Err.Error()))
+				return s, core.Toast("bad", tr("Could not delete the data of %s: %s", name, oneLine(m.Err.Error())))
 			}
-			return s, tea.Batch(core.Toast("ok", "Deleted the data of "+name), core.Note("ok", "Deleted the data of "+name), s.startNext(env))
+			return s, tea.Batch(core.Toast("ok", tr("Deleted the data of %s", name)), core.Note("ok", tr("Deleted the data of %s", name)), s.startNext(env))
 		}
 	case tea.KeyMsg:
 		return s.key(env, m)
@@ -572,7 +572,7 @@ func (s *Store) key(env *core.Env, m tea.KeyMsg) (core.Screen, tea.Cmd) {
 				names = append(names, e.Name)
 			}
 			label := strings.Join(names, ", ")
-			return s, env.Tasks.Start(task.Task{ID: "store.purge", Label: "Deleting the data of " + label, Run: func(ctx context.Context) (any, error) {
+			return s, env.Tasks.Start(task.Task{ID: "store.purge", Label: tr("Deleting the data of %s", label), Run: func(ctx context.Context) (any, error) {
 				for _, e := range ask.Entries {
 					if err := env.Client.Purge(ctx, e.ID); err != nil {
 						return label, err
@@ -582,7 +582,7 @@ func (s *Store) key(env *core.Env, m tea.KeyMsg) (core.Screen, tea.Cmd) {
 			}})
 		case isKey(m, "n", "esc"):
 			s.ask = nil
-			return s, core.Toast("info", "Kept their data. Delete it later: maxor remove <app> --purge")
+			return s, core.Toast("info", tr("Kept their data. Delete it later: maxor remove <app> --purge"))
 		}
 	}
 	switch s.zone {
@@ -713,11 +713,11 @@ func (s *Store) key(env *core.Env, m tea.KeyMsg) (core.Screen, tea.Cmd) {
 			}
 		}
 		if len(todo) == 0 {
-			return s, core.Toast("ok", "Nothing to update there: it is already up to date")
+			return s, core.Toast("ok", tr("Nothing to update there: it is already up to date"))
 		}
 		return s, s.enqueue(env, todo)
 	case isKey(m, "R"):
-		return s, tea.Batch(core.Toast("info", "Looking for new versions…"), LoadAppUpdatesFresh(env))
+		return s, tea.Batch(core.Toast("info", tr("Looking for new versions…")), LoadAppUpdatesFresh(env))
 	case isKey(m, "U"):
 		var todo []job
 		for _, it := range s.installedItems(env) {
@@ -726,7 +726,7 @@ func (s *Store) key(env *core.Env, m tea.KeyMsg) (core.Screen, tea.Cmd) {
 			}
 		}
 		if len(todo) == 0 {
-			return s, core.Toast("ok", "Everything is up to date")
+			return s, core.Toast("ok", tr("Everything is up to date"))
 		}
 		return s, s.enqueue(env, todo)
 	case isKey(m, "r"):
@@ -750,13 +750,13 @@ func (s *Store) menuLines(env *core.Env, w int) []ui.Line {
 	mn := s.menu
 	title := mn.items[0].Name
 	if len(mn.items) > 1 {
-		title = fmt.Sprintf("%d apps", len(mn.items))
+		title = trn("%d app", "%d apps", len(mn.items))
 	}
-	lines := []ui.Line{heading(env, "What do you want to do?"), gap(), ui.T(p.Bold, title)}
+	lines := []ui.Line{heading(env, tr("What do you want to do?")), gap(), ui.T(p.Bold, title)}
 	if len(mn.items) > 1 {
 		for i, it := range mn.items {
 			if i == 5 {
-				lines = append(lines, muted(env, fmt.Sprintf("and %d more", len(mn.items)-5)))
+				lines = append(lines, muted(env, fmt.Sprintf(tr("and %d more"), len(mn.items)-5)))
 				break
 			}
 			lines = append(lines, muted(env, it.Name))
@@ -764,12 +764,12 @@ func (s *Store) menuLines(env *core.Env, w int) []ui.Line {
 	}
 	lines = append(lines, gap())
 	if mn.confirm {
-		size := "their folders"
+		size := tr("their folders")
 		if len(mn.data) > 0 {
 			size = humanBytes(sumBytes(mn.data))
 		}
-		lines = append(lines, ui.T(p.Warn.Bold(true), ui.G.Warn+" This cannot be undone"))
-		for _, l := range ui.Wrap("It deletes the app and "+size+" of saves and settings:", w) {
+		lines = append(lines, ui.T(p.Warn.Bold(true), ui.G.Warn+" "+tr("This cannot be undone")))
+		for _, l := range ui.Wrap(tr("It deletes the app and %s of saves and settings:", size), w) {
 			lines = append(lines, plain(env, l))
 		}
 		for _, lo := range mn.data {
@@ -777,7 +777,7 @@ func (s *Store) menuLines(env *core.Env, w int) []ui.Line {
 				lines = append(lines, ui.T(p.Warn, l))
 			}
 		}
-		return append(lines, gap(), ui.Of(button(env, true, "Yes, delete  ⏎"), space(1), button(env, false, "No  esc")))
+		return append(lines, gap(), ui.Of(button(env, true, tr("Yes, delete  ⏎")), space(1), button(env, false, tr("No  esc"))))
 	}
 	for i, e := range s.menuEntries(env) {
 		lines = append(lines, ui.Line{L: []ui.Seg{ui.S(p.Text, " "+e.label)}, R: []ui.Seg{ui.S(p.Mu, e.key+" ")}, Sel: i == mn.sel}, ui.Line{L: []ui.Seg{ui.S(p.Mu, " "+e.hint)}, Sel: i == mn.sel}, gap())
@@ -800,10 +800,10 @@ func srcName(src string) string {
 func (s *Store) searchBox(env *core.Env, w int) []ui.Line {
 	p2 := ui.NewPainter(env.Theme, env.Theme.P.S2)
 	bar := ui.S(p2.Fill, " ")
-	hint := "↑ or / to search "
+	hint := tr("↑ or / to search ")
 	if s.zone == zSearch {
 		bar = ui.S(p2.Ac.Bold(true), "▌")
-		hint = "⏎ search · ↓ results · esc "
+		hint = tr("⏎ search · ↓ results · esc ")
 	}
 	pad := ui.Line{L: ui.Spread([]ui.Seg{bar}, nil, w, p2.Fill)}
 	left := append([]ui.Seg{bar, ui.S(p2.Ac, "  "+ui.G.Find+"  ")}, s.in.Segs(p2, s.zone == zSearch, w-34)...)
@@ -841,11 +841,11 @@ func (s *Store) tabsRow(env *core.Env, w int) ui.Line {
 	}
 	var right []ui.Seg
 	for _, st := range []struct{ id, label string }{
-		{"store.search", "Searching " + s.query},
-		{"store.install", "Installing"},
-		{"store.update", "Updating"},
-		{"store.remove", "Removing"},
-		{"data.apps", "Loading your apps"},
+		{"store.search", tr("Searching %s", s.query)},
+		{"store.install", tr("Installing")},
+		{"store.update", tr("Updating")},
+		{"store.remove", tr("Removing")},
+		{"data.apps", tr("Loading your apps")},
 	} {
 		if l, ok := working(env, st.id, st.label); ok {
 			right = l.L
@@ -853,11 +853,11 @@ func (s *Store) tabsRow(env *core.Env, w int) ui.Line {
 		}
 	}
 	if n := len(s.queue); n > 0 {
-		right = append(right, ui.S(p.Mu, fmt.Sprintf("  +%d queued", n)))
+		right = append(right, ui.S(p.Mu, fmt.Sprintf(tr("  +%d queued"), n)))
 	}
 	if right == nil {
 		if n := s.markedCount(s.items(env)); n > 0 {
-			right = []ui.Seg{ui.S(p.Ac, fmt.Sprintf("%s %d selected ", ui.G.On, n))}
+			right = []ui.Seg{ui.S(p.Ac, ui.G.On+" "+trn("%d selected", "%d selected", n)+" ")}
 		}
 	}
 	return ui.Line{L: ui.Spread(left, right, w, p.Fill)}
@@ -887,23 +887,23 @@ func (s *Store) actionBar(env *core.Env, w int) ui.Line {
 			}
 		}
 		if upd > 0 {
-			bs = append(bs, btn{fmt.Sprintf("Update %d", upd), "u", true})
+			bs = append(bs, btn{fmt.Sprintf(tr("Update %d"), upd), "u", true})
 		} else {
-			bs = append(bs, btn{"Check for updates", "R", false})
+			bs = append(bs, btn{tr("Check for updates"), "R", false})
 		}
-		bs = append(bs, btn{fmt.Sprintf("Remove %d", n), "r", upd == 0})
-		note = "esc clears the selection"
+		bs = append(bs, btn{fmt.Sprintf(tr("Remove %d"), n), "r", upd == 0})
+		note = tr("esc clears the selection")
 	case s.installedView():
-		bs = append(bs, btn{"Check for updates", "R", len(env.Data.AppUpdates) == 0})
+		bs = append(bs, btn{tr("Check for updates"), "R", len(env.Data.AppUpdates) == 0})
 		if k := len(env.Data.AppUpdates); k > 0 {
-			bs = append([]btn{{fmt.Sprintf("Update all %d", k), "U", true}}, bs...)
+			bs = append([]btn{{fmt.Sprintf(tr("Update all %d"), k), "U", true}}, bs...)
 		}
-		note = "space selects apps to remove or update"
+		note = tr("space selects apps to remove or update")
 	case n > 0:
-		bs = append(bs, btn{fmt.Sprintf("Install %d", n), "enter", true})
-		note = "esc clears the selection"
+		bs = append(bs, btn{fmt.Sprintf(tr("Install %d"), n), "enter", true})
+		note = tr("esc clears the selection")
 	default:
-		note = "space selects several apps to install together"
+		note = tr("space selects several apps to install together")
 	}
 	var segs []ui.Seg
 	x := 0
@@ -939,7 +939,7 @@ func (s *Store) Main(env *core.Env, w, h int) []ui.Line {
 	loading := env.Tasks.Loading("store.search") && (s.showInst || !s.searched)
 	if (!env.Data.AppsLoaded && !s.searched) || loading {
 		if err := env.Data.Err["apps"]; err != nil && !env.Data.AppsLoaded && !loading {
-			return append(lines, failed(env, "Could not load your apps", err)...)
+			return append(lines, failed(env, tr("Could not load your apps"), err)...)
 		}
 		for i := 0; i < s.rows && i < 5; i++ {
 			lines = append(lines, ui.Of(ui.S(p.Mu, "   "), ui.Skeleton(p, env.Frame+i*2, 14+i*3%9).L[0]), ui.Of(ui.S(p.Mu, "   "), ui.Skeleton(p, env.Frame+i*2+1, 30+i*5%12).L[0]), gap())
@@ -949,9 +949,9 @@ func (s *Store) Main(env *core.Env, w, h int) []ui.Line {
 	if len(its) == 0 {
 		switch {
 		case s.searched && !s.showInst:
-			return append(lines, plain(env, "Nothing matches “"+s.query+"”."), muted(env, "Try another word, or fewer letters."))
+			return append(lines, plain(env, tr("Nothing matches “%s”.", s.query)), muted(env, tr("Try another word, or fewer letters.")))
 		default:
-			return append(lines, plain(env, "Nothing installed with maxor yet."), gap(), muted(env, "Press / and search: brave, btop, org.mozilla.firefox…"))
+			return append(lines, plain(env, tr("Nothing installed with maxor yet.")), gap(), muted(env, tr("Press / and search: brave, btop, org.mozilla.firefox…")))
 		}
 	}
 	inst := s.installedView()
@@ -981,15 +981,15 @@ func (s *Store) Main(env *core.Env, w, h int) []ui.Line {
 		switch st := s.busy[it.key()]; {
 		case st != "":
 			box = ui.S(p.Warn, ui.G.Off+"  ")
-			status = ui.S(p.Warn, map[string]string{"queued": "queued", "installing": "installing…", "removing": "removing…", "updating": "updating…"}[st])
+			status = ui.S(p.Warn, map[string]string{"queued": "queued", "installing": tr("installing…"), "removing": tr("removing…"), "updating": tr("updating…")}[st])
 		case inst && hasUpd:
 			status = ui.S(p.Warn.Bold(true), ui.G.Up+" "+u.Latest+" available")
 		case inst && env.Data.UpdatesKnown:
-			status = ui.S(p.Ok, ui.G.Tick+" up to date")
+			status = ui.S(p.Ok, ui.G.Tick+" "+tr("up to date"))
 		case inst && env.Data.Err["appupdates"] != nil:
-			status = ui.S(p.Mu, "could not check")
+			status = ui.S(p.Mu, tr("could not check"))
 		case inst:
-			status = ui.S(p.Mu, "checking…")
+			status = ui.S(p.Mu, tr("checking…"))
 		case it.Installed:
 			status = ui.S(p.Ok, "installed")
 		default:
@@ -1046,8 +1046,8 @@ func (s *Store) Side(env *core.Env, w, h int) []ui.Line {
 		for _, e := range s.ask.Entries {
 			total += sumBytes(e.Left)
 		}
-		lines := []ui.Line{heading(env, "Their data is still here"), gap()}
-		for _, l := range ui.Wrap("These folders were left in your home. They may hold saves and settings ("+humanBytes(total)+").", w) {
+		lines := []ui.Line{heading(env, tr("Their data is still here")), gap()}
+		for _, l := range ui.Wrap(tr("These folders were left in your home. They may hold saves and settings (%s).", humanBytes(total)), w) {
 			lines = append(lines, plain(env, l))
 		}
 		for _, e := range s.ask.Entries {
@@ -1058,7 +1058,7 @@ func (s *Store) Side(env *core.Env, w, h int) []ui.Line {
 				}
 			}
 		}
-		return append(lines, gap(), ui.Of(button(env, true, "Delete data  y"), space(1), button(env, false, "Keep  n")))
+		return append(lines, gap(), ui.Of(button(env, true, tr("Delete data  y")), space(1), button(env, false, tr("Keep  n"))))
 	}
 	if s.menu != nil {
 		return s.menuLines(env, w)
@@ -1067,7 +1067,7 @@ func (s *Store) Side(env *core.Env, w, h int) []ui.Line {
 	inst := s.installedView()
 	// con apps marcadas, el panel es el de las acciones en bloque
 	if n := s.markedCount(its); n > 0 {
-		lines := []ui.Line{heading(env, fmt.Sprintf("%d selected", n)), gap()}
+		lines := []ui.Line{heading(env, trn("%d selected", "%d selected", n)), gap()}
 		shown := 0
 		upd := 0
 		for _, it := range its {
@@ -1083,28 +1083,28 @@ func (s *Store) Side(env *core.Env, w, h int) []ui.Line {
 			}
 		}
 		if n > shown {
-			lines = append(lines, muted(env, fmt.Sprintf("and %d more", n-shown)))
+			lines = append(lines, muted(env, fmt.Sprintf(tr("and %d more"), n-shown)))
 		}
 		lines = append(lines, gap())
 		if inst && upd > 0 {
-			lines = append(lines, ui.T(p.Warn, fmt.Sprintf("%s %d of them can be updated", ui.G.Up, upd)), gap())
+			lines = append(lines, ui.T(p.Warn, ui.G.Up+" "+trn("%d of them can be updated", "%d of them can be updated", upd)), gap())
 		}
-		return append(lines, muted(env, "Use the buttons above,"), muted(env, "or press ⏎ for more options."))
+		return append(lines, muted(env, tr("Use the buttons above,")), muted(env, tr("or press ⏎ for more options.")))
 	}
 	if len(its) == 0 || s.list.sel >= len(its) {
-		return []ui.Line{heading(env, "Details"), gap(), muted(env, "Search with /"), gap(), muted(env, "Mark several with space"), muted(env, "and act on them together.")}
+		return []ui.Line{heading(env, tr("Details")), gap(), muted(env, tr("Search with /")), gap(), muted(env, tr("Mark several with space")), muted(env, tr("and act on them together."))}
 	}
 	it := its[s.list.sel]
-	lines := []ui.Line{heading(env, "Details"), gap(), ui.T(p.Bold, it.Name), muted(env, it.ID), gap()}
+	lines := []ui.Line{heading(env, tr("Details")), gap(), ui.T(p.Bold, it.Name), muted(env, it.ID), gap()}
 	if it.Desc != "" {
 		for _, l := range ui.Wrap(it.Desc, w) {
 			lines = append(lines, plain(env, l))
 		}
 		lines = append(lines, gap())
 	}
-	lines = append(lines, ui.Of(ui.S(p.Mu, "source   "), ui.S(p.Text, srcName(it.Source))))
+	lines = append(lines, ui.Of(ui.S(p.Mu, tr("source   ")), ui.S(p.Text, srcName(it.Source))))
 	if v := shortVersion(it.Version); v != "" {
-		lines = append(lines, ui.Of(ui.S(p.Mu, "version  "), ui.S(p.Text, v)))
+		lines = append(lines, ui.Of(ui.S(p.Mu, tr("version  ")), ui.S(p.Text, v)))
 	}
 	lines = append(lines, gap())
 	switch {
@@ -1112,42 +1112,42 @@ func (s *Store) Side(env *core.Env, w, h int) []ui.Line {
 		lines = append(lines, ui.Of(ui.S(p.Warn, ui.G.Warn+" "+s.busy[it.key()]+"… please wait")))
 	case it.Installed:
 		if u, ok := s.updateFor(env, it); ok {
-			lines = append(lines, ui.T(p.Warn.Bold(true), ui.G.Up+" new version "+u.Latest), gap(), ui.Of(button(env, true, "Update  u"), space(1), button(env, false, "More…  ⏎")))
+			lines = append(lines, ui.T(p.Warn.Bold(true), ui.G.Up+" "+tr("new version %s", u.Latest)), gap(), ui.Of(button(env, true, tr("Update  u")), space(1), button(env, false, tr("More…  ⏎"))))
 		} else if env.Data.UpdatesKnown {
-			lines = append(lines, ui.T(p.Ok, ui.G.Tick+" up to date"), gap(), ui.Of(button(env, true, "Actions  ⏎"), space(1), button(env, false, "Check again  R")))
+			lines = append(lines, ui.T(p.Ok, ui.G.Tick+" "+tr("up to date")), gap(), ui.Of(button(env, true, tr("Actions  ⏎")), space(1), button(env, false, tr("Check again  R"))))
 		} else {
-			lines = append(lines, ui.Of(button(env, true, "Actions  ⏎")))
+			lines = append(lines, ui.Of(button(env, true, tr("Actions  ⏎"))))
 		}
-		lines = append(lines, gap(), muted(env, "Open it, update it or remove it."))
+		lines = append(lines, gap(), muted(env, tr("Open it, update it or remove it.")))
 	default:
-		lines = append(lines, ui.Of(button(env, true, "Install  ⏎"), space(1), button(env, false, "Select  space")))
+		lines = append(lines, ui.Of(button(env, true, tr("Install  ⏎")), space(1), button(env, false, tr("Select  space"))))
 	}
 	if n := len(env.Data.AppUpdates); inst && n > 0 {
-		lines = append(lines, gap(), ui.T(p.Warn, fmt.Sprintf("%s %s can be updated", ui.G.Up, plural(n, "app", "apps"))), ui.Of(button(env, false, "Update all  U")))
+		lines = append(lines, gap(), ui.T(p.Warn, ui.G.Up+" "+trn("%d app can be updated", "%d apps can be updated", n)), ui.Of(button(env, false, tr("Update all  U"))))
 	}
 	return lines
 }
 
 func (s *Store) Hints(env *core.Env) []ui.Hint {
 	if s.ask != nil && s.zone != zSearch {
-		return []ui.Hint{{Key: "y", Action: "delete their data"}, {Key: "n", Action: "keep it"}}
+		return []ui.Hint{{Key: "y", Action: tr("delete their data")}, {Key: "n", Action: tr("keep it")}}
 	}
 	switch s.zone {
 	case zSearch:
-		return []ui.Hint{{Key: "⏎", Action: "search"}, {Key: "↓", Action: "results"}, {Key: "esc", Action: "leave"}}
+		return []ui.Hint{{Key: "⏎", Action: tr("search")}, {Key: "↓", Action: tr("results")}, {Key: "esc", Action: tr("leave")}}
 	case zChips:
-		return []ui.Hint{{Key: "←→", Action: "switch"}, {Key: "↑", Action: "search"}, {Key: "↓", Action: "list"}}
+		return []ui.Hint{{Key: "←→", Action: tr("switch")}, {Key: "↑", Action: tr("search")}, {Key: "↓", Action: tr("list")}}
 	}
 	if s.menu != nil {
 		if s.menu.confirm {
-			return []ui.Hint{{Key: "⏎", Action: "yes, delete"}, {Key: "esc", Action: "no"}}
+			return []ui.Hint{{Key: "⏎", Action: tr("yes, delete")}, {Key: "esc", Action: tr("no")}}
 		}
-		return []ui.Hint{{Key: "↑↓", Action: "choose"}, {Key: "⏎", Action: "do it"}, {Key: "esc", Action: "close"}}
+		return []ui.Hint{{Key: "↑↓", Action: tr("choose")}, {Key: "⏎", Action: tr("do it")}, {Key: "esc", Action: tr("close")}}
 	}
 	if s.installedView() {
-		return []ui.Hint{{Key: "space", Action: "select"}, {Key: "a", Action: "all"}, {Key: "u", Action: "update"}, {Key: "r", Action: "remove"}, {Key: "⏎", Action: "more"}}
+		return []ui.Hint{{Key: "space", Action: tr("select")}, {Key: "a", Action: tr("all")}, {Key: "u", Action: tr("update")}, {Key: "r", Action: tr("remove")}, {Key: "⏎", Action: tr("more")}}
 	}
-	return []ui.Hint{{Key: "↑", Action: "search"}, {Key: "space", Action: "select"}, {Key: "a", Action: "all"}, {Key: "⏎", Action: "install"}}
+	return []ui.Hint{{Key: "↑", Action: tr("search")}, {Key: "space", Action: tr("select")}, {Key: "a", Action: tr("all")}, {Key: "⏎", Action: tr("install")}}
 }
 
 func (s *Store) Click(env *core.Env, x, y int) tea.Cmd {
@@ -1219,11 +1219,11 @@ func sumBytes(l []maxor.Leftover) (n int64) {
 func humanBytes(b int64) string {
 	switch {
 	case b >= 1<<30:
-		return fmt.Sprintf("%.1f GiB", float64(b)/(1<<30))
+		return fmt.Sprintf(tr("%.1f GiB"), float64(b)/(1<<30))
 	case b >= 1<<20:
-		return fmt.Sprintf("%.1f MiB", float64(b)/(1<<20))
+		return fmt.Sprintf(tr("%.1f MiB"), float64(b)/(1<<20))
 	}
-	return fmt.Sprintf("%d KiB", (b+1023)/1024)
+	return fmt.Sprintf(tr("%d KiB"), (b+1023)/1024)
 }
 
 // Brief es el cajón de detalles de una ventana estrecha: lo esencial en pocas filas.
@@ -1235,15 +1235,15 @@ func (s *Store) Brief(env *core.Env, w int) []ui.Line {
 			total += sumBytes(e.Left)
 		}
 		return []ui.Line{
-			ui.Of(ui.S(p.Warn, ui.G.Warn+" "), ui.S(p.Text, "Their data is still on disk ("+humanBytes(total)+")")),
-			ui.Of(button(env, true, "Delete data  y"), space(1), button(env, false, "Keep  n")),
+			ui.Of(ui.S(p.Warn, ui.G.Warn+" "), ui.S(p.Text, tr("Their data is still on disk (%s)", humanBytes(total)))),
+			ui.Of(button(env, true, tr("Delete data  y")), space(1), button(env, false, tr("Keep  n"))),
 		}
 	}
 	if s.menu != nil {
 		mn := s.menu
 		title := mn.items[0].Name
 		if len(mn.items) > 1 {
-			title = fmt.Sprintf("%d apps", len(mn.items))
+			title = trn("%d app", "%d apps", len(mn.items))
 		}
 		if mn.confirm {
 			size := ""
@@ -1251,8 +1251,8 @@ func (s *Store) Brief(env *core.Env, w int) []ui.Line {
 				size = " (" + humanBytes(sumBytes(mn.data)) + ")"
 			}
 			return []ui.Line{
-				ui.Of(ui.S(p.Warn.Bold(true), ui.G.Warn+" This cannot be undone: "), ui.S(p.Text, "deletes "+title+" and its data"+size)),
-				ui.Of(button(env, true, "Yes, delete  ⏎"), space(1), button(env, false, "No  esc")),
+				ui.Of(ui.S(p.Warn.Bold(true), ui.G.Warn+" "+tr("This cannot be undone")+": "), ui.S(p.Text, tr("deletes %s and its data%s", title, size))),
+				ui.Of(button(env, true, tr("Yes, delete  ⏎")), space(1), button(env, false, tr("No  esc"))),
 			}
 		}
 		lines := []ui.Line{ui.T(p.Bold, title)}
@@ -1264,10 +1264,10 @@ func (s *Store) Brief(env *core.Env, w int) []ui.Line {
 	its := s.items(env)
 	inst := s.installedView()
 	if n := s.markedCount(its); n > 0 {
-		return []ui.Line{ui.Of(ui.S(p.Ac, ui.G.On+" "), ui.S(p.Text, fmt.Sprintf("%d selected", n)), ui.S(p.Mu, "  ·  use the buttons above, or ⏎ for more"))}
+		return []ui.Line{ui.Of(ui.S(p.Ac, ui.G.On+" "), ui.S(p.Text, trn("%d selected", "%d selected", n)), ui.S(p.Mu, tr("  ·  use the buttons above, or ⏎ for more")))}
 	}
 	if len(its) == 0 || s.list.sel >= len(its) {
-		return []ui.Line{muted(env, "Search with /  ·  space selects several apps")}
+		return []ui.Line{muted(env, tr("Search with /  ·  space selects several apps"))}
 	}
 	it := its[s.list.sel]
 	head := []ui.Seg{ui.S(p.Bold, it.Name), ui.S(p.Mu, "  "+srcName(it.Source))}
@@ -1283,12 +1283,12 @@ func (s *Store) Brief(env *core.Env, w int) []ui.Line {
 		lines = append(lines, ui.T(p.Warn, ui.G.Warn+" "+s.busy[it.key()]+"…"))
 	case it.Installed:
 		if u, ok := s.updateFor(env, it); ok {
-			lines = append(lines, ui.Of(ui.S(p.Warn.Bold(true), ui.G.Up+" "+u.Latest+" available  "), button(env, true, "Update  u"), space(1), button(env, false, "More  ⏎")))
+			lines = append(lines, ui.Of(ui.S(p.Warn.Bold(true), ui.G.Up+" "+tr("%s available", u.Latest)+"  "), button(env, true, tr("Update  u")), space(1), button(env, false, tr("More  ⏎"))))
 		} else {
-			lines = append(lines, ui.Of(ui.S(p.Ok, ui.G.Tick+" up to date  "), button(env, true, "Actions  ⏎")))
+			lines = append(lines, ui.Of(ui.S(p.Ok, ui.G.Tick+" "+tr("up to date")+"  "), button(env, true, tr("Actions  ⏎"))))
 		}
 	default:
-		lines = append(lines, ui.Of(button(env, true, "Install  ⏎"), space(1), button(env, false, "Select  space")))
+		lines = append(lines, ui.Of(button(env, true, tr("Install  ⏎")), space(1), button(env, false, tr("Select  space"))))
 	}
 	return lines
 }

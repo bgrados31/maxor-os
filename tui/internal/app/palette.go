@@ -28,35 +28,35 @@ func (m *Model) paletteItems() []paletteItem {
 	var items []paletteItem
 	for _, s := range m.screens {
 		id := s.ID()
-		items = append(items, paletteItem{Label: "go " + strings.ToLower(s.Title()), Hint: "open " + s.Title(), Run: func(m *Model) tea.Cmd { return core.Go(id) }})
+		items = append(items, paletteItem{Label: "go " + strings.ToLower(s.Title()), Hint: tr("open %s", s.Title()), Run: func(m *Model) tea.Cmd { return core.Go(id) }})
 	}
 	items = append(items,
-		paletteItem{Label: "update check", Hint: "check for updates", Run: func(m *Model) tea.Cmd {
+		paletteItem{Label: "update check", Hint: tr("check for updates"), Run: func(m *Model) tea.Cmd {
 			return core.GoThen("update", screens.CheckUpdateMsg{})
 		}},
-		paletteItem{Label: "doctor run", Hint: "run the health checks", Run: func(m *Model) tea.Cmd {
+		paletteItem{Label: "doctor run", Hint: tr("run the health checks"), Run: func(m *Model) tea.Cmd {
 			return core.GoThen("doctor", screens.RunDoctorMsg{})
 		}},
 	)
 	for _, th := range m.env.Data.Themes {
 		id, name := th.ID, th.Name
-		items = append(items, paletteItem{Label: "theme " + id, Hint: "apply " + name, Run: func(m *Model) tea.Cmd {
-			return tea.Batch(core.Go("themes"), m.env.Tasks.Start(task.Task{ID: "themes.apply", Label: "Applying " + id, Run: func(ctx context.Context) (any, error) {
+		items = append(items, paletteItem{Label: "theme " + id, Hint: tr("apply %s", name), Run: func(m *Model) tea.Cmd {
+			return tea.Batch(core.Go("themes"), m.env.Tasks.Start(task.Task{ID: "themes.apply", Label: tr("Applying %s", id), Run: func(ctx context.Context) (any, error) {
 				return id, m.env.Client.ApplyTheme(ctx, id)
 			}}))
 		}})
 	}
 	for _, a := range m.env.Data.Apps {
 		id, name := a.ID, a.Name
-		items = append(items, paletteItem{Label: "open " + strings.ToLower(name), Hint: "start " + name, Run: func(m *Model) tea.Cmd {
+		items = append(items, paletteItem{Label: "open " + strings.ToLower(name), Hint: tr("start %s", name), Run: func(m *Model) tea.Cmd {
 			return core.GoThen("store", screens.OpenAppMsg{ID: id, Name: name})
 		}})
 	}
 	items = append(items,
-		paletteItem{Label: "backup", Hint: "save your setup in one file", Run: func(m *Model) tea.Cmd { return core.GoThen("home", screens.BackupMsg{}) }},
-		paletteItem{Label: "details", Hint: "show or hide the details panel", Run: func(m *Model) tea.Cmd { return m.toggleDetails() }},
-		paletteItem{Label: "exit", Hint: "back to your terminal", Run: func(m *Model) tea.Cmd { return core.Quit() }},
-		paletteItem{Label: "quit", Hint: "back to your terminal", Run: func(m *Model) tea.Cmd { return tea.Quit }})
+		paletteItem{Label: "backup", Hint: tr("save your setup in one file"), Run: func(m *Model) tea.Cmd { return core.GoThen("home", screens.BackupMsg{}) }},
+		paletteItem{Label: "details", Hint: tr("show or hide the details panel"), Run: func(m *Model) tea.Cmd { return m.toggleDetails() }},
+		paletteItem{Label: "exit", Hint: tr("back to your terminal"), Run: func(m *Model) tea.Cmd { return core.Quit() }},
+		paletteItem{Label: "quit", Hint: tr("back to your terminal"), Run: func(m *Model) tea.Cmd { return tea.Quit }})
 	return items
 }
 
@@ -67,7 +67,7 @@ func (m *Model) matches() []paletteItem {
 	for _, pre := range []string{"search ", "install ", "s "} {
 		if strings.HasPrefix(q, pre) && strings.TrimSpace(q[len(pre):]) != "" {
 			term := strings.TrimSpace(m.pal.in.Text()[len(pre):])
-			return []paletteItem{{Label: "search " + term, Hint: "look for it in nixpkgs and Flathub", Run: func(m *Model) tea.Cmd {
+			return []paletteItem{{Label: "search " + term, Hint: tr("look for it in nixpkgs and Flathub"), Run: func(m *Model) tea.Cmd {
 				return core.GoThen("store", core.SearchMsg{Query: term})
 			}}}
 		}

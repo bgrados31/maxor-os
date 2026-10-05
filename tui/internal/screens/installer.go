@@ -71,7 +71,7 @@ func NewInstaller() *Installer {
 }
 
 func (w *Installer) ID() string    { return "install" }
-func (w *Installer) Title() string { return "Install" }
+func (w *Installer) Title() string { return tr("Install") }
 
 func (w *Installer) cur() wizStep { return w.steps[w.idx] }
 
@@ -202,7 +202,7 @@ func (w *Installer) Main(env *core.Env, width, h int) []ui.Line {
 	p := env.P
 	s := w.cur()
 	lines := []ui.Line{w.stepper(env, width), gap(),
-		ui.Of(ui.S(p.Bold, s.Title()), ui.S(p.Mu, fmt.Sprintf("   %d of %d", w.idx+1, len(w.steps)))),
+		ui.Of(ui.S(p.Bold, s.Title()), ui.S(p.Mu, fmt.Sprintf(tr("   %d of %d"), w.idx+1, len(w.steps)))),
 		muted(env, s.Intro()), gap()}
 	body := s.Lines(w, env, width)
 	lines = append(lines, body...)
@@ -234,18 +234,18 @@ func (w *Installer) stepper(env *core.Env, width int) ui.Line {
 
 func (w *Installer) Hints(env *core.Env) []ui.Hint {
 	if w.running {
-		return []ui.Hint{{Key: "…", Action: "installing: please wait"}}
+		return []ui.Hint{{Key: "…", Action: tr("installing: please wait")}}
 	}
 	if w.idx == len(w.steps)-1 {
-		return []ui.Hint{{Key: "↑↓", Action: "choose"}, {Key: "⏎", Action: "confirm"}}
+		return []ui.Hint{{Key: "↑↓", Action: tr("choose")}, {Key: "⏎", Action: tr("confirm")}}
 	}
-	h := []ui.Hint{{Key: "⏎", Action: "continue"}}
+	h := []ui.Hint{{Key: "⏎", Action: tr("continue")}}
 	// a step may have keys of its own (r to look again for disks or networks): they go here, with the others
 	if k, ok := w.cur().(interface{ Keys() []ui.Hint }); ok {
 		h = append(h, k.Keys()...)
 	}
 	if w.idx > 0 && w.idx < len(w.steps)-1 {
-		h = append(h, ui.Hint{Key: "esc", Action: "back"})
+		h = append(h, ui.Hint{Key: "esc", Action: tr("back")})
 	}
 	return h
 }

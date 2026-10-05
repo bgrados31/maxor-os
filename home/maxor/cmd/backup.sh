@@ -84,7 +84,10 @@ cmd_backup() {
     jq -cn --arg p "$dest" --argjson b "$bytes" --argjson a "$apps" --argjson t "$themes" --arg host "$host" '{path: $p, bytes: $b, apps: $a, themes: $t, host: $host}'
   else
     ui_say ok @backup.saved "${dest/#$HOME/~}" "$(app_human "$bytes")"
-    ui_say info @backup.contents "$apps" "$themes"
+    local n_apps n_themes
+    msg n_apps @backup.n_apps "$apps"
+    msg n_themes @backup.n_themes "$themes"
+    ui_say info @backup.contents "$n_apps" "$n_themes"
     ui_outro @backup.hint
     echo
   fi

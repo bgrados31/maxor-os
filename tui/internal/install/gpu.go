@@ -26,9 +26,9 @@ func GPUOptions(vendors []string, laptop bool) []GPUOption {
 	if !has(vendors, "nvidia") || !(has(vendors, "intel") || has(vendors, "amd")) {
 		return nil
 	}
-	hybrid := GPUOption{"hybrid", "Hybrid", "The integrated GPU draws the desktop and the NVIDIA GPU works on demand (PRIME offload). Best battery and temperature.", laptop}
-	nvidia := GPUOption{"nvidia", "NVIDIA only", "Everything runs on the NVIDIA GPU. Fastest, but it uses more power.", !laptop}
-	integrated := GPUOption{"integrated", "Integrated only", "No NVIDIA driver: the coolest and the longest battery, without NVIDIA acceleration.", false}
+	hybrid := GPUOption{"hybrid", tr("Hybrid"), tr("The integrated GPU draws the desktop and the NVIDIA GPU works on demand (PRIME offload). Best battery and temperature."), laptop}
+	nvidia := GPUOption{"nvidia", tr("NVIDIA only"), tr("Everything runs on the NVIDIA GPU. Fastest, but it uses more power."), !laptop}
+	integrated := GPUOption{"integrated", tr("Integrated only"), tr("No NVIDIA driver: the coolest and the longest battery, without NVIDIA acceleration."), false}
 	if laptop {
 		return []GPUOption{hybrid, nvidia, integrated}
 	}
@@ -50,11 +50,11 @@ func RecommendedGPU(opts []GPUOption) string {
 func GPUName(vendor, id string) string {
 	switch vendor {
 	case "intel":
-		return "Intel graphics"
+		return tr("Intel graphics")
 	case "amd":
-		return "AMD Radeon graphics"
+		return tr("AMD Radeon graphics")
 	case "nvidia":
-		return "NVIDIA graphics"
+		return tr("NVIDIA graphics")
 	}
 	if n, ok := knownGPUs[id]; ok {
 		return n
@@ -63,7 +63,7 @@ func GPUName(vendor, id string) string {
 	if n, ok := gpuMakers[maker]; ok {
 		return n
 	}
-	return "Graphics adapter (" + id + ")"
+	return tr("Graphics adapter (%s)", id)
 }
 
 // knownGPUs are single devices worth naming exactly: the virtual ones a test or a VM shows.

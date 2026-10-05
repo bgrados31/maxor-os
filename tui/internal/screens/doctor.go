@@ -7,6 +7,7 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 
 	"github.com/bgrados31/maxor-os/tui/internal/core"
+	"github.com/bgrados31/maxor-os/tui/internal/i18n"
 	"github.com/bgrados31/maxor-os/tui/internal/maxor"
 	"github.com/bgrados31/maxor-os/tui/internal/ui"
 )
@@ -25,7 +26,7 @@ type Doctor struct {
 func NewDoctor() *Doctor { return &Doctor{} }
 
 func (d *Doctor) ID() string    { return "doctor" }
-func (d *Doctor) Title() string { return "Doctor" }
+func (d *Doctor) Title() string { return tr("Doctor") }
 
 func (d *Doctor) Init(env *core.Env) tea.Cmd { return LoadDoctor(env, false) }
 
@@ -91,9 +92,9 @@ func (d *Doctor) Update(env *core.Env, msg tea.Msg) (core.Screen, tea.Cmd) {
 			return d, nil
 		}
 		d.armed, d.inited = "", false
-		kind, text := "ok", "Done. Checking again…"
+		kind, text := "ok", tr("Done. Checking again…")
 		if m.Err != nil {
-			kind, text = "warn", "The command ended with an error. Checking again…"
+			kind, text = "warn", tr("The command ended with an error. Checking again…")
 		}
 		return d, tea.Batch(core.Toast(kind, text), LoadDoctor(env, false))
 	case tea.KeyMsg:
@@ -114,9 +115,9 @@ func (d *Doctor) Update(env *core.Env, msg tea.Msg) (core.Screen, tea.Cmd) {
 			}
 			if row.it.Fix == "" {
 				if row.it.Level == "ok" {
-					return d, core.Toast("ok", "This one passes: nothing to fix")
+					return d, core.Toast("ok", tr("This one passes: nothing to fix"))
 				}
-				return d, core.Toast("info", "No automatic fix for this one: see the advice on the right")
+				return d, core.Toast("info", tr("No automatic fix for this one: see the advice on the right"))
 			}
 			if d.armed != row.it.ID && row.it.Kind != "inspect" {
 				d.armed = row.it.ID
@@ -129,25 +130,26 @@ func (d *Doctor) Update(env *core.Env, msg tea.Msg) (core.Screen, tea.Cmd) {
 	return d, nil
 }
 
-// advice son los consejos para los avisos sin arreglo automático.
-var advice = []struct{ match, text string }{
-	{"kernel is not the running one", "Reboot to start the kernel that is installed."},
-	{"theme missing", "Apply a theme again from the Themes tab."},
-	{"nvidia-smi does not respond", "The NVIDIA driver may not be loaded: reboot, or check journalctl -b | grep -i nvidia."},
-	{"nvidia-offload is missing", "NVIDIA is present but the offload command is missing: check the hardware module."},
-	{"missing font", "A Maxor font is not installed: maxor update brings it back."},
+// advice son los consejos para los avisos sin arreglo automático, por el id de la comprobación (el texto
+// de la CLI cambia con el idioma; el id no).
+var advice = []struct{ id, text string }{
+	{"kernel_mismatch", i18n.Mark("Reboot to start the kernel that is installed.")},
+	{"dms_warn", i18n.Mark("Apply a theme again from the Themes tab.")},
+	{"nv_warn", i18n.Mark("The NVIDIA driver may not be loaded: reboot, or check journalctl -b | grep -i nvidia.")},
+	{"offload_warn", i18n.Mark("NVIDIA is present but the offload command is missing: check the hardware module.")},
+	{"font_warn", i18n.Mark("A Maxor font is not installed: maxor update brings it back.")},
 }
 
 func (d *Doctor) Main(env *core.Env, w, h int) []ui.Line {
 	p := env.P
-	if line, ok := working(env, "data.doctor", "Running checks"); ok && env.Data.Doctor == nil {
-		return []ui.Line{line, gap(), muted(env, "This takes a moment.")}
+	if line, ok := working(env, "data.doctor", tr("Running checks")); ok && env.Data.Doctor == nil {
+		return []ui.Line{line, gap(), muted(env, tr("This takes a moment."))}
 	}
 	if env.Data.Doctor == nil {
 		if err := env.Data.Err["doctor"]; err != nil {
-			return failed(env, "Could not run the checks", err)
+			return failed(env, tr("Could not run the checks"), err)
 		}
-		lines := []ui.Line{heading(env, "Checks"), gap()}
+		lines := []ui.Line{heading(env, tr("Checks")), gap()}
 		for i := 0; i < 9; i++ {
 			lines = append(lines, ui.Skeleton(p, env.Frame+i, 2, 24+i*3%14))
 		}
@@ -160,11 +162,11 @@ func (d *Doctor) Main(env *core.Env, w, h int) []ui.Line {
 	var summary ui.Line
 	switch {
 	case doc.Fails > 0:
-		summary = ui.T(p.Bad.Bold(true), ui.G.Bad+"  problems found")
+		summary = ui.T(p.Bad.Bold(true), ui.G.Bad+"  "+tr("problems found"))
 	case doc.Warns > 0:
-		summary = ui.T(p.Warn.Bold(true), ui.G.Warn+"  works, with "+plural(doc.Warns, "warning", "warnings"))
+		summary = ui.T(p.Warn.Bold(true), ui.G.Warn+"  "+trn("works, with %d warning", "works, with %d warnings", doc.Warns))
 	default:
-		summary = ui.T(p.Ok.Bold(true), ui.G.Tick+"  all good")
+		summary = ui.T(p.Ok.Bold(true), ui.G.Tick+"  "+tr("all good"))
 	}
 	selRow := 0
 	if len(items) > 0 {
@@ -189,9 +191,9 @@ func (d *Doctor) Main(env *core.Env, w, h int) []ui.Line {
 		st, g := p.Level(r.it.Level)
 		ln := ui.Line{L: []ui.Seg{ui.S(st, g+" "), ui.S(p.Text, r.it.Text)}, Sel: i == selRow}
 		if r.it.Fix != "" {
-			tag := "fix ⏎ "
+			tag := tr("fix ⏎ ")
 			if r.it.Kind == "inspect" {
-				tag = "look ⏎ "
+				tag = tr("look ⏎ ")
 			}
 			ln.R = []ui.Seg{ui.S(p.Ac, tag)}
 		}
@@ -205,11 +207,11 @@ func (d *Doctor) Side(env *core.Env, w, h int) []ui.Line {
 	d.settle(env)
 	row, ok := d.current(env)
 	if !ok {
-		return []ui.Line{heading(env, "Details"), gap(), muted(env, "Waiting for the checks.")}
+		return []ui.Line{heading(env, tr("Details")), gap(), muted(env, tr("Waiting for the checks."))}
 	}
-	title := map[string]string{"ok": "Passing", "warn": "Needs attention", "bad": "Problem"}[row.it.Level]
+	title := map[string]string{"ok": tr("Passing"), "warn": tr("Needs attention"), "bad": tr("Problem")}[row.it.Level]
 	st, _ := p.Level(row.it.Level)
-	lines := []ui.Line{heading(env, "Details"), gap(), ui.T(st.Bold(true), title), muted(env, row.group), gap()}
+	lines := []ui.Line{heading(env, tr("Details")), gap(), ui.T(st.Bold(true), title), muted(env, row.group), gap()}
 	for _, l := range ui.Wrap(row.it.Text, w) {
 		lines = append(lines, plain(env, l))
 	}
@@ -218,9 +220,9 @@ func (d *Doctor) Side(env *core.Env, w, h int) []ui.Line {
 		if row.it.Fix != "" {
 			inspect := row.it.Kind == "inspect"
 			if inspect {
-				lines = append(lines, heading(env, "Take a look"), muted(env, "Only shows information: nothing changes."))
+				lines = append(lines, heading(env, tr("Take a look")), muted(env, tr("Only shows information: nothing changes.")))
 			} else {
-				lines = append(lines, heading(env, "Fix"))
+				lines = append(lines, heading(env, tr("Fix")))
 			}
 			for i, l := range ui.Wrap(row.it.Fix, w-2) {
 				pre := "  "
@@ -232,19 +234,19 @@ func (d *Doctor) Side(env *core.Env, w, h int) []ui.Line {
 			lines = append(lines, gap())
 			switch {
 			case d.armed == row.it.ID && row.it.Confirm:
-				lines = append(lines, ui.T(p.Warn, ui.G.Warn+" this changes your system"), ui.Of(button(env, true, "Run it  ⏎")), muted(env, "or move away to cancel"))
+				lines = append(lines, ui.T(p.Warn, ui.G.Warn+" "+tr("this changes your system")), ui.Of(button(env, true, tr("Run it  ⏎"))), muted(env, tr("or move away to cancel")))
 
 			case d.armed == row.it.ID:
-				lines = append(lines, ui.Of(button(env, true, "Run it  ⏎")), muted(env, "or move away to cancel"))
+				lines = append(lines, ui.Of(button(env, true, tr("Run it  ⏎"))), muted(env, tr("or move away to cancel")))
 			case inspect:
-				lines = append(lines, ui.Of(button(env, true, "Show it  ⏎")))
+				lines = append(lines, ui.Of(button(env, true, tr("Show it  ⏎"))))
 			default:
-				lines = append(lines, ui.Of(button(env, true, "Prepare fix  ⏎")))
+				lines = append(lines, ui.Of(button(env, true, tr("Prepare fix  ⏎"))))
 			}
 		} else {
 			for _, a := range advice {
-				if strings.Contains(row.it.Text, a.match) {
-					for _, l := range ui.Wrap(a.text, w) {
+				if row.it.ID == a.id {
+					for _, l := range ui.Wrap(tr(a.text), w) {
 						lines = append(lines, muted(env, l))
 					}
 					break
@@ -256,7 +258,7 @@ func (d *Doctor) Side(env *core.Env, w, h int) []ui.Line {
 }
 
 func (d *Doctor) Hints(env *core.Env) []ui.Hint {
-	return []ui.Hint{{Key: "↑↓", Action: "move"}, {Key: "⏎", Action: "fix"}, {Key: "r", Action: "run again"}}
+	return []ui.Hint{{Key: "↑↓", Action: "move"}, {Key: "⏎", Action: "fix"}, {Key: "r", Action: tr("run again")}}
 }
 
 func (d *Doctor) Wheel(env *core.Env, dy int) tea.Cmd {
@@ -294,31 +296,31 @@ func (d *Doctor) Brief(env *core.Env, w int) []ui.Line {
 	d.settle(env)
 	row, ok := d.current(env)
 	if !ok {
-		return []ui.Line{muted(env, "Waiting for the checks.")}
+		return []ui.Line{muted(env, tr("Waiting for the checks."))}
 	}
 	st, g := p.Level(row.it.Level)
 	lines := []ui.Line{ui.Of(ui.S(st, g+" "), ui.S(p.Text, row.it.Text))}
 	switch {
 	case row.it.Level == "ok":
-		return append(lines, muted(env, "This one passes: nothing to do."))
+		return append(lines, muted(env, tr("This one passes: nothing to do.")))
 	case row.it.Fix == "":
 		for _, a := range advice {
-			if strings.Contains(row.it.Text, a.match) {
-				return append(lines, muted(env, a.text))
+			if row.it.ID == a.id {
+				return append(lines, muted(env, tr(a.text)))
 			}
 		}
-		return append(lines, muted(env, "No automatic fix for this one."))
+		return append(lines, muted(env, tr("No automatic fix for this one.")))
 	}
 	lines = append(lines, ui.T(p.Ac, "$ "+row.it.Fix))
 	switch {
 	case row.it.Kind == "inspect":
-		lines = append(lines, ui.Of(button(env, true, "Show it  ⏎"), ui.S(p.Mu, "  only shows information")))
+		lines = append(lines, ui.Of(button(env, true, tr("Show it  ⏎")), ui.S(p.Mu, tr("  only shows information"))))
 	case d.armed == row.it.ID && row.it.Confirm:
-		lines = append(lines, ui.Of(ui.S(p.Warn, ui.G.Warn+" this changes your system  "), button(env, true, "Run it  ⏎"), ui.S(p.Mu, "  or move to cancel")))
+		lines = append(lines, ui.Of(ui.S(p.Warn, ui.G.Warn+" "+tr("this changes your system")+"  "), button(env, true, tr("Run it  ⏎")), ui.S(p.Mu, tr("  or move to cancel"))))
 	case d.armed == row.it.ID:
-		lines = append(lines, ui.Of(button(env, true, "Run it  ⏎"), ui.S(p.Mu, "  or move to cancel")))
+		lines = append(lines, ui.Of(button(env, true, tr("Run it  ⏎")), ui.S(p.Mu, tr("  or move to cancel"))))
 	default:
-		lines = append(lines, ui.Of(button(env, true, "Prepare fix  ⏎")))
+		lines = append(lines, ui.Of(button(env, true, tr("Prepare fix  ⏎"))))
 	}
 	return lines
 }

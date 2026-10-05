@@ -35,7 +35,7 @@ func (m *Model) View() string {
 }
 
 func (m *Model) tooSmall(p ui.Painter, w, h int) string {
-	msg := fmt.Sprintf("Maxor needs at least %d×%d. Now: %d×%d.", minW, minH, w, h)
+	msg := fmt.Sprintf(tr("Maxor needs at least %d×%d. Now: %d×%d."), minW, minH, w, h)
 	rows := make([]string, h)
 	for i := range rows {
 		rows[i] = blankRow(p, w)
@@ -51,7 +51,7 @@ func (m *Model) topBar(p ui.Painter, w int) string {
 	var segs []ui.Seg
 	m.tabs = m.tabs[:0]
 	if m.setupFocus {
-		segs = []ui.Seg{ui.S(p.Mu, " maxor "), ui.S(p.Ac, ui.G.Arrow+" "), ui.S(p.Bold, strings.ToLower(m.screens[0].Title()))}
+		segs = []ui.Seg{ui.S(p.Mu, tr(" maxor ")), ui.S(p.Ac, ui.G.Arrow+" "), ui.S(p.Bold, strings.ToLower(m.screens[0].Title()))}
 	} else {
 		x := 1
 		segs = append(segs, ui.Seg{T: " "})
@@ -83,7 +83,7 @@ func (m *Model) indicator(p ui.Painter) []ui.Seg {
 		segs = append(segs, ui.S(p.Mu, "  "+d))
 	}
 	if len(act) > 1 {
-		segs = append(segs, ui.S(p.Mu, fmt.Sprintf("  +%d", len(act)-1)))
+		segs = append(segs, ui.S(p.Mu, fmt.Sprintf(tr("  +%d"), len(act)-1)))
 	}
 	return append(segs, ui.Seg{T: " "})
 }
@@ -100,7 +100,7 @@ func (m *Model) footer(p ui.Painter, w int) string {
 	s := m.screens[m.active]
 	hints := s.Hints(m.env)
 	if m.overlay == ovPalette {
-		hints = []ui.Hint{{Key: "↑↓", Action: "move"}, {Key: "⏎", Action: "run"}, {Key: "esc", Action: "close"}}
+		hints = []ui.Hint{{Key: "↑↓", Action: tr("move")}, {Key: "⏎", Action: tr("run")}, {Key: "esc", Action: tr("close")}}
 	} else if !s.Captures() {
 		// las ayudas globales, sin repetir una tecla que la pantalla ya explica
 		have := map[string]bool{}
@@ -108,9 +108,9 @@ func (m *Model) footer(p ui.Painter, w int) string {
 			have[h.Key] = true
 		}
 		hints = append([]ui.Hint{}, hints...)
-		globals := []ui.Hint{{Key: ":", Action: "commands"}, {Key: "?", Action: "help"}, {Key: "q", Action: "quit"}}
+		globals := []ui.Hint{{Key: ":", Action: tr("commands")}, {Key: "?", Action: tr("help")}, {Key: "q", Action: tr("quit")}}
 		if !m.setupFocus && len(m.screens) > 1 {
-			globals = append([]ui.Hint{{Key: "←→", Action: "tabs"}}, globals...)
+			globals = append([]ui.Hint{{Key: "←→", Action: tr("tabs")}}, globals...)
 		}
 		for _, g := range globals {
 			if !have[g.Key] {
@@ -280,11 +280,11 @@ func (m *Model) helpLines() []ui.Line {
 	kv := func(k, v string) ui.Line {
 		return ui.Of(ui.S(p.Ac.Bold(true), fmt.Sprintf("%-16s", k)), ui.S(p.Text, v))
 	}
-	lines := []ui.Line{ui.T(p.Mu, "KEYS"), ui.Blank(), kv("↑ ↓   j k", "move"), kv("⏎", "choose")}
+	lines := []ui.Line{ui.T(p.Mu, tr("KEYS")), ui.Blank(), kv("↑ ↓   j k", "move"), kv("⏎", "choose")}
 	if !m.setupFocus {
-		lines = append(lines, kv("← →   h l", "previous · next tab"), kv("tab  shift+tab", "next · previous tab"), kv("1 … 6", "jump to a tab"))
+		lines = append(lines, kv("← →   h l", tr("previous · next tab")), kv(tr("tab  shift+tab"), tr("next · previous tab")), kv("1 … 6", tr("jump to a tab")))
 	}
-	lines = append(lines, kv(":", "command palette"), kv("D", "show or hide the details"), kv("?", "this help"), kv("q", "back to your terminal"))
+	lines = append(lines, kv(":", tr("command palette")), kv("D", tr("show or hide the details")), kv("?", tr("this help")), kv("q", tr("back to your terminal")))
 	// y lo propio de la pantalla en la que estás
 	if hs := m.screens[m.active].Hints(m.env); len(hs) > 0 {
 		lines = append(lines, ui.Blank(), ui.T(p.Mu, strings.ToUpper("On "+m.screens[m.active].Title())), ui.Blank())
@@ -292,7 +292,7 @@ func (m *Model) helpLines() []ui.Line {
 			lines = append(lines, kv(h.Key, h.Action))
 		}
 	}
-	return append(lines, ui.Blank(), ui.T(p.Mu, "The mouse works too: click tabs and rows, use the wheel."), ui.T(p.Mu, "Press any key to close."))
+	return append(lines, ui.Blank(), ui.T(p.Mu, tr("The mouse works too: click tabs and rows, use the wheel.")), ui.T(p.Mu, tr("Press any key to close.")))
 }
 
 func (m *Model) paletteLines(pw int) []ui.Line {
@@ -301,7 +301,7 @@ func (m *Model) paletteLines(pw int) []ui.Line {
 	lines := []ui.Line{{L: field}, ui.Blank()}
 	items := m.matches()
 	if len(items) == 0 {
-		return append(lines, ui.T(p.Mu, "No matches. Try: search brave · theme alba · go store"))
+		return append(lines, ui.T(p.Mu, tr("No matches. Try: search brave · theme alba · go store")))
 	}
 	for i, it := range items {
 		if i >= 9 {

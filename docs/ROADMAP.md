@@ -58,7 +58,10 @@ Two paths for the shell. It starts with A and migrates to B when there is capaci
       and wallpaper. It replaces SDDM.
 - [ ] Krona One font and Maxor brand inside DMS's interface.
 - [ ] A settings screen with Maxor's brand.
-- [ ] Translations of the changed strings.
+- [x] Translations: the installer, the full-screen app and the `maxor` tool in es, pt, fr, de and it, as gettext
+      `.po` files with real plurals and positional placeholders (see [TRANSLATING.md](TRANSLATING.md)).
+- [ ] Set up Weblate for the community and get the machine translations (pt, fr, de, it) reviewed by native speakers.
+- [ ] Translate the installation medium's boot menu.
 - [ ] Integrate the theme's corner radius with DMS.
 - [ ] UWSM session.
 - [ ] Decide whether to move to a full fork or to the own shell (path B).

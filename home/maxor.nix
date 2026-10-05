@@ -19,11 +19,26 @@ let
       stops = builtins.fromJSON (builtins.readFile gradientFile);
       last = builtins.length stops - 1;
       points = lib.imap0 (i: c: "${toString (i * 2560 / last)},${toString (i * 1600 / last)} ${c}") stops;
-      wallpaper =
+      base =
         if builtins.pathExists gradientFile && last > 0 then
-          "magick -size 2560x1600 xc: -sparse-color Shepards '${lib.concatStringsSep " " points}' -colorspace sRGB -depth 8 $out/wallpaper.png"
+          "-size 2560x1600 xc: -sparse-color Shepards '${lib.concatStringsSep " " points}' -colorspace sRGB"
         else
-          "magick -size 2560x1600 radial-gradient:'${colors.s2}'-'${colors.bg}' -colorspace sRGB $out/wallpaper.png";
+          "-size 2560x1600 radial-gradient:'${colors.s2}'-'${colors.bg}' -colorspace sRGB";
+      # Firma visual de Maxor: viñeta suave, un resplandor del segundo acento en la esquina superior
+      # derecha con tres órbitas finas a su alrededor, y grano (que además evita las bandas del degradado).
+      # En temas claros el resplandor es más tenue y las órbitas oscuras, para no lavar el fondo.
+      dark = (colors.mode or "dark") == "dark";
+      glow = if dark then "0.70" else "0.35";
+      vignette = if dark then "gray45" else "gray80";
+      orbit = if dark then "rgba(255,255,255,0.08)" else "rgba(0,0,0,0.10)";
+      wallpaper = ''
+        magick ${base} \
+          \( -size 2560x1600 radial-gradient:white-${vignette} \) -compose multiply -composite \
+          \( -size 2560x1600 -define gradient:center=2300,100 -define gradient:radii=1100,1100 radial-gradient:'${colors.ac2}'-black -evaluate multiply ${glow} \) -compose screen -composite \
+          \( -size 2560x1600 xc:none -fill none -stroke '${orbit}' -strokewidth 2 -draw 'circle 2300,100 2300,700' -draw 'circle 2300,100 2300,1100' -draw 'circle 2300,100 2300,1500' \) -compose over -composite \
+          \( -size 2560x1600 xc:gray50 +noise Gaussian -attenuate 0.25 -colorspace gray \) -compose overlay -composite \
+          -depth 8 PNG24:$out/wallpaper.png
+      '';
     in
     pkgs.runCommand "maxor-theme-${id}" { nativeBuildInputs = [ pkgs.imagemagick ]; } ''
       mkdir -p $out
