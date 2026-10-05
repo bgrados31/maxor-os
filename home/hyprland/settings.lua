@@ -68,7 +68,6 @@ local sections = {
   },
   {
     misc = {
-      vfr = true,                       -- solo redibuja cuando algo cambia: menos GPU y batería
       animate_manual_resizes = true,
       focus_on_activate = true,
       mouse_move_enables_dpms = true,

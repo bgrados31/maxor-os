@@ -53,7 +53,7 @@ a single OS; dual boot keeps 3 s), the installer redesign (disk maps, storage, m
 from the language, readable review, failures explained), the new identity above.
 
 Also on branch `claude/vigilant-ptolemy-ng8e4i` (2026-10-04, evening; not yet merged into `development`): Hyprland tuned (every setting guarded with `pcall`, Maxor motion curves
-`maxor`/`maxor-out`, vfr, blur noise/vibrancy, DMS layer blur, idle inhibit on fullscreen); lock screen redesigned
+`maxor`/`maxor-out`, blur noise/vibrancy, DMS layer blur, idle inhibit on fullscreen); lock screen redesigned
 (spaced Cinzel mark on top, 168 px light clock, accent rule, glass card with a pill input and a two-accent gradient
 outline, dims at 150 s); wallpaper signature (vignette, `ac2` glow top-right with three orbits, grain; light themes
 softer). None of this was seen on a real screen yet: check it on the laptop before the release.
