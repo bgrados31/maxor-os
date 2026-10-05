@@ -38,6 +38,9 @@ hash); they are not redistributed inside this repository.
 
 The website (`web/`) is the exception: it serves Cinzel, Figtree and Red Hat Mono itself, as WOFF2
 subsets in `web/assets/fonts/`, with each font's licence next to the files.
+It also vendors two animation libraries in `web/assets/vendor/`: [GSAP](https://gsap.com) 3.15 with
+ScrollTrigger (GSAP Standard "no charge" licence) and [Lenis](https://github.com/darkroom-engineering/lenis)
+1.3 (MIT).
 
 ## Icons and cursor
 

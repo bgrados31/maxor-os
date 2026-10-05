@@ -33,9 +33,13 @@
   <link rel="preload" href="assets/fonts/figtree-latin.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="stylesheet" href="assets/css/site.css">
   <script src="assets/js/boot.js"></script>
+  <script defer src="assets/vendor/gsap.min.js"></script>
+  <script defer src="assets/vendor/ScrollTrigger.min.js"></script>
+  <script defer src="assets/vendor/lenis.min.js"></script>
   <script type="module" src="assets/js/main.js"></script>
 </head>
 <body>
+  <div class="boot" aria-hidden="true"><p class="boot__mark">MAXOR OS</p><i class="boot__bar"></i></div>
   <a class="skip" href="#main" data-i18n="skip">Saltar al contenido</a>
 
   <!-- ── The bar: a floating island, like Maxor Shell's ───────────────────────────────────── -->
@@ -52,6 +56,13 @@
         <li><a href="#descargar" data-i18n="nav.download">Descargar</a></li>
       </ul>
       <div class="bar__tools">
+        <button class="tool tool--site" type="button" data-site-reset hidden>
+          <span class="site-dot" aria-hidden="true"></span><span data-site-name></span>
+          <svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 7l10 10M17 7 7 17"/></svg>
+        </button>
+        <button class="tool" type="button" data-term-open aria-label="Abrir la terminal (Ctrl K)" data-i18n-attr="aria-label:nav.term">
+          <svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="m5 7 5 5-5 5M12.5 17.5H19"/></svg>
+        </button>
         <button class="tool" type="button" data-lang-toggle aria-label="Read in English" data-i18n-attr="aria-label:nav.lang">EN</button>
         <button class="tool" type="button" data-theme-toggle aria-label="Cambiar a apariencia clara">
           <svg class="i i--sun" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4.2"/><path d="M12 2.5v2.2M12 19.3v2.2M2.5 12h2.2M19.3 12h2.2M5.3 5.3l1.6 1.6M17.1 17.1l1.6 1.6M5.3 18.7l1.6-1.6M17.1 6.9l1.6-1.6"/></svg>
@@ -99,12 +110,16 @@
         <ul class="hero__facts" aria-label="Base del sistema" data-i18n-attr="aria-label:hero.factsLabel">
           <li>NixOS 26.05</li><li>Hyprland 0.55</li><li>Maxor Shell</li><li data-i18n="hero.license">Licencia MIT</li>
         </ul>
+        <button class="hint" type="button" data-term-open>
+          <kbd>Ctrl</kbd><kbd>K</kbd><span data-i18n="hero.term">abre una terminal. Prueba</span> <code>maxor theme apply glacier</code>
+        </button>
       </div>
       <div class="grain" aria-hidden="true"></div>
     </section>
 
     <!-- ── The desktop, told while it changes ─────────────────────────────────────────────── -->
     <section class="tour" id="escritorio" aria-labelledby="tour-title">
+      <div class="orb orb--a" aria-hidden="true"></div>
       <header class="section-head reveal">
         <p class="kicker" data-i18n="tour.kicker">El escritorio</p>
         <h2 id="tour-title" class="title" data-i18n="tour.title">Se ve como lo imaginaste. Desde el primer arranque.</h2>
@@ -189,8 +204,21 @@
       </div>
     </section>
 
+    <!-- ── In numbers, and every theme passing by ─────────────────────────────────────────────── -->
+    <section class="band" aria-labelledby="band-title">
+      <h2 class="sr-only" id="band-title" data-i18n="band.title">Maxor OS en números</h2>
+      <ul class="stats">
+        <li class="stat"><p class="stat__n"><span data-count="12">12</span></p><p class="stat__t" data-i18n="band.themes">temas oficiales, seis oscuros y seis claros</p></li>
+        <li class="stat"><p class="stat__n"><span data-count="1">1</span></p><p class="stat__t" data-i18n="band.cmd">comando para cambiar todo el aspecto</p></li>
+        <li class="stat"><p class="stat__n"><span data-count="0" data-from="99">0</span></p><p class="stat__t" data-i18n="band.sudo">veces que hace falta sudo para tematizar</p></li>
+        <li class="stat"><p class="stat__n"><span data-count="3.5" data-decimals="1">3,5</span><small>s</small></p><p class="stat__t" data-i18n="band.boot">menos de arranque, sin menú ni parpadeos</p></li>
+      </ul>
+      <div class="marquee" aria-hidden="true"><div class="marquee__track" data-marquee></div></div>
+    </section>
+
     <!-- ── Declarative: one file, and a way back ──────────────────────────────────────────── -->
     <section class="nix" id="nix" aria-labelledby="nix-title">
+      <div class="orb orb--b" aria-hidden="true"></div>
       <header class="section-head reveal">
         <p class="kicker" data-i18n="nix.kicker">Declarativo</p>
         <h2 id="nix-title" class="title" data-i18n="nix.title">Todo el sistema en un archivo.</h2>
@@ -229,6 +257,7 @@
 
     <!-- ── The installer ──────────────────────────────────────────────────────────────────── -->
     <section class="inst" id="instalador" aria-labelledby="inst-title">
+      <div class="orb orb--c" aria-hidden="true"></div>
       <header class="section-head reveal">
         <p class="kicker" data-i18n="inst.kicker">El instalador</p>
         <h2 id="inst-title" class="title" data-i18n="inst.title">Se instala sin red, en cualquier idioma.</h2>
@@ -327,6 +356,7 @@
 
     <!-- ── Download: read live from GitHub ────────────────────────────────────────────────── -->
     <section class="dl" id="descargar" aria-labelledby="dl-title">
+      <div class="orb orb--a" aria-hidden="true"></div>
       <header class="section-head reveal">
         <p class="kicker" data-i18n="dl.kicker">Descargar</p>
         <h2 id="dl-title" class="title" data-i18n="dl.title">Llévalo a tu máquina.</h2>
@@ -391,6 +421,20 @@ sudo nixos-rebuild switch --flake .#nitro</code></pre>
     </div>
     <p class="foot__fine" data-i18n="foot.fine">Maxor OS no está afiliado a NixOS ni a Hyprland. Los nombres son de sus dueños.</p>
   </footer>
+  <dialog class="term" data-term aria-labelledby="term-title">
+    <div class="term__bar">
+      <span class="dots" aria-hidden="true"><i></i><i></i><i></i></span>
+      <p id="term-title">ana@maxor: ~</p>
+      <button class="term__close" type="button" data-term-close aria-label="Cerrar la terminal" data-i18n-attr="aria-label:term.close">
+        <svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 7l10 10M17 7 7 17"/></svg>
+      </button>
+    </div>
+    <div class="term__out" data-term-out role="log" aria-live="polite" data-lenis-prevent></div>
+    <form class="term__in" data-term-form>
+      <label class="term__ps" for="term-input" aria-hidden="true">~ ❯</label>
+      <input id="term-input" aria-label="Comando" data-i18n-attr="aria-label:term.input" data-term-input type="text" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" enterkeyhint="send" maxlength="200">
+    </form>
+  </dialog>
   <noscript><p class="noscript" data-i18n="noscript">Sin JavaScript la página se lee entera; solo faltan las animaciones y la versión en vivo.</p></noscript>
 </body>
 </html>

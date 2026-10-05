@@ -213,6 +213,9 @@ function render(r, state) {
   }
 }
 
+let latest = null;
+export const latestRelease = () => latest;
+
 export function initRelease() {
   let last = { r: null, state: "loading" };
   const draw = () => { if (last.state !== "loading") render(last.r, last.state); };
@@ -221,7 +224,7 @@ export function initRelease() {
   if (!document.querySelector("[data-release]")) return;
   const go = () => {
     fetchRelease()
-      .then((r) => { last = { r, state: r ? "ok" : "none" }; })
+      .then((r) => { latest = r; last = { r, state: r ? "ok" : "none" }; })
       .catch(() => { last = { r: null, state: "error" }; })
       .finally(draw);
   };

@@ -97,5 +97,14 @@
   "noscript": "Without JavaScript the whole page still reads; only the motion and the live release are missing.",
   "desk.apply": "Apply",
   "more.rep.a": "your laptop",
-  "more.rep.b2": "a new machine"
+  "more.rep.b2": "a new machine",
+  "nav.term": "Open the terminal (Ctrl K)",
+  "hero.term": "opens a terminal. Try",
+  "band.title": "Maxor OS in numbers",
+  "band.themes": "official themes, six dark and six light",
+  "band.cmd": "command to change the whole look",
+  "band.sudo": "times you need sudo to theme it",
+  "band.boot": "faster to boot, no menu and no flicker",
+  "term.close": "Close the terminal",
+  "term.input": "Command"
 }

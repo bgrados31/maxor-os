@@ -28,6 +28,7 @@ const dynamic = {
     "copy.fail": "Selecciona y copia",
     "nav.toLight": "Cambiar a apariencia clara",
     "nav.toDark": "Cambiar a apariencia oscura",
+    "site.reset": "Tema {name}: volver a Maxor",
   },
   en: {
     "meta.title": "Maxor OS · The declarative Hyprland desktop",
@@ -49,6 +50,7 @@ const dynamic = {
     "copy.fail": "Select and copy",
     "nav.toLight": "Switch to light appearance",
     "nav.toDark": "Switch to dark appearance",
+    "site.reset": "{name} theme: back to Maxor",
   },
 };
 
