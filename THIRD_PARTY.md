@@ -28,12 +28,16 @@ image or an ISO, check the current license in each project's repository.
 |---|---|---|
 | [Figtree](https://github.com/erikdkennedy/figtree) | Erik D. Kennedy | SIL OFL 1.1 |
 | [Red Hat Mono](https://github.com/RedHatOfficial/RedHatFont) | Red Hat | SIL OFL 1.1 |
+| [Cinzel](https://github.com/NDISCOVER/Cinzel) | Natanael Gama | SIL OFL 1.1 |
 | [Krona One](https://fonts.google.com/specimen/Krona+One) | Yvonne Schüttler | SIL OFL 1.1 |
 | [Nerd Fonts Symbols](https://github.com/ryanoasis/nerd-fonts) | Ryan L. McIntyre and contributors | MIT |
 
 Krona One and Red Hat Mono are downloaded at build time from the
 [google/fonts](https://github.com/google/fonts) repository (pinned by commit and verified by
 hash); they are not redistributed inside this repository.
+
+The website (`web/`) is the exception: it serves Cinzel, Figtree and Red Hat Mono itself, as WOFF2
+subsets in `web/assets/fonts/`, with each font's licence next to the files.
 
 ## Icons and cursor
 
