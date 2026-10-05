@@ -53,6 +53,8 @@ Decisions go through Jev (TypeSafe System One; skill `typesafe:typesafe-ai`).
   install, bootloader, finish). `installer/iso/`: the ISO. `installer/schema/answers.v1.json`: the TUI → engine contract.
 - `themes/<id>/`: colors.json, theme.toml, style.json, optional gradient.json (wallpaper gradient).
 - `docs/`: INSTALLER.md, THEMING.md, IDENTITY.md, RELEASING.md, UPDATES.md…
+- `web/`: the website (static landing, no build; see web/README.md). Published to GitHub Pages by
+  `.github/workflows/pages.yml` from `main`; `python3 web/tools/check.py` runs in CI.
 
 ## How to check work
 
@@ -62,6 +64,7 @@ nix shell nixpkgs#bats nixpkgs#jq nixpkgs#openssl nixpkgs#util-linux nixpkgs#ncu
 nix build .#checks.x86_64-linux.installer-full       # installs offline (in Spanish) in a VM and boots it, ~7 min
 nix build .#iso                                       # the installer ISO, ~25 min, ~4.6 GB
 scripts/tui-gallery.sh OUT                            # photographs every installer step at 4 sizes (vhs), ~2 min
+python3 web/tools/check.py                            # the website: i18n, themes in sync, CSP hygiene, links
 ```
 
 New files must be `git add`ed before any `nix build` (flakes only see tracked files).
@@ -82,7 +85,7 @@ no flicker (theme written before the login, greetd waits only on the first boot)
 a single OS; dual boot keeps 3 s), the installer redesign (disk maps, storage, motion, keyboard and time zone proposed
 from the language, readable review, failures explained), the new identity above.
 
-Also on branch `claude/vigilant-ptolemy-ng8e4i` (2026-10-04, evening; not yet merged into `development`): Hyprland tuned (every setting guarded with `pcall`, Maxor motion curves
+Also on branch `claude/vigilant-ptolemy-ng8e4i` (2026-10-04, evening): Hyprland tuned (every setting guarded with `pcall`, Maxor motion curves
 `maxor`/`maxor-out`, blur noise/vibrancy, DMS layer blur, idle inhibit on fullscreen); lock screen redesigned
 (spaced Cinzel mark on top, 168 px light clock, accent rule, glass card with a pill input and a two-accent gradient
 outline, dims at 150 s); wallpaper signature (vignette, `ac2` glow top-right with three orbits, grain; light themes
@@ -105,6 +108,11 @@ pseudo-language (`i18n.SetPseudo`), fuzzy ignored, hostile Plural-Forms rejected
 names; a collision silently swallowed the result once). Not translated on purpose: engine/nixos-rebuild log,
 keyboard layout and language names (system data). Still open: the ISO's boot menu; setting up Weblate (Bryan: create
 the project at hosted.weblate.org with the two components listed in docs/TRANSLATING.md, "For maintainers").
+
+Website (2026-10-05, branch `claude/blissful-johnson-99ty2v`): `web/` landing in Spanish + English, live
+release card from the GitHub API, the tour desktop painted with the real themes. Not published yet: Bryan has to
+merge it and enable Pages (Settings → Pages → Source: GitHub Actions). Its og:image/canonical assume
+`https://bgrados31.github.io/maxor-os/`; change them if a domain is bought.
 
 Next, in order:
 1. **Verify the latest ISO** (`nix build .#iso`) with a full install in a VM (Spanish, offline) to the desktop.

@@ -1,0 +1,396 @@
+<!doctype html>
+<html lang="es" dir="ltr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <!-- GitHub Pages cannot send headers: the policy travels in the page. No inline code anywhere, so
+       nothing but our own files runs, and Trusted Types makes every HTML sink (innerHTML…) throw. -->
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self' data:; font-src 'self'; connect-src 'self' https://api.github.com; manifest-src 'self'; base-uri 'none'; form-action 'none'; require-trusted-types-for 'script'; trusted-types 'none'; upgrade-insecure-requests">
+  <meta name="referrer" content="strict-origin-when-cross-origin">
+  <meta name="color-scheme" content="dark light">
+  <meta name="theme-color" content="#050c38" media="(prefers-color-scheme: dark)">
+  <meta name="theme-color" content="#faf7fc" media="(prefers-color-scheme: light)">
+
+  <title>Maxor OS · El escritorio Hyprland declarativo</title>
+  <meta name="description" content="Maxor OS es una distribución NixOS + Hyprland con identidad propia: se tematiza con un comando, se instala sin red y se reproduce en cualquier máquina.">
+  <link rel="canonical" href="https://bgrados31.github.io/maxor-os/">
+
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="Maxor OS">
+  <meta property="og:title" content="Maxor OS">
+  <meta property="og:description" content="Un escritorio Hyprland declarativo. Se tematiza con un comando y se reproduce en cualquier máquina.">
+  <meta property="og:url" content="https://bgrados31.github.io/maxor-os/">
+  <meta property="og:image" content="https://bgrados31.github.io/maxor-os/assets/brand/og.png">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta property="og:image:alt" content="MAXOR OS sobre un horizonte índigo y rosa">
+  <meta name="twitter:card" content="summary_large_image">
+
+  <link rel="icon" href="assets/brand/favicon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="assets/brand/apple-touch-icon.png">
+  <link rel="manifest" href="site.webmanifest">
+  <link rel="preload" href="assets/fonts/cinzel-latin.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="preload" href="assets/fonts/figtree-latin.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="stylesheet" href="assets/css/site.css">
+  <script src="assets/js/boot.js"></script>
+  <script type="module" src="assets/js/main.js"></script>
+</head>
+<body>
+  <a class="skip" href="#main" data-i18n="skip">Saltar al contenido</a>
+
+  <!-- ── The bar: a floating island, like Maxor Shell's ───────────────────────────────────── -->
+  <header class="bar" data-bar>
+    <nav class="bar__inner" aria-label="Principal" data-i18n-attr="aria-label:nav.label">
+      <a class="bar__brand" href="#top" aria-label="Maxor OS, inicio" data-i18n-attr="aria-label:nav.home">
+        <span class="mark" aria-hidden="true"></span>
+        <span class="bar__word">Maxor OS</span>
+      </a>
+      <ul class="bar__links">
+        <li><a href="#escritorio" data-i18n="nav.desktop">Escritorio</a></li>
+        <li><a href="#nix" data-i18n="nav.nix">Declarativo</a></li>
+        <li><a href="#instalador" data-i18n="nav.installer">Instalador</a></li>
+        <li><a href="#descargar" data-i18n="nav.download">Descargar</a></li>
+      </ul>
+      <div class="bar__tools">
+        <button class="tool" type="button" data-lang-toggle aria-label="Read in English" data-i18n-attr="aria-label:nav.lang">EN</button>
+        <button class="tool" type="button" data-theme-toggle aria-label="Cambiar a apariencia clara">
+          <svg class="i i--sun" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4.2"/><path d="M12 2.5v2.2M12 19.3v2.2M2.5 12h2.2M19.3 12h2.2M5.3 5.3l1.6 1.6M17.1 17.1l1.6 1.6M5.3 18.7l1.6-1.6M17.1 6.9l1.6-1.6"/></svg>
+          <svg class="i i--moon" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 14.6A8.2 8.2 0 0 1 9.4 4a8.2 8.2 0 1 0 10.6 10.6Z"/></svg>
+        </button>
+        <a class="tool" href="https://github.com/bgrados31/maxor-os" rel="noopener noreferrer" aria-label="Código en GitHub" data-i18n-attr="aria-label:nav.github">
+          <svg class="i i--fill" viewBox="0 0 16 16" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0 0 16 8c0-4.42-3.58-8-8-8Z"/></svg>
+        </a>
+        <a class="btn btn--sm btn--accent bar__cta" href="#descargar" data-i18n="nav.cta">Descargar</a>
+      </div>
+    </nav>
+  </header>
+
+  <main id="main">
+    <!-- ── Hero: the horizon ───────────────────────────────────────────────────────────────── -->
+    <section class="hero" id="top" data-hero aria-labelledby="hero-title">
+      <div class="stars" aria-hidden="true"></div>
+      <div class="aurora" aria-hidden="true"></div>
+
+      <div class="hero__sky">
+        <a class="chip" href="#descargar" data-release-chip>
+          <span class="chip__dot" aria-hidden="true"></span>
+          <span data-release-chip-text data-i18n="hero.chip">Código abierto · MIT</span>
+        </a>
+        <h1 class="wordmark" id="hero-title" aria-label="Maxor OS">
+          <span aria-hidden="true" class="wordmark__row"><span>M</span><span>A</span><span>X</span><span>O</span><span>R</span></span>
+          <span aria-hidden="true" class="wordmark__row wordmark__row--os"><span>O</span><span>S</span></span>
+        </h1>
+        <div class="sun" aria-hidden="true"></div>
+      </div>
+
+      <div class="hero__ground">
+        <div class="floor" aria-hidden="true"><div class="floor__grid"></div></div>
+        <p class="hero__lead" data-i18n="hero.lead">Un escritorio Hyprland declarativo. Se tematiza con un comando, se instala sin red y se reproduce en cualquier máquina.</p>
+        <div class="hero__actions">
+          <a class="btn btn--accent" href="#descargar">
+            <svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v11m0 0 4.5-4.5M12 15l-4.5-4.5M5 19.5h14"/></svg>
+            <span data-i18n="hero.download">Descargar</span>
+          </a>
+          <a class="btn btn--ghost" href="#escritorio">
+            <span data-i18n="hero.tour">Recorrer el escritorio</span>
+            <svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14m0 0 5-5m-5 5-5-5"/></svg>
+          </a>
+        </div>
+        <ul class="hero__facts" aria-label="Base del sistema" data-i18n-attr="aria-label:hero.factsLabel">
+          <li>NixOS 26.05</li><li>Hyprland 0.55</li><li>Maxor Shell</li><li data-i18n="hero.license">Licencia MIT</li>
+        </ul>
+      </div>
+      <div class="grain" aria-hidden="true"></div>
+    </section>
+
+    <!-- ── The desktop, told while it changes ─────────────────────────────────────────────── -->
+    <section class="tour" id="escritorio" aria-labelledby="tour-title">
+      <header class="section-head reveal">
+        <p class="kicker" data-i18n="tour.kicker">El escritorio</p>
+        <h2 id="tour-title" class="title" data-i18n="tour.title">Se ve como lo imaginaste. Desde el primer arranque.</h2>
+      </header>
+
+      <div class="tour__grid">
+        <div class="tour__stage">
+          <figure class="desk" data-desk role="img" aria-label="El escritorio de Maxor OS: barra flotante, terminal, temas y configuración" data-i18n-attr="aria-label:desk.label">
+            <div class="desk__wall" aria-hidden="true"></div>
+            <div class="desk__bar" aria-hidden="true">
+              <span class="desk__mark"></span>
+              <span class="desk__ws"><i class="on"></i><i></i><i></i><i></i><i></i></span>
+              <span class="desk__clock" data-desk-clock>21:47</span>
+              <span class="desk__icons"><i></i><i></i><i class="bat"></i></span>
+            </div>
+            <div class="desk__toast" data-desk-toast aria-hidden="true">
+              <span class="desk__toast-dot"></span>
+              <span><b data-i18n="desk.toast">Tema aplicado</b><br><span data-desk-toast-name>Maxor Dark</span></span>
+            </div>
+            <div class="desk__tiles" aria-hidden="true">
+              <div class="win win--term is-active">
+                <p class="term__line"><span class="term__path">~</span> <span class="term__ps">❯</span> fastfetch</p>
+                <div class="fetch">
+                  <span class="fetch__mark"></span>
+                  <dl class="fetch__info">
+                    <div class="fetch__who"><dt>ana</dt><dd>@maxor</dd></div>
+                    <div><dt>OS</dt><dd>Maxor OS 0.2</dd></div>
+                    <div><dt>WM</dt><dd>Hyprland 0.55</dd></div>
+                    <div><dt>Shell</dt><dd>fish</dd></div>
+                    <div><dt data-i18n="desk.theme">Tema</dt><dd data-desk-theme-name>Maxor Dark</dd></div>
+                    <div><dt>Font</dt><dd>Figtree</dd></div>
+                  </dl>
+                </div>
+                <div class="fetch__swatches"><i></i><i></i><i></i><i></i><i></i><i></i></div>
+                <p class="term__line"><span class="term__path">~</span> <span class="term__ps">❯</span> <span data-desk-cmd>maxor theme apply maxor-dark</span></p>
+                <pre class="rail">┌  maxor theme
+│
+◇  <span data-desk-rail-name>Maxor Dark</span>
+└  bar · kitty · hyprland · gtk · lock</pre>
+                <p class="term__line"><span class="term__path">~</span> <span class="term__ps">❯</span> <span class="caret"></span></p>
+              </div>
+              <div class="win win--app">
+                <p class="app__title" data-i18n="desk.themes">Temas</p>
+                <div class="app__grid" data-desk-app></div>
+                <p class="app__foot"><span data-desk-theme-name>Maxor Dark</span><i data-i18n="desk.apply">Aplicar</i></p>
+              </div>
+              <div class="win win--code">
+                <p class="code__file">configuration.nix</p>
+<pre class="code"><span class="c-k">maxor.machine</span> = {
+  <span class="c-a">hostname</span> = <span class="c-s">"maxor"</span>;
+  <span class="c-a">user</span>     = <span class="c-s">"ana"</span>;
+  <span class="c-a">timezone</span> = <span class="c-s">"America/Lima"</span>;
+};</pre>
+              </div>
+            </div>
+          </figure>
+        </div>
+
+        <ol class="tour__steps">
+          <li class="step" data-step="0" data-step-theme="maxor-dark">
+            <p class="step__n">01 · Maxor Shell</p>
+            <h3 class="step__title" data-i18n="tour.s1.title">Todo en su lugar.</h3>
+            <p class="step__body" data-i18n="tour.s1.body">Hyprland con Maxor Shell: una barra flotante, lanzador, notificaciones, centro de control y pantalla de bloqueo propia. No hay nada que configurar para empezar.</p>
+          </li>
+          <li class="step" data-step="1" data-step-theme="glacier" data-step-cmd="maxor theme apply glacier">
+            <p class="step__n" data-i18n="tour.s2.n">02 · Temas</p>
+            <h3 class="step__title" data-i18n="tour.s2.title">Un tema. Un comando.</h3>
+            <p class="step__body"><code>maxor theme apply glacier</code> <span data-i18n="tour.s2.body">cambia la barra, la terminal, Hyprland, GTK y la pantalla de bloqueo a la vez. Sin sudo y sin recompilar; maxor theme undo vuelve atrás.</span></p>
+          </li>
+          <li class="step" data-step="2" data-step-theme="maxor-light" data-step-cmd="maxor theme apply maxor-light">
+            <p class="step__n" data-i18n="tour.s3.n">03 · Claro y oscuro</p>
+            <h3 class="step__title" data-i18n="tour.s3.title">Legible de día y de noche.</h3>
+            <p class="step__body" data-i18n="tour.s3.body">Maxor Dark y Maxor Light nacen de la misma paleta. Cada par de colores supera un contraste de 5:1, y un test lo comprueba en cada cambio.</p>
+          </li>
+          <li class="step" data-step="3" data-step-theme="sakura" data-step-cmd="maxor theme apply sakura">
+            <p class="step__n" data-i18n="tour.s4.n">04 · Doce temas</p>
+            <h3 class="step__title" data-i18n="tour.s4.title">Elige el tuyo.</h3>
+            <p class="step__body" data-i18n="tour.s4.body">Seis oscuros y seis claros, un solo acento cada uno. Pruébalos aquí: el escritorio se pinta con los colores reales de cada tema.</p>
+            <div class="swatches" role="group" aria-label="Temas oficiales" data-i18n-attr="aria-label:tour.s4.group" data-theme-picker></div>
+          </li>
+        </ol>
+      </div>
+    </section>
+
+    <!-- ── Declarative: one file, and a way back ──────────────────────────────────────────── -->
+    <section class="nix" id="nix" aria-labelledby="nix-title">
+      <header class="section-head reveal">
+        <p class="kicker" data-i18n="nix.kicker">Declarativo</p>
+        <h2 id="nix-title" class="title" data-i18n="nix.title">Todo el sistema en un archivo.</h2>
+        <p class="lead" data-i18n="nix.lead">Arranque, shell, terminal, bloqueo, fuentes y temas viven en un flake de NixOS. Un cambio es un archivo; volver atrás es elegir la generación anterior.</p>
+      </header>
+
+      <div class="nix__grid">
+        <div class="card codecard reveal">
+          <div class="codecard__head"><span class="dots" aria-hidden="true"><i></i><i></i><i></i></span><span>hosts/maxor/configuration.nix</span></div>
+<pre class="code code--big" tabindex="0" aria-label="Ejemplo de configuración" data-i18n-attr="aria-label:nix.codeLabel"><span class="c-m"># Quién y dónde es esta máquina</span>
+<span class="c-k">maxor.machine</span> = {
+  <span class="c-a">hostname</span> = <span class="c-s">"maxor"</span>;
+  <span class="c-a">user</span>     = <span class="c-s">"ana"</span>;
+  <span class="c-a">timezone</span> = <span class="c-s">"America/Lima"</span>;
+  <span class="c-a">locale</span>   = <span class="c-s">"es_PE.UTF-8"</span>;
+  <span class="c-a">xkb</span>.<span class="c-a">layout</span> = <span class="c-s">"latam"</span>;
+};
+
+<span class="c-m"># Drivers según el hardware detectado</span>
+<span class="c-k">maxor.hardware.report</span> = <span class="c-p">./hardware.json</span>;
+<span class="c-k">maxor.settings</span>        = <span class="c-p">./maxor.json</span>; <span class="c-m"># perfiles</span></pre>
+        </div>
+
+        <div class="gens" data-scrub="section" aria-labelledby="gens-title">
+          <h3 class="gens__title" id="gens-title" data-i18n="nix.gens">Generaciones</h3>
+          <ol class="gens__list">
+            <li class="gen gen--ok"><span class="gen__n">41</span><code>maxor theme apply glacier</code><span class="gen__state" data-i18n="nix.ok">listo</span></li>
+            <li class="gen gen--ok"><span class="gen__n">42</span><code>maxor profile add gaming</code><span class="gen__state" data-i18n="nix.ok2">listo</span></li>
+            <li class="gen gen--bad"><span class="gen__n">43</span><code>maxor update</code><span class="gen__state" data-i18n="nix.bad">algo no te gusta</span></li>
+            <li class="gen gen--back"><span class="gen__n">42</span><code>maxor rollback</code><span class="gen__state" data-i18n="nix.back">de vuelta, en segundos</span></li>
+          </ol>
+          <p class="gens__note" data-i18n="nix.note">Cada cambio crea una generación nueva y deja intactas las anteriores. También puedes elegirlas en el menú de arranque.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── The installer ──────────────────────────────────────────────────────────────────── -->
+    <section class="inst" id="instalador" aria-labelledby="inst-title">
+      <header class="section-head reveal">
+        <p class="kicker" data-i18n="inst.kicker">El instalador</p>
+        <h2 id="inst-title" class="title" data-i18n="inst.title">Se instala sin red, en cualquier idioma.</h2>
+        <p class="lead" data-i18n="inst.lead">Una guía a pantalla completa que no escribe nada en el disco hasta que lo confirmas. Propone el teclado y la zona horaria según el idioma del sistema, dibuja el mapa del disco y, si algo falla, dice qué y por qué.</p>
+      </header>
+
+      <figure class="tui-wrap reveal">
+        <div class="tui" data-scrub="self" aria-hidden="true">
+          <div class="tui__rail">
+            <p class="tui__mark">MAXOR OS</p>
+            <ol class="tui__steps">
+              <li>Language</li><li>Keyboard</li><li>Network</li><li>Time zone</li><li>Disk</li><li>How to install</li>
+              <li>Storage</li><li>Your account</li><li>Look and tools</li><li>Your hardware</li><li>Review</li><li>Installing</li>
+            </ol>
+          </div>
+          <div class="tui__main">
+            <div data-phase-show="disk">
+              <p class="tui__h"><b>Disk</b></p>
+              <p class="tui__mu">Where should Maxor OS go? Nothing is written yet.</p>
+            </div>
+            <div data-phase-show="install">
+              <p class="tui__h"><b>Installing</b></p>
+              <p class="tui__mu">Please do not turn the computer off.</p>
+            </div>
+            <div class="diskmap">
+              <span class="diskmap__seg diskmap__seg--efi">EFI</span>
+              <span class="diskmap__seg diskmap__seg--win">Windows</span>
+              <span class="diskmap__seg diskmap__seg--new">Maxor OS · LUKS</span>
+            </div>
+            <p class="tui__legend"><span>nvme0n1 · 512 GB</span><span class="tui__mu">alongside Windows</span></p>
+            <ol class="stages">
+              <li>preflight</li><li>disk</li><li>luks</li><li>filesystem</li><li>host</li><li>install</li><li>bootloader</li><li>finish</li>
+            </ol>
+            <p class="tui__log" data-tui-log>▸ plan     alongside Windows · 230 GB free · LUKS</p>
+            <div class="tui__progress"><i></i></div>
+          </div>
+        </div>
+        <figcaption class="tui__cap" data-i18n="inst.caption">La guía habla inglés por ahora; el sistema queda en el idioma que elijas, con todos los idiomas incluidos en la ISO.</figcaption>
+      </figure>
+
+      <ul class="points">
+        <li class="point reveal"><b data-i18n="inst.p1.t">Sin conexión</b><span data-i18n="inst.p1.b">La ISO trae todo lo necesario, incluidos todos los idiomas.</span></li>
+        <li class="point reveal"><b data-i18n="inst.p2.t">Seguro por defecto</b><span data-i18n="inst.p2.b">Nada toca el disco antes de una confirmación escrita.</span></li>
+        <li class="point reveal"><b data-i18n="inst.p3.t">Cifrado opcional</b><span data-i18n="inst.p3.b">LUKS en todo el sistema, con su frase en el arranque.</span></li>
+        <li class="point reveal"><b data-i18n="inst.p4.t">Honesto</b><span data-i18n="inst.p4.b">Cada etapa deja su registro y se puede retomar.</span></li>
+      </ul>
+    </section>
+
+    <!-- ── Details ────────────────────────────────────────────────────────────────────────── -->
+    <section class="more" aria-labelledby="more-title">
+      <header class="section-head reveal">
+        <p class="kicker" data-i18n="more.kicker">Los detalles</p>
+        <h2 id="more-title" class="title" data-i18n="more.title">Pensado de punta a punta.</h2>
+      </header>
+      <ul class="bento" data-glow>
+        <li class="tile tile--wide reveal">
+          <p class="tile__k" data-i18n="more.boot.k">Arranque</p>
+          <h3 class="tile__t" data-i18n="more.boot.t">Del encendido al escritorio, sin parpadeos.</h3>
+          <p class="tile__b" data-i18n="more.boot.b">Splash propio, sin menú cuando hay un solo sistema y el tema escrito antes del login. Unos 3,5 segundos menos.</p>
+          <div class="bootbar" aria-hidden="true"><span>MAXOR OS</span><i></i></div>
+        </li>
+        <li class="tile reveal">
+          <p class="tile__k" data-i18n="more.gpu.k">Gráficos</p>
+          <h3 class="tile__t" data-i18n="more.gpu.t">Intel + NVIDIA, preparados.</h3>
+          <p class="tile__b"><span data-i18n="more.gpu.b">Drivers elegidos según el hardware detectado y PRIME offload listo:</span> <code>nvidia-offload app</code></p>
+        </li>
+        <li class="tile reveal">
+          <p class="tile__k" data-i18n="more.apps.k">Apps</p>
+          <h3 class="tile__t" data-i18n="more.apps.t">Instala sin sudo.</h3>
+          <p class="tile__b"><code>maxor install</code> <span data-i18n="more.apps.b">desde nixpkgs y Flathub, y perfiles de uso: gaming, desarrollo, creación y oficina.</span></p>
+        </li>
+        <li class="tile reveal">
+          <p class="tile__k" data-i18n="more.upd.k">Actualizaciones</p>
+          <h3 class="tile__t" data-i18n="more.upd.t">Firmadas, siempre.</h3>
+          <p class="tile__b" data-i18n="more.upd.b">Cada versión va firmada con la clave del proyecto. Lo que no lleva esa firma se rechaza, y una versión vieja no puede hacerse pasar por nueva.</p>
+        </li>
+        <li class="tile tile--type reveal">
+          <p class="tile__k" data-i18n="more.type.k">Tipografía</p>
+          <p class="type type--mark">Cinzel</p>
+          <p class="type type--ui">Figtree</p>
+          <p class="type type--mono">Red Hat Mono</p>
+        </li>
+        <li class="tile tile--full reveal">
+          <div class="tile__text">
+            <p class="tile__k" data-i18n="more.rep.k">Reproducible</p>
+            <h3 class="tile__t" data-i18n="more.rep.t">La misma receta, el mismo sistema.</h3>
+            <p class="tile__b" data-i18n="more.rep.b">El flake fija cada versión. Tu laptop y una máquina nueva quedan idénticas.</p>
+          </div>
+          <dl class="same" aria-hidden="true">
+            <div><dt data-i18n="more.rep.a">tu laptop</dt><dd>/nix/store/<b>q8f3k2…</b>-nixos-system-maxor</dd></div>
+            <div><dt data-i18n="more.rep.b2">una máquina nueva</dt><dd>/nix/store/<b>q8f3k2…</b>-nixos-system-maxor</dd></div>
+          </dl>
+        </li>
+      </ul>
+    </section>
+
+    <!-- ── Download: read live from GitHub ────────────────────────────────────────────────── -->
+    <section class="dl" id="descargar" aria-labelledby="dl-title">
+      <header class="section-head reveal">
+        <p class="kicker" data-i18n="dl.kicker">Descargar</p>
+        <h2 id="dl-title" class="title" data-i18n="dl.title">Llévalo a tu máquina.</h2>
+      </header>
+
+      <div class="dl__grid">
+        <article class="card release reveal" data-release aria-busy="true" aria-live="polite">
+          <div class="release__head">
+            <p class="release__tag"><span data-release-tag class="skeleton">v0.0.0</span><span class="badge" data-release-badge hidden></span></p>
+            <p class="release__date" data-release-date><span class="skeleton">—</span></p>
+          </div>
+          <h3 class="release__name" data-release-name><span class="skeleton" data-i18n="dl.loading">Buscando la última versión…</span></h3>
+          <div class="release__notes" data-release-notes></div>
+          <div class="release__actions">
+            <a class="btn btn--accent" data-release-primary href="https://github.com/bgrados31/maxor-os/releases" rel="noopener noreferrer">
+              <svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v11m0 0 4.5-4.5M12 15l-4.5-4.5M5 19.5h14"/></svg>
+              <span data-release-primary-text data-i18n="dl.all">Ver todas las versiones</span>
+            </a>
+            <a class="btn btn--ghost" data-release-link href="https://github.com/bgrados31/maxor-os/releases" rel="noopener noreferrer" hidden><span data-i18n="dl.notes">Notas completas</span> ↗</a>
+          </div>
+          <div class="sha" data-release-sha hidden>
+            <p class="sha__label">SHA-256</p>
+            <div class="copyrow"><code data-release-sha-value></code><button class="copy" type="button" data-copy-from="[data-release-sha-value]" data-i18n="dl.copy">Copiar</button></div>
+          </div>
+        </article>
+
+        <div class="dl__side">
+          <div class="card howto reveal">
+            <h3 class="howto__t" data-i18n="dl.iso.t">Desde la ISO</h3>
+            <ol class="howto__list">
+              <li data-i18n="dl.iso.1">Grábala en un USB (Ventoy, dd o Fedora Media Writer).</li>
+              <li data-i18n="dl.iso.2">Arranca en modo UEFI. Por ahora la ISO no está firmada: desactiva Secure Boot.</li>
+              <li data-i18n="dl.iso.3">Sigue el instalador. No necesita red.</li>
+            </ol>
+          </div>
+          <div class="card howto reveal">
+            <h3 class="howto__t" data-i18n="dl.nixos.t">Desde NixOS</h3>
+            <p class="howto__b" data-i18n="dl.nixos.b">Con NixOS 25.11 o posterior, UEFI y flakes activados:</p>
+            <div class="copyrow copyrow--block">
+<pre><code data-cmd>git clone https://github.com/bgrados31/maxor-os ~/nixos-config
+cd ~/nixos-config
+sudo nixos-rebuild switch --flake .#nitro</code></pre>
+              <button class="copy" type="button" data-copy-from="[data-cmd]" data-i18n="dl.copy">Copiar</button>
+            </div>
+            <p class="howto__b howto__mu"><span data-i18n="dl.nixos.note">nitro es la máquina de referencia; para otra, lee primero</span> <a href="https://github.com/bgrados31/maxor-os/blob/main/docs/INSTALL.md" rel="noopener noreferrer" data-i18n="dl.nixos.guide">la guía de instalación</a>.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="foot">
+    <p class="foot__word" aria-hidden="true">MAXOR OS</p>
+    <div class="foot__row">
+      <p class="foot__by"><span data-i18n="foot.by">Hecho por</span> <a href="https://github.com/bgrados31" rel="noopener noreferrer">Bryan Grados</a> · <span data-i18n="foot.license">Código abierto bajo licencia MIT</span></p>
+      <ul class="foot__links">
+        <li><a href="https://github.com/bgrados31/maxor-os" rel="noopener noreferrer">GitHub</a></li>
+        <li><a href="https://github.com/bgrados31/maxor-os/tree/main/docs" rel="noopener noreferrer" data-i18n="foot.docs">Documentación</a></li>
+        <li><a href="https://github.com/bgrados31/maxor-os/blob/main/CHANGELOG.md" rel="noopener noreferrer" data-i18n="foot.changes">Cambios</a></li>
+        <li><a href="https://github.com/bgrados31/maxor-os/security/policy" rel="noopener noreferrer" data-i18n="foot.security">Seguridad</a></li>
+      </ul>
+    </div>
+    <p class="foot__fine" data-i18n="foot.fine">Maxor OS no está afiliado a NixOS ni a Hyprland. Los nombres son de sus dueños.</p>
+  </footer>
+  <noscript><p class="noscript" data-i18n="noscript">Sin JavaScript la página se lee entera; solo faltan las animaciones y la versión en vivo.</p></noscript>
+</body>
+</html>
