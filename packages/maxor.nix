@@ -10,7 +10,7 @@
 # La CLI `maxor`. Los scripts reales viven en home/maxor/ (lib/ y cmd/) y se
 # ensamblan en este orden; shellcheck revisa el resultado al compilar.
 #   lib/core      rutas, códigos de salida, registro, errores
-#   lib/i18n      catálogo de mensajes (lib/lang/<idioma>.sh, todos los que haya en esa carpeta)
+#   lib/i18n      catálogo de mensajes: el inglés (lib/lang/en.sh) y el cargador de los .po (po/)
 #   lib/term      capacidades, paleta del tema, utilidades de texto
 #   lib/frame     ventana, líneas, filas, mensajes
 #   lib/loaders   spinner, ventana de salida, pasos, barra, esqueleto
@@ -21,12 +21,10 @@
 #   main          banderas globales y despacho
 let
   src = ../home/maxor;
-  # Un idioma es un archivo en lib/lang/: añadirlo no obliga a tocar este paquete.
-  langFiles = map (n: "lib/lang/${n}") (lib.sort (a: b: a < b) (builtins.attrNames (builtins.readDir (src + "/lib/lang"))));
   files = [
     "lib/core.sh"
     "lib/i18n.sh"
-  ] ++ langFiles ++ [
+    "lib/lang/en.sh"
     "lib/term.sh"
     "lib/frame.sh"
     "lib/loaders.sh"
@@ -50,6 +48,9 @@ writeShellApplication {
   runtimeInputs = [ jq coreutils gnused gnugrep gawk gnutar gzip findutils procps ncurses curl openssh git util-linux libnotify ];
   runtimeEnv = lib.optionalAttrs (releaseUrl != null) { MAXOR_RELEASE_URL = releaseUrl; } // {
     MAXOR_PROFILES = "${../modules/profiles-catalog.json}"; # interpolado: Nix lo copia al store y lo mantiene vivo
+    # Los idiomas: un .po por idioma (gettext), que la CLI lee al arrancar solo para el idioma en uso. Añadir
+    # uno es añadir un archivo a esta carpeta: este paquete no cambia.
+    MAXOR_PO = "${../home/maxor/po}";
     # Las claves de confianza van dentro del paquete: no se pueden cambiar sin cambiar el sistema.
     MAXOR_RELEASE_KEYS = "${releaseKeys}";
     MAXOR_VERSION = maxorVersion;

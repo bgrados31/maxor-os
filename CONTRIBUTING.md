@@ -50,7 +50,8 @@ Common types: `feat`, `fix`, `docs`, `refactor`, `chore`, `ci`.
 - **Nix:** two-space indentation, a short comment about the *why* of every non-obvious block, and
   no machine-specific value outside `hosts/`.
 - **Shell (`maxor` CLI):** must pass `shellcheck` (`writeShellApplication` runs it). User-facing
-  text goes through the message catalog (`home/maxor/lib/lang/en.sh`) with `@key`, never inline.
+  text goes through the message catalog (`home/maxor/lib/lang/en.sh`) with `@key`, never inline; after adding
+  or changing one, run `scripts/i18n.sh update`.
 - **Go (full-screen app):** `go vet` and `go test ./...` must pass; they run on every build.
 - **Lua (Hyprland):** one responsibility per file once it is modularized.
 - **Documentation:** in English, direct, with examples that can be copied and pasted.
@@ -71,7 +72,8 @@ Requirements:
 
 ## Translating
 
-A translation is one JSON file and needs no Go: see [docs/TRANSLATING.md](docs/TRANSLATING.md).
+A translation is a standard gettext `.po` file, editable in a browser (Weblate), in Poedit or in a text editor, and it needs
+no code: see [docs/TRANSLATING.md](docs/TRANSLATING.md).
 
 ## Security
 

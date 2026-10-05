@@ -15,6 +15,7 @@ isolate() {
   export MAXOR_FLAKE="$BATS_TEST_TMPDIR/flake" MAXOR_HOST="testhost"
   export NO_COLOR='' TERM=xterm
   mkdir -p "$HOME" "$MAXOR_FLAKE"
+  export MAXOR_PO="$SRC/po" # los catálogos de los idiomas, como los pone el paquete
   export MAXOR_LANG=en # los tests esperan inglés aunque la máquina que los corre hable otro idioma
   unset LC_ALL MAXOR_QUIET MAXOR_VERBOSE
 }
@@ -24,7 +25,7 @@ load_lib() {
   isolate
   if [ "${1:-}" = color ]; then export MAXOR_FORCE_UI=1 COLUMNS=60; else unset MAXOR_FORCE_UI; fi
   local f
-  for f in "$SRC"/lib/core.sh "$SRC"/lib/i18n.sh "$SRC"/lib/lang/*.sh "$SRC"/lib/term.sh "$SRC"/lib/frame.sh \
+  for f in "$SRC"/lib/core.sh "$SRC"/lib/i18n.sh "$SRC"/lib/lang/en.sh "$SRC"/lib/term.sh "$SRC"/lib/frame.sh \
     "$SRC"/lib/loaders.sh "$SRC"/lib/widgets.sh "$SRC"/lib/style.sh "$SRC"/lib/registry.sh; do
     # shellcheck disable=SC1090
     source "$f"

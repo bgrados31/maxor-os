@@ -438,7 +438,7 @@ cmd_remove() {
         purged=true
         [ "$json" = 1 ] || ui_say ok @apps.purged "$(app_human "$total")"
       elif [ "$json" = 0 ]; then
-        if [ -t 0 ] && ui_confirm @apps.purge_confirm "$(app_human "$total")" "$count"; then
+        if [ -t 0 ] && ui_confirm @apps.purge_confirm "$count" "$(app_human "$total")"; then
           app_purge "$id" > /dev/null
           purged=true
           ui_say ok @apps.purged "$(app_human "$total")"

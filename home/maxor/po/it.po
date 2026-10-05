@@ -1,0 +1,1943 @@
+# Maxor OS: messages of the `maxor` command line.
+# How to translate: docs/TRANSLATING.md
+msgid ""
+msgstr ""
+"Project-Id-Version: Maxor OS\n"
+"Report-Msgid-Bugs-To: https://github.com/bgrados31/maxor-os/issues\n"
+"Language: it\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+
+#. err.unknown_option
+msgctxt "err.unknown_option"
+msgid "unknown option: %s"
+msgstr "opzione sconosciuta: %s"
+
+#. err.unknown_command
+msgctxt "err.unknown_command"
+msgid "unknown command: %s"
+msgstr "comando sconosciuto: %s"
+
+#. err.unknown_command_title
+msgctxt "err.unknown_command_title"
+msgid "Unknown command"
+msgstr "Comando sconosciuto"
+
+#. err.unknown_command_cause
+msgctxt "err.unknown_command_cause"
+msgid "that name is not one of the maxor commands"
+msgstr "quel nome non è uno dei comandi di maxor"
+
+#. err.unknown_command_hint
+msgctxt "err.unknown_command_hint"
+msgid "maxor help"
+msgstr "maxor help"
+
+#. err.cancelled
+msgctxt "err.cancelled"
+msgid "Cancelled."
+msgstr "Annullato."
+
+#. core.no_flake
+msgctxt "core.no_flake"
+msgid "flake not found at %s (set MAXOR_FLAKE=/path)"
+msgstr "flake non trovato in %s (usa MAXOR_FLAKE=/percorso)"
+
+#. ui.log_hint
+msgctxt "ui.log_hint"
+msgid "Details: maxor logs --last"
+msgstr "Dettagli: maxor logs --last"
+
+#. ui.yes_no
+msgctxt "ui.yes_no"
+msgid "[y/N]"
+msgstr "[s/N]"
+
+#. ui.yes_words
+msgctxt "ui.yes_words"
+msgid "y yes"
+msgstr "s si sì"
+
+#. ui.cause
+msgctxt "ui.cause"
+msgid "cause"
+msgstr "causa"
+
+#. ui.try
+msgctxt "ui.try"
+msgid "try"
+msgstr "prova"
+
+#. ui.details
+msgctxt "ui.details"
+msgid "details"
+msgstr "dettagli"
+
+#. diff.new
+msgctxt "diff.new"
+msgid "new"
+msgstr "nuovi"
+
+#. diff.updated
+msgctxt "diff.updated"
+msgid "updated"
+msgstr "aggiornati"
+
+#. diff.removed
+msgctxt "diff.removed"
+msgid "removed"
+msgstr "rimossi"
+
+#. diff.changed
+msgctxt "diff.changed"
+msgid "changed"
+msgstr "modificati"
+
+#. diff.config_files
+msgctxt "diff.config_files"
+msgid "%s configuration file changed (hidden)"
+msgid_plural "%s configuration files changed (hidden)"
+msgstr[0] "%s file di configurazione modificato (nascosto)"
+msgstr[1] "%s file di configurazione modificati (nascosti)"
+
+#. diff.more
+msgctxt "diff.more"
+msgid "… and %s more"
+msgstr "… e altri %s"
+
+#. group.appearance
+msgctxt "group.appearance"
+msgid "Appearance"
+msgstr "Aspetto"
+
+#. group.apps
+msgctxt "group.apps"
+msgid "Apps"
+msgstr "App"
+
+#. group.system
+msgctxt "group.system"
+msgid "System"
+msgstr "Sistema"
+
+#. group.tools
+msgctxt "group.tools"
+msgid "Tools"
+msgstr "Strumenti"
+
+#. help.footer
+msgctxt "help.footer"
+msgid "maxor help <command> for details · maxor --version"
+msgstr "maxor help <comando> per i dettagli · maxor --version"
+
+#. cmd.theme
+msgctxt "cmd.theme"
+msgid "themes: list, apply, undo, install, export"
+msgstr "temi: list, apply, undo, install, export"
+
+#. cmd.search
+msgctxt "cmd.search"
+msgid "search apps in nixpkgs and Flathub"
+msgstr "cerca app in nixpkgs e Flathub"
+
+#. cmd.install
+msgctxt "cmd.install"
+msgid "install apps (no sudo, no rebuild)"
+msgstr "installa app (senza sudo né ricostruzione)"
+
+#. cmd.remove
+msgctxt "cmd.remove"
+msgid "remove an app installed with maxor"
+msgstr "rimuove un'app installata con maxor"
+
+#. cmd.apps
+msgctxt "cmd.apps"
+msgid "list or update your apps"
+msgstr "elenca o aggiorna le tue app"
+
+#. cmd.update
+msgctxt "cmd.update"
+msgid "update the system, showing what changes"
+msgstr "aggiorna il sistema mostrando cosa cambia"
+
+#. cmd.rollback
+msgctxt "cmd.rollback"
+msgid "go back to the previous generation"
+msgstr "torna alla generazione precedente"
+
+#. cmd.doctor
+msgctxt "cmd.doctor"
+msgid "check the health of the system"
+msgstr "controlla la salute del sistema"
+
+#. cmd.hardware
+msgctxt "cmd.hardware"
+msgid "detected machine and the drivers it uses"
+msgstr "il computer rilevato e i driver che usa"
+
+#. cmd.profile
+msgctxt "cmd.profile"
+msgid "usage profiles: gaming, dev, creator, office"
+msgstr "profili d'uso: gaming, dev, creator, office"
+
+#. cmd.ui
+msgctxt "cmd.ui"
+msgid "open the full-screen app"
+msgstr "apre l'app a schermo intero"
+
+#. cmd.setup
+msgctxt "cmd.setup"
+msgid "first-run setup: look, profiles and apps"
+msgstr "configurazione iniziale: aspetto, profili e app"
+
+#. cmd.firstrun
+msgctxt "cmd.firstrun"
+msgid "write the default Maxor look once (theme and wallpaper); it runs by itself before the first login"
+msgstr "scrive una volta l'aspetto predefinito di Maxor (tema e sfondo); parte da sola prima del primo accesso"
+
+#. cmd.backup
+msgctxt "cmd.backup"
+msgid "save your setup (profiles, themes, apps) in one file"
+msgstr "salva la tua configurazione (profili, temi, app) in un file"
+
+#. cmd.restore
+msgctxt "cmd.restore"
+msgid "bring a backup back, on this or another computer"
+msgstr "ripristina un backup, su questo o un altro computer"
+
+#. cmd.logs
+msgctxt "cmd.logs"
+msgid "show the log of the last run or failure"
+msgstr "mostra il registro dell'ultima esecuzione o errore"
+
+#. cmd.debug
+msgctxt "cmd.debug"
+msgid "write a report to attach to a bug"
+msgstr "scrive un rapporto da allegare a un bug"
+
+#. cmd.completions
+msgctxt "cmd.completions"
+msgid "print shell completions (fish, bash, zsh)"
+msgstr "stampa i completamenti della shell (fish, bash, zsh)"
+
+#. cmd.version
+msgctxt "cmd.version"
+msgid "print the version"
+msgstr "stampa la versione"
+
+#. help.theme
+msgctxt "help.theme"
+msgid ""
+"Usage: maxor theme <command>\n"
+"\n"
+"  list [--json]             installed themes\n"
+"  current                   active theme\n"
+"  apply <name>              apply a theme\n"
+"  undo                      go back to the previous theme\n"
+"  install <path> [--force]  install from a folder or .tar.gz\n"
+"  export <name>             pack a theme into <name>.maxortheme\n"
+"\n"
+"  Examples:\n"
+"    maxor theme apply maxor-dark\n"
+"    maxor theme undo\n"
+"    maxor theme list --json"
+msgstr ""
+"Uso: maxor theme <comando>\n"
+"\n"
+"  list [--json]             temi installati\n"
+"  current                   tema attivo\n"
+"  apply <nome>              applica un tema\n"
+"  undo                      torna al tema precedente\n"
+"  install <percorso> [--force]  installa da una cartella o da un .tar.gz\n"
+"  export <nome>             impacchetta un tema in <nome>.maxortheme\n"
+"\n"
+"  Esempi:\n"
+"    maxor theme apply maxor-dark\n"
+"    maxor theme undo\n"
+"    maxor theme list --json"
+
+#. help.search
+msgctxt "help.search"
+msgid ""
+"Usage: maxor search [text] [--json] [--list]\n"
+"\n"
+"  In a terminal, with the full-screen app installed, it opens the Store\n"
+"  (mark apps, install them, see details). With --list, --json or without\n"
+"  a terminal it prints the results as a list.\n"
+"\n"
+"  --json    print JSON and nothing else\n"
+"  --list    print the list instead of opening the Store\n"
+"\n"
+"  Examples:\n"
+"    maxor search brave\n"
+"    maxor search --list firefox"
+msgstr ""
+"Uso: maxor search [testo] [--json] [--list]\n"
+"\n"
+"  In un terminale, con l'app a schermo intero installata, apre il Negozio\n"
+"  (segna le app, installale, guarda i dettagli). Con --list, --json o senza\n"
+"  terminale stampa i risultati come elenco.\n"
+"\n"
+"  --json    stampa JSON e nient'altro\n"
+"  --list    stampa l'elenco invece di aprire il Negozio\n"
+"\n"
+"  Esempi:\n"
+"    maxor search brave\n"
+"    maxor search --list firefox"
+
+#. help.install
+msgctxt "help.install"
+msgid ""
+"Usage: maxor install <app...> [--nix|--flatpak] [--json]\n"
+"\n"
+"  Installs without sudo or rebuild. An id with dots (org.mozilla.firefox)\n"
+"  is Flatpak; any other name is nixpkgs. Force the source with the flags.\n"
+"\n"
+"  Examples:\n"
+"    maxor install btop\n"
+"    maxor install org.mozilla.firefox\n"
+"    maxor install --nix vlc"
+msgstr ""
+"Uso: maxor install <app...> [--nix|--flatpak] [--json]\n"
+"\n"
+"  Installa senza sudo né ricostruzione. Un id con punti (org.mozilla.firefox)\n"
+"  è Flatpak; qualsiasi altro nome è nixpkgs. Forza l'origine con le opzioni.\n"
+"\n"
+"  Esempi:\n"
+"    maxor install btop\n"
+"    maxor install org.mozilla.firefox\n"
+"    maxor install --nix vlc"
+
+#. help.remove
+msgctxt "help.remove"
+msgid ""
+"Usage: maxor remove <app...> [--purge] [--list-data] [--json]\n"
+"\n"
+"  Removes apps installed with maxor. Folders the app left in your home\n"
+"  (named exactly like the app) are listed; --purge deletes them too, and\n"
+"  also cleans up after an app that is already gone. --list-data only lists them.\n"
+"\n"
+"  Examples:\n"
+"    maxor remove btop\n"
+"    maxor remove atlauncher --purge"
+msgstr ""
+"Uso: maxor remove <app...> [--purge] [--list-data] [--json]\n"
+"\n"
+"  Rimuove le app installate con maxor. Le cartelle che l'app ha lasciato nella tua home\n"
+"  (con lo stesso nome dell'app) vengono elencate; --purge le elimina e pulisce anche\n"
+"  dopo un'app già scomparsa. --list-data le elenca soltanto.\n"
+"\n"
+"  Esempi:\n"
+"    maxor remove btop\n"
+"    maxor remove atlauncher --purge"
+
+#. help.apps
+msgctxt "help.apps"
+msgid ""
+"Usage: maxor apps [list [--json] | updates | update [app...] | open <app> | repair]\n"
+"\n"
+"  list      installed apps (default)\n"
+"  updates   apps that have a newer version (--refresh to look again, --notify to tell you)\n"
+"  update    update every app, or just the ones you name\n"
+"  open      open an installed app\n"
+"  repair    show Flatpak apps in the app menu and the terminal\n"
+"\n"
+"  Examples:\n"
+"    maxor apps\n"
+"    maxor apps updates\n"
+"    maxor apps update btop\n"
+"    maxor apps open brave"
+msgstr ""
+"Uso: maxor apps [list [--json] | updates | update [app...] | open <app> | repair]\n"
+"\n"
+"  list      app installate (predefinito)\n"
+"  updates   app con una versione più recente (--refresh per ricontrollare, --notify per avvisarti)\n"
+"  update    aggiorna tutte le app, o solo quelle che indichi\n"
+"  open      apre un'app installata\n"
+"  repair    mostra le app Flatpak nel menu delle app e nel terminale\n"
+"\n"
+"  Esempi:\n"
+"    maxor apps\n"
+"    maxor apps updates\n"
+"    maxor apps update btop\n"
+"    maxor apps open brave"
+
+#. help.update
+msgctxt "help.update"
+msgid ""
+"Usage: maxor update [-y] [--no-lock] [--check] [--json]\n"
+"\n"
+"  Updates the flake inputs, builds the system without applying it, shows\n"
+"  what changes and asks before switching.\n"
+"\n"
+"  -y, --yes   apply without asking\n"
+"  --no-lock   do not update flake.lock\n"
+"  --check     stop after showing the changes\n"
+"  --json      same check, as JSON and nothing else (implies --check)\n"
+"  --status    JSON: branch of the configuration, nixpkgs channel and generation (instant)\n"
+"  --cached    JSON: the last saved check, or null\n"
+"\n"
+"  Examples:\n"
+"    maxor update\n"
+"    maxor update --no-lock -y"
+msgstr ""
+"Uso: maxor update [-y] [--no-lock] [--check] [--json]\n"
+"\n"
+"  Aggiorna gli input del flake, costruisce il sistema senza applicarlo, mostra\n"
+"  cosa cambia e chiede prima di passare al nuovo.\n"
+"\n"
+"  -y, --yes   applica senza chiedere\n"
+"  --no-lock   non aggiorna flake.lock\n"
+"  --check     si ferma dopo aver mostrato le modifiche\n"
+"  --json      lo stesso controllo, in JSON e nient'altro (implica --check)\n"
+"  --status    JSON: ramo della configurazione, canale nixpkgs e generazione (istantaneo)\n"
+"  --cached    JSON: l'ultimo controllo salvato, o null\n"
+"\n"
+"  Esempi:\n"
+"    maxor update\n"
+"    maxor update --no-lock -y"
+
+#. help.rollback
+msgctxt "help.rollback"
+msgid ""
+"Usage: maxor rollback [N] [-y] | --list [--json]\n"
+"\n"
+"  Goes back to the previous generation, or to generation N.\n"
+"  --list shows the latest generations (--json for programs).\n"
+"\n"
+"  Examples:\n"
+"    maxor rollback --list\n"
+"    maxor rollback 33"
+msgstr ""
+"Uso: maxor rollback [N] [-y] | --list [--json]\n"
+"\n"
+"  Torna alla generazione precedente, o alla generazione N.\n"
+"  --list mostra le ultime generazioni (--json per i programmi).\n"
+"\n"
+"  Esempi:\n"
+"    maxor rollback --list\n"
+"    maxor rollback 33"
+
+#. help.doctor
+msgctxt "help.doctor"
+msgid ""
+"Usage: maxor doctor\n"
+"\n"
+"  Checks system, session, graphics, boot, identity and configuration.\n"
+"  Exit code 1 if something is wrong.\n"
+"\n"
+"  Examples:\n"
+"    maxor doctor\n"
+"    maxor doctor --json | jq .groups"
+msgstr ""
+"Uso: maxor doctor\n"
+"\n"
+"  Controlla sistema, sessione, grafica, avvio, identità e configurazione.\n"
+"  Codice di uscita 1 se qualcosa non va.\n"
+"\n"
+"  Esempi:\n"
+"    maxor doctor\n"
+"    maxor doctor --json | jq .groups"
+
+#. help.hardware
+msgctxt "help.hardware"
+msgid ""
+"Usage: maxor hardware [show | detect [--write [path]]]\n"
+"\n"
+"  show      detected machine and the drivers Maxor uses (default)\n"
+"  detect    print hardware.json; --write saves it for this machine\n"
+"\n"
+"  Examples:\n"
+"    maxor hardware\n"
+"    maxor hardware detect --write"
+msgstr ""
+"Uso: maxor hardware [show | detect [--write [percorso]]]\n"
+"\n"
+"  show      il computer rilevato e i driver che usa Maxor (predefinito)\n"
+"  detect    stampa hardware.json; --write lo salva per questo computer\n"
+"\n"
+"  Esempi:\n"
+"    maxor hardware\n"
+"    maxor hardware detect --write"
+
+#. help.profile
+msgctxt "help.profile"
+msgid ""
+"Usage: maxor profile [list [--json] | enable <name> [-y|--no-apply] | disable <name> [-y|--no-apply]]\n"
+"\n"
+"  Profiles: gaming, dev, creator, office.\n"
+"  --no-apply   only save the choice; apply it later with maxor update\n"
+"\n"
+"  Examples:\n"
+"    maxor profile enable gaming\n"
+"    maxor profile disable dev --no-apply"
+msgstr ""
+"Uso: maxor profile [list [--json] | enable <nome> [-y|--no-apply] | disable <nome> [-y|--no-apply]]\n"
+"\n"
+"  Profili: gaming, dev, creator, office.\n"
+"  --no-apply   salva solo la scelta; applicala dopo con maxor update\n"
+"\n"
+"  Esempi:\n"
+"    maxor profile enable gaming\n"
+"    maxor profile disable dev --no-apply"
+
+#. help.ui
+msgctxt "help.ui"
+msgid ""
+"Usage: maxor ui [home|store|themes|update|doctor|profiles]\n"
+"\n"
+"  Opens the full-screen app on that screen (home by default).\n"
+"  It takes over your terminal and gives it back, with a short summary,\n"
+"  when you quit. Running maxor with no arguments does the same.\n"
+"  MAXOR_NO_TUI=1 disables that.\n"
+"\n"
+"  Examples:\n"
+"    maxor\n"
+"    maxor ui store"
+msgstr ""
+"Uso: maxor ui [home|store|themes|update|doctor|profiles]\n"
+"\n"
+"  Apre l'app a schermo intero su quella schermata (home per impostazione predefinita).\n"
+"  Prende il tuo terminale e te lo restituisce, con un breve riepilogo,\n"
+"  quando esci. Eseguire maxor senza argomenti fa lo stesso.\n"
+"  MAXOR_NO_TUI=1 lo disattiva.\n"
+"\n"
+"  Esempi:\n"
+"    maxor\n"
+"    maxor ui store"
+
+#. help.setup
+msgctxt "help.setup"
+msgid ""
+"Usage: maxor setup\n"
+"\n"
+"  Opens the setup assistant: pick a look, choose profiles and review\n"
+"  what was detected. Safe to run again any time.\n"
+"\n"
+"  Examples:\n"
+"    maxor setup"
+msgstr ""
+"Uso: maxor setup\n"
+"\n"
+"  Apre l'assistente di configurazione: scegli un aspetto, scegli i profili e rivedi\n"
+"  ciò che è stato rilevato. Si può rieseguire quando vuoi.\n"
+"\n"
+"  Esempi:\n"
+"    maxor setup"
+
+#. help.backup
+msgctxt "help.backup"
+msgid ""
+"Usage: maxor backup [file] [--json] | --list <file>\n"
+"\n"
+"  Saves what is yours in one .tar.gz: the active profiles, your own themes,\n"
+"  the DankMaterialShell settings and the list of installed apps.\n"
+"  hardware.json is not included: each computer detects its own.\n"
+"\n"
+"  Examples:\n"
+"    maxor backup\n"
+"    maxor backup ~/Documents\n"
+"    maxor backup --list copia.tar.gz"
+msgstr ""
+"Uso: maxor backup [file] [--json] | --list <file>\n"
+"\n"
+"  Salva ciò che è tuo in un .tar.gz: i profili attivi, i tuoi temi,\n"
+"  le impostazioni di DankMaterialShell e l'elenco delle app installate.\n"
+"  hardware.json non è incluso: ogni computer rileva il suo.\n"
+"\n"
+"  Esempi:\n"
+"    maxor backup\n"
+"    maxor backup ~/Documents\n"
+"    maxor backup --list copia.tar.gz"
+
+#. help.restore
+msgctxt "help.restore"
+msgid ""
+"Usage: maxor restore <file> [--apps] [-y]\n"
+"\n"
+"  Brings a backup back: profiles, themes, shell settings and the theme in use.\n"
+"  --apps also installs the apps in the backup. Nothing existing is overwritten\n"
+"  except the shell settings (a copy is kept next to them).\n"
+"\n"
+"  Examples:\n"
+"    maxor restore copia.tar.gz\n"
+"    maxor restore copia.tar.gz --apps -y"
+msgstr ""
+"Uso: maxor restore <file> [--apps] [-y]\n"
+"\n"
+"  Ripristina un backup: profili, temi, impostazioni della shell e tema in uso.\n"
+"  --apps installa anche le app del backup. Non si sovrascrive nulla di esistente\n"
+"  tranne le impostazioni della shell (ne resta una copia accanto).\n"
+"\n"
+"  Esempi:\n"
+"    maxor restore copia.tar.gz\n"
+"    maxor restore copia.tar.gz --apps -y"
+
+#. help.logs
+msgctxt "help.logs"
+msgid ""
+"Usage: maxor logs [--last | --path]\n"
+"\n"
+"  (none)    last 40 lines of the log\n"
+"  --last    details of the last failure\n"
+"  --path    path of the log file\n"
+"\n"
+"  Examples:\n"
+"    maxor logs --last"
+msgstr ""
+"Uso: maxor logs [--last | --path]\n"
+"\n"
+"  (nulla)   ultime 40 righe del registro\n"
+"  --last    dettagli dell'ultimo errore\n"
+"  --path    percorso del file di registro\n"
+"\n"
+"  Esempi:\n"
+"    maxor logs --last"
+
+#. help.debug
+msgctxt "help.debug"
+msgid ""
+"Usage: maxor debug\n"
+"\n"
+"  Writes maxor-debug-<date>.txt here with version, hardware, doctor and log.\n"
+"  Review it before sharing.\n"
+"\n"
+"  Examples:\n"
+"    maxor debug"
+msgstr ""
+"Uso: maxor debug\n"
+"\n"
+"  Scrive qui maxor-debug-<data>.txt con versione, hardware, doctor e registro.\n"
+"  Rivedilo prima di condividerlo.\n"
+"\n"
+"  Esempi:\n"
+"    maxor debug"
+
+#. help.completions
+msgctxt "help.completions"
+msgid ""
+"Usage: maxor completions <fish|bash|zsh>\n"
+"\n"
+"  Prints the completion script for your shell."
+msgstr ""
+"Uso: maxor completions <fish|bash|zsh>\n"
+"\n"
+"  Stampa lo script di completamento per la tua shell."
+
+#. help.version
+msgctxt "help.version"
+msgid ""
+"Usage: maxor version [--json]\n"
+"\n"
+"  Prints the version. --json adds the JSON contract schema."
+msgstr ""
+"Uso: maxor version [--json]\n"
+"\n"
+"  Stampa la versione. --json aggiunge lo schema del contratto JSON."
+
+#. version.line
+msgctxt "version.line"
+msgid "maxor %s · %s"
+msgstr "maxor %s · %s"
+
+#. logs.none
+msgctxt "logs.none"
+msgid "No log yet."
+msgstr "Ancora nessun registro."
+
+#. ui.no_tty
+msgctxt "ui.no_tty"
+msgid "The full-screen app needs a terminal"
+msgstr "L'app a schermo intero richiede un terminale"
+
+#. ui.no_tui
+msgctxt "ui.no_tui"
+msgid "The full-screen app is not installed (maxor-tui was not found)"
+msgstr "L'app a schermo intero non è installata (maxor-tui non trovato)"
+
+#. logs.no_last
+msgctxt "logs.no_last"
+msgid "No failure recorded."
+msgstr "Nessun errore registrato."
+
+#. debug.written
+msgctxt "debug.written"
+msgid "Report written to %s"
+msgstr "Rapporto scritto in %s"
+
+#. debug.review
+msgctxt "debug.review"
+msgid "Review it before sharing: it includes your hostname and hardware."
+msgstr "Rivedilo prima di condividerlo: include il nome del tuo computer e l'hardware."
+
+#. theme.check_json
+msgctxt "theme.check_json"
+msgid "colors.json is not valid JSON"
+msgstr "colors.json non è un JSON valido"
+
+#. theme.check_missing
+msgctxt "theme.check_missing"
+msgid "colors.json is incomplete (needs bg, s, s2, fg, mu, ac, ac2, on)"
+msgstr "colors.json è incompleto (servono bg, s, s2, fg, mu, ac, ac2, on)"
+
+#. theme.check_hex
+msgctxt "theme.check_hex"
+msgid "colors.json has values that are not #rrggbb"
+msgstr "colors.json ha valori che non sono #rrggbb"
+
+#. theme.check_mode
+msgctxt "theme.check_mode"
+msgid "mode must be \"dark\" or \"light\""
+msgstr "mode deve essere \"dark\" o \"light\""
+
+#. style.not_object
+msgctxt "style.not_object"
+msgid "style.json is not a JSON object"
+msgstr "style.json non è un oggetto JSON"
+
+#. style.range
+msgctxt "style.range"
+msgid "style.json has out-of-range values (integers: rounding 0-30, gaps_in 0-20, gaps_out 0-40, border_size 0-6, blur_size 1-20, blur_passes 1-5, inactive 50-100, anim 0-300)"
+msgstr "style.json ha valori fuori intervallo (interi: rounding 0-30, gaps_in 0-20, gaps_out 0-40, border_size 0-6, blur_size 1-20, blur_passes 1-5, inactive 50-100, anim 0-300)"
+
+#. theme.mode_light
+msgctxt "theme.mode_light"
+msgid "light"
+msgstr "chiaro"
+
+#. theme.mode_dark
+msgctxt "theme.mode_dark"
+msgid "dark"
+msgstr "scuro"
+
+#. theme.none
+msgctxt "theme.none"
+msgid "no themes in %s"
+msgstr "nessun tema in %s"
+
+#. theme.none_applied
+msgctxt "theme.none_applied"
+msgid "(none)"
+msgstr "(nessuno)"
+
+#. theme.title_list
+msgctxt "theme.title_list"
+msgid "maxor · themes"
+msgstr "maxor · temi"
+
+#. theme.dark
+msgctxt "theme.dark"
+msgid "Dark"
+msgstr "Scuro"
+
+#. theme.light
+msgctxt "theme.light"
+msgid "Light"
+msgstr "Chiaro"
+
+#. theme.legend
+msgctxt "theme.legend"
+msgid "● active · maxor theme apply <name>"
+msgstr "● attivo · maxor theme apply <nome>"
+
+#. theme.missing
+msgctxt "theme.missing"
+msgid "theme '%s' does not exist (maxor theme list)"
+msgstr "il tema '%s' non esiste (maxor theme list)"
+
+#. theme.invalid
+msgctxt "theme.invalid"
+msgid "theme '%s': %s"
+msgstr "tema '%s': %s"
+
+#. theme.apply_usage
+msgctxt "theme.apply_usage"
+msgid "usage: maxor theme apply <name>"
+msgstr "uso: maxor theme apply <nome>"
+
+#. theme.step_dms
+msgctxt "theme.step_dms"
+msgid "DMS: bar, launcher, kitty, Hyprland and GTK"
+msgstr "DMS: barra, launcher, kitty, Hyprland e GTK"
+
+#. theme.step_mode
+msgctxt "theme.step_mode"
+msgid "Desktop %s mode"
+msgstr "Desktop in modalità %s"
+
+#. theme.step_mode_fail
+msgctxt "theme.step_mode_fail"
+msgid "Could not switch light/dark mode (is DMS running?)"
+msgstr "Impossibile cambiare la modalità chiaro/scuro (DMS è in esecuzione?)"
+
+#. theme.step_dms_missing
+msgctxt "theme.step_dms_missing"
+msgid "DMS is not set up yet (open SUPER + , once)"
+msgstr "DMS non è ancora configurato (apri SUPER + , una volta)"
+
+#. theme.step_lock
+msgctxt "theme.step_lock"
+msgid "Lock screen"
+msgstr "Schermata di blocco"
+
+#. theme.step_shape
+msgctxt "theme.step_shape"
+msgid "Shape: corners %s px · animations %s %%"
+msgstr "Forma: angoli %s px · animazioni %s %%"
+
+#. theme.step_shape_bad
+msgctxt "theme.step_shape_bad"
+msgid "style.json ignored: %s"
+msgstr "style.json ignorato: %s"
+
+#. theme.step_wall
+msgctxt "theme.step_wall"
+msgid "Wallpaper"
+msgstr "Sfondo"
+
+#. theme.step_wall_fail
+msgctxt "theme.step_wall_fail"
+msgid "Could not set the wallpaper"
+msgstr "Impossibile impostare lo sfondo"
+
+#. theme.step_kitty
+msgctxt "theme.step_kitty"
+msgid "kitty reloaded"
+msgstr "kitty ricaricato"
+
+#. theme.applied_title
+msgctxt "theme.applied_title"
+msgid "maxor · theme applied"
+msgstr "maxor · tema applicato"
+
+#. theme.applied_hint
+msgctxt "theme.applied_hint"
+msgid "maxor theme undo  to go back to the previous one"
+msgstr "maxor theme undo  per tornare al precedente"
+
+#. theme.no_previous
+msgctxt "theme.no_previous"
+msgid "no previous theme"
+msgstr "nessun tema precedente"
+
+#. theme.inst_usage
+msgctxt "theme.inst_usage"
+msgid "usage: maxor theme install <folder|file.tar.gz> [--force]"
+msgstr "uso: maxor theme install <cartella|file.tar.gz> [--force]"
+
+#. theme.too_big
+msgctxt "theme.too_big"
+msgid "the file is larger than 30 MB"
+msgstr "il file supera i 30 MB"
+
+#. theme.unreadable
+msgctxt "theme.unreadable"
+msgid "cannot read '%s' (a .tar.gz is expected)"
+msgstr "impossibile leggere '%s' (è previsto un .tar.gz)"
+
+#. theme.has_links
+msgctxt "theme.has_links"
+msgid "the archive contains links or special files: rejected"
+msgstr "l'archivio contiene collegamenti o file speciali: rifiutato"
+
+#. theme.has_unsafe
+msgctxt "theme.has_unsafe"
+msgid "the archive contains unsafe paths: rejected"
+msgstr "l'archivio contiene percorsi non sicuri: rifiutato"
+
+#. theme.no_colors_in
+msgctxt "theme.no_colors_in"
+msgid "the archive does not contain colors.json"
+msgstr "l'archivio non contiene colors.json"
+
+#. theme.not_found
+msgctxt "theme.not_found"
+msgid "'%s' does not exist"
+msgstr "'%s' non esiste"
+
+#. theme.no_colors
+msgctxt "theme.no_colors"
+msgid "colors.json is missing in '%s'"
+msgstr "colors.json manca in '%s'"
+
+#. theme.bad_id
+msgctxt "theme.bad_id"
+msgid "the id '%s' is not valid (lowercase letters, numbers and hyphens; 2 to 32 characters)"
+msgstr "l'id '%s' non è valido (lettere minuscole, numeri e trattini; da 2 a 32 caratteri)"
+
+#. theme.official
+msgctxt "theme.official"
+msgid "'%s' is an official theme and cannot be replaced"
+msgstr "'%s' è un tema ufficiale e non può essere sostituito"
+
+#. theme.exists
+msgctxt "theme.exists"
+msgid "theme '%s' is already installed (use --force to replace it)"
+msgstr "il tema '%s' è già installato (usa --force per sostituirlo)"
+
+#. theme.wall_ignored
+msgctxt "theme.wall_ignored"
+msgid "wallpaper.png ignored (not a valid PNG or larger than 20 MB)"
+msgstr "wallpaper.png ignorato (non è un PNG valido o supera i 20 MB)"
+
+#. theme.installed_title
+msgctxt "theme.installed_title"
+msgid "maxor · theme installed"
+msgstr "maxor · tema installato"
+
+#. theme.v_colors
+msgctxt "theme.v_colors"
+msgid "Validated: eight #rrggbb colors"
+msgstr "Validato: otto colori #rrggbb"
+
+#. theme.v_shape
+msgctxt "theme.v_shape"
+msgid "Shape validated (style.json: numbers only)"
+msgstr "Forma validata (style.json: solo numeri)"
+
+#. theme.copied
+msgctxt "theme.copied"
+msgid "Copied to %s"
+msgstr "Copiato in %s"
+
+#. theme.nothing_run
+msgctxt "theme.nothing_run"
+msgid "Nothing from the theme was executed"
+msgstr "Nulla del tema è stato eseguito"
+
+#. theme.exp_usage
+msgctxt "theme.exp_usage"
+msgid "usage: maxor theme export <name>"
+msgstr "uso: maxor theme export <nome>"
+
+#. theme.exp_missing
+msgctxt "theme.exp_missing"
+msgid "theme '%s' does not exist"
+msgstr "il tema '%s' non esiste"
+
+#. theme.exported
+msgctxt "theme.exported"
+msgid "Exported: %s"
+msgstr "Esportato: %s"
+
+#. update.title
+msgctxt "update.title"
+msgid "Updating %s"
+msgstr "Aggiornamento di %s"
+
+#. update.title_changes
+msgctxt "update.title_changes"
+msgid "Changes"
+msgstr "Modifiche"
+
+#. update.step_lock
+msgctxt "update.step_lock"
+msgid "Updating flake inputs"
+msgstr "Aggiornamento degli input del flake"
+
+#. update.step_build
+msgctxt "update.step_build"
+msgid "Building %s (nothing is applied yet)"
+msgstr "Costruzione di %s (non viene ancora applicato nulla)"
+
+#. update.step_compare
+msgctxt "update.step_compare"
+msgid "Comparing with the running system"
+msgstr "Confronto con il sistema in esecuzione"
+
+#. update.up_to_date
+msgctxt "update.up_to_date"
+msgid "The system is already up to date"
+msgstr "Il sistema è già aggiornato"
+
+#. update.only_config
+msgctxt "update.only_config"
+msgid "Only configuration changes, no packages"
+msgstr "Solo modifiche di configurazione, nessun pacchetto"
+
+#. update.kernel_new
+msgctxt "update.kernel_new"
+msgid "includes a new kernel: you will need to reboot"
+msgstr "include un nuovo kernel: dovrai riavviare"
+
+#. update.confirm
+msgctxt "update.confirm"
+msgid "Apply now?"
+msgstr "Applicare ora?"
+
+#. update.check_done
+msgctxt "update.check_done"
+msgid "Checked. Nothing was applied."
+msgstr "Controllato. Non è stato applicato nulla."
+
+#. update.cancelled
+msgctxt "update.cancelled"
+msgid "Cancelled. Nothing was applied."
+msgstr "Annullato. Non è stato applicato nulla."
+
+#. update.lock_changed
+msgctxt "update.lock_changed"
+msgid "flake.lock was updated: review it with git diff flake.lock"
+msgstr "flake.lock è stato aggiornato: rivedilo con git diff flake.lock"
+
+#. update.switch_failed
+msgctxt "update.switch_failed"
+msgid "The system could not be switched"
+msgstr "Impossibile passare al nuovo sistema"
+
+#. update.switch_cause
+msgctxt "update.switch_cause"
+msgid "nixos-rebuild failed or sudo was refused"
+msgstr "nixos-rebuild è fallito o sudo è stato rifiutato"
+
+#. update.switch_hint
+msgctxt "update.switch_hint"
+msgid "run it again, or check: journalctl -b -p err"
+msgstr "eseguilo di nuovo, o controlla: journalctl -b -p err"
+
+#. update.done
+msgctxt "update.done"
+msgid "System updated"
+msgstr "Sistema aggiornato"
+
+#. update.reboot
+msgctxt "update.reboot"
+msgid "Reboot to use the new kernel"
+msgstr "Riavvia per usare il nuovo kernel"
+
+#. cmd.release
+msgctxt "cmd.release"
+msgid "check for new signed Maxor OS releases and apply them"
+msgstr "cerca nuove versioni firmate di Maxor OS e le applica"
+
+#. help.release
+msgctxt "help.release"
+msgid ""
+"Usage: maxor release <check | status | apply> [--json] [--force] [--notify] [--yes]\n"
+"\n"
+"  check    ask the release channel (signature checked) and remember the answer\n"
+"  status   show the last answer, without touching the network\n"
+"  apply    verify the signed tag, fast-forward your checkout and update the system\n"
+"\n"
+"  --force   look again even if it was checked a few minutes ago\n"
+"  --notify  show a desktop notification once per new version\n"
+"\n"
+"  Every release is signed by the project key shipped inside this package.\n"
+"  Anything that is not signed by it is refused. See docs/UPDATES.md.\n"
+"\n"
+"  Examples:\n"
+"    maxor release check\n"
+"    maxor release status --json\n"
+"    maxor release apply"
+msgstr ""
+"Uso: maxor release <check | status | apply> [--json] [--force] [--notify] [--yes]\n"
+"\n"
+"  check    interroga il canale delle versioni (firma verificata) e ricorda la risposta\n"
+"  status   mostra l'ultima risposta, senza toccare la rete\n"
+"  apply    verifica il tag firmato, avanza la tua copia e aggiorna il sistema\n"
+"\n"
+"  --force   ricontrolla anche se è stato controllato pochi minuti fa\n"
+"  --notify  mostra una notifica sul desktop una volta per nuova versione\n"
+"\n"
+"  Ogni versione è firmata dalla chiave del progetto fornita in questo pacchetto.\n"
+"  Tutto ciò che non è firmato da essa viene rifiutato. Vedi docs/UPDATES.md.\n"
+"\n"
+"  Esempi:\n"
+"    maxor release check\n"
+"    maxor release status --json\n"
+"    maxor release apply"
+
+#. release.title
+msgctxt "release.title"
+msgid "Maxor OS releases"
+msgstr "Versioni di Maxor OS"
+
+#. release.step_check
+msgctxt "release.step_check"
+msgid "Checking the release channel"
+msgstr "Consultazione del canale delle versioni"
+
+#. release.step_fetch
+msgctxt "release.step_fetch"
+msgid "Fetching the release tags"
+msgstr "Recupero dei tag di versione"
+
+#. release.step_merge
+msgctxt "release.step_merge"
+msgid "Moving your checkout to the release"
+msgstr "Spostamento della tua copia sulla versione"
+
+#. release.up_to_date
+msgctxt "release.up_to_date"
+msgid "Maxor OS %s is the latest release"
+msgstr "Maxor OS %s è l'ultima versione"
+
+#. release.available
+msgctxt "release.available"
+msgid "Maxor OS %s is available (you have %s)"
+msgstr "Maxor OS %s è disponibile (hai %s)"
+
+#. release.hint_apply
+msgctxt "release.hint_apply"
+msgid "Run: maxor release apply"
+msgstr "Esegui: maxor release apply"
+
+#. release.never
+msgctxt "release.never"
+msgid "Not checked yet. Run: maxor release check"
+msgstr "Non ancora controllato. Esegui: maxor release check"
+
+#. release.notify_title
+msgctxt "release.notify_title"
+msgid "Maxor OS update available"
+msgstr "È disponibile un aggiornamento di Maxor OS"
+
+#. release.notify_body
+msgctxt "release.notify_body"
+msgid "Version %s is out (you have %s). Open maxor → Update, or run: maxor release apply"
+msgstr "È uscita la versione %s (hai %s). Apri maxor → Aggiorna, o esegui: maxor release apply"
+
+#. release.alert_title
+msgctxt "release.alert_title"
+msgid "Maxor OS: release check refused"
+msgstr "Maxor OS: controllo della versione rifiutato"
+
+#. release.alert_body
+msgctxt "release.alert_body"
+msgid "The release information did not pass its signature check, so it was ignored. Nothing was changed. See: maxor release status"
+msgstr "Le informazioni sulla versione non hanno superato il controllo della firma, quindi sono state ignorate. Non è stato modificato nulla. Vedi: maxor release status"
+
+#. release.unavailable_network
+msgctxt "release.unavailable_network"
+msgid "Could not reach the release channel. This is not the same as up to date: nothing was verified"
+msgstr "Impossibile raggiungere il canale delle versioni. Non è la stessa cosa che essere aggiornati: non è stato verificato nulla"
+
+#. release.unavailable_http
+msgctxt "release.unavailable_http"
+msgid "The release channel answered HTTP %s. Nothing was verified"
+msgstr "Il canale delle versioni ha risposto HTTP %s. Non è stato verificato nulla"
+
+#. release.unavailable_no_key
+msgctxt "release.unavailable_no_key"
+msgid "No release key is installed, so releases cannot be verified"
+msgstr "Non è installata alcuna chiave di versione, quindi le versioni non possono essere verificate"
+
+#. release.insecure_unsigned
+msgctxt "release.insecure_unsigned"
+msgid "The release information has no signature. It was ignored"
+msgstr "Le informazioni sulla versione non hanno firma. Sono state ignorate"
+
+#. release.insecure_bad_signature
+msgctxt "release.insecure_bad_signature"
+msgid "The release signature is NOT valid. It was ignored: do not trust this update"
+msgstr "La firma della versione NON è valida. È stata ignorata: non fidarti di questo aggiornamento"
+
+#. release.insecure_invalid_manifest
+msgctxt "release.insecure_invalid_manifest"
+msgid "The signed release information is malformed. It was ignored"
+msgstr "Le informazioni firmate sulla versione sono malformate. Sono state ignorate"
+
+#. release.insecure_rollback
+msgctxt "release.insecure_rollback"
+msgid "The release channel went back to an older release than one already seen. It was ignored"
+msgstr "Il canale delle versioni è tornato a una versione più vecchia di una già vista. Ignorato"
+
+#. release.no_repo
+msgctxt "release.no_repo"
+msgid "%s is not a git checkout, so this box cannot follow releases by itself"
+msgstr "%s non è una copia git, quindi questo computer non può seguire le versioni da solo"
+
+#. release.dirty
+msgctxt "release.dirty"
+msgid "Your checkout has uncommitted changes. Commit or stash them first"
+msgstr "La tua copia ha modifiche non salvate nel repository. Salvale o mettile da parte prima"
+
+#. release.tag_unsigned
+msgctxt "release.tag_unsigned"
+msgid "The tag %s is not signed by the release key. Nothing was changed"
+msgstr "Il tag %s non è firmato dalla chiave delle versioni. Non è stato modificato nulla"
+
+#. release.tag_mismatch
+msgctxt "release.tag_mismatch"
+msgid "The tag %s does not point at the commit the signed release names. Nothing was changed"
+msgstr "Il tag %s non punta al commit indicato dalla versione firmata. Non è stato modificato nulla"
+
+#. release.diverged
+msgctxt "release.diverged"
+msgid "Your checkout has commits that %s does not contain, so it cannot move in a straight line. Nothing was changed"
+msgstr "La tua copia ha commit che %s non contiene, quindi non può avanzare in linea retta. Non è stato modificato nulla"
+
+#. release.verified
+msgctxt "release.verified"
+msgid "Signature of %s verified"
+msgstr "Firma di %s verificata"
+
+#. release.confirm
+msgctxt "release.confirm"
+msgid "Update to Maxor OS %s now?"
+msgstr "Aggiornare ora a Maxor OS %s?"
+
+#. release.back_hint
+msgctxt "release.back_hint"
+msgid "The update did not finish. To go back to where you were: git reset --hard %s"
+msgstr "L'aggiornamento non è terminato. Per tornare dov'eri: git reset --hard %s"
+
+#. release.applied
+msgctxt "release.applied"
+msgid "Maxor OS %s is installed"
+msgstr "Maxor OS %s è installato"
+
+#. help.firstrun
+msgctxt "help.firstrun"
+msgid ""
+"Usage: maxor firstrun\n"
+"\n"
+"  Writes the Maxor look once: the theme chosen when installing and its wallpaper. It runs by itself when\n"
+"  the computer starts, before the first login, so the login screen and your first session already\n"
+"  look like Maxor. It never overrides a theme, shell settings or a wallpaper you already chose.\n"
+"\n"
+"  Examples:\n"
+"    maxor firstrun"
+msgstr ""
+"Uso: maxor firstrun\n"
+"\n"
+"  Scrive una volta l'aspetto di Maxor: il tema scelto durante l'installazione e il suo sfondo. Parte da sola quando\n"
+"  il computer si avvia, prima del primo accesso, così la schermata di accesso e la tua prima\n"
+"  sessione hanno già l'aspetto di Maxor. Non sovrascrive mai un tema, impostazioni della shell o uno sfondo che hai già scelto.\n"
+"\n"
+"  Esempi:\n"
+"    maxor firstrun"
+
+#. firstrun.title
+msgctxt "firstrun.title"
+msgid "Welcome to Maxor OS"
+msgstr "Benvenuto in Maxor OS"
+
+#. firstrun.already
+msgctxt "firstrun.already"
+msgid "The default look was already applied"
+msgstr "L'aspetto predefinito era già applicato"
+
+#. firstrun.done
+msgctxt "firstrun.done"
+msgid "Default look applied. Change it any time with: maxor theme"
+msgstr "Aspetto predefinito applicato. Cambialo quando vuoi con: maxor theme"
+
+#. firstrun.nothing
+msgctxt "firstrun.nothing"
+msgid "Your look was already set up: nothing to change"
+msgstr "Il tuo aspetto era già configurato: niente da cambiare"
+
+#. rollback.title
+msgctxt "rollback.title"
+msgid "maxor · generations"
+msgstr "maxor · generazioni"
+
+#. rollback.sec_generations
+msgctxt "rollback.sec_generations"
+msgid "Generations"
+msgstr "Generazioni"
+
+#. rollback.confirm
+msgctxt "rollback.confirm"
+msgid "Go back to the previous generation?"
+msgstr "Tornare alla generazione precedente?"
+
+#. rollback.confirm_to
+msgctxt "rollback.confirm_to"
+msgid "Go back to generation %s?"
+msgstr "Tornare alla generazione %s?"
+
+#. rollback.unknown
+msgctxt "rollback.unknown"
+msgid "There is no generation %s (see: maxor rollback --list)"
+msgstr "Non esiste la generazione %s (vedi: maxor rollback --list)"
+
+#. rollback.failed
+msgctxt "rollback.failed"
+msgid "Could not go back to the previous generation"
+msgstr "Impossibile tornare alla generazione precedente"
+
+#. rollback.done
+msgctxt "rollback.done"
+msgid "Went back to the previous generation"
+msgstr "Tornato alla generazione precedente"
+
+#. doctor.title
+msgctxt "doctor.title"
+msgid "maxor · doctor · %s"
+msgstr "maxor · doctor · %s"
+
+#. doctor.sec_system
+msgctxt "doctor.sec_system"
+msgid "System"
+msgstr "Sistema"
+
+#. doctor.sec_session
+msgctxt "doctor.sec_session"
+msgid "Session"
+msgstr "Sessione"
+
+#. doctor.sec_graphics
+msgctxt "doctor.sec_graphics"
+msgid "Graphics"
+msgstr "Grafica"
+
+#. doctor.sec_boot
+msgctxt "doctor.sec_boot"
+msgid "Boot and disk"
+msgstr "Avvio e disco"
+
+#. doctor.sec_identity
+msgctxt "doctor.sec_identity"
+msgid "Identity"
+msgstr "Identità"
+
+#. doctor.sec_config
+msgctxt "doctor.sec_config"
+msgid "Configuration"
+msgstr "Configurazione"
+
+#. doctor.empty
+msgctxt "doctor.empty"
+msgid "empty"
+msgstr "vuoto"
+
+#. doctor.flatpak_env
+msgctxt "doctor.flatpak_env"
+msgid "%s Flatpak app is not in the app menu or the terminal yet (run: maxor apps repair)"
+msgid_plural "%s Flatpak apps are not in the app menu or the terminal yet (run: maxor apps repair)"
+msgstr[0] "%s app Flatpak non è ancora nel menu delle app né nel terminale (esegui: maxor apps repair)"
+msgstr[1] "%s app Flatpak non sono ancora nel menu delle app né nel terminale (esegui: maxor apps repair)"
+
+#. doctor.sys_ok
+msgctxt "doctor.sys_ok"
+msgid "no failed system services"
+msgstr "nessun servizio di sistema in errore"
+
+#. doctor.sys_bad
+msgctxt "doctor.sys_bad"
+msgid "%s failed system service: systemctl --failed"
+msgid_plural "%s failed system services: systemctl --failed"
+msgstr[0] "%s servizio di sistema in errore: systemctl --failed"
+msgstr[1] "%s servizi di sistema in errore: systemctl --failed"
+
+#. doctor.usr_ok
+msgctxt "doctor.usr_ok"
+msgid "no failed user services"
+msgstr "nessun servizio utente in errore"
+
+#. doctor.usr_bad
+msgctxt "doctor.usr_bad"
+msgid "%s failed user service: systemctl --user --failed"
+msgid_plural "%s failed user services: systemctl --user --failed"
+msgstr[0] "%s servizio utente in errore: systemctl --user --failed"
+msgstr[1] "%s servizi utente in errore: systemctl --user --failed"
+
+#. doctor.kernel_mismatch
+msgctxt "doctor.kernel_mismatch"
+msgid "the installed kernel is not the running one: reboot to use it"
+msgstr "il kernel installato non è quello in esecuzione: riavvia per usarlo"
+
+#. doctor.kernel_ok
+msgctxt "doctor.kernel_ok"
+msgid "the running kernel is the installed one"
+msgstr "il kernel in esecuzione è quello installato"
+
+#. doctor.wayland_ok
+msgctxt "doctor.wayland_ok"
+msgid "Wayland session"
+msgstr "Sessione Wayland"
+
+#. doctor.wayland_warn
+msgctxt "doctor.wayland_warn"
+msgid "the session is not Wayland (XDG_SESSION_TYPE=%s)"
+msgstr "la sessione non è Wayland (XDG_SESSION_TYPE=%s)"
+
+#. doctor.desktop_ok
+msgctxt "doctor.desktop_ok"
+msgid "Hyprland desktop"
+msgstr "Desktop Hyprland"
+
+#. doctor.desktop_warn
+msgctxt "doctor.desktop_warn"
+msgid "XDG_CURRENT_DESKTOP=%s (from a TTY?)"
+msgstr "XDG_CURRENT_DESKTOP=%s (da un TTY?)"
+
+#. doctor.unit_ok
+msgctxt "doctor.unit_ok"
+msgid "%s is active"
+msgstr "%s è attivo"
+
+#. doctor.unit_bad
+msgctxt "doctor.unit_bad"
+msgid "%s is not active: systemctl --user status %s"
+msgstr "%s non è attivo: systemctl --user status %s"
+
+#. doctor.pam_ok
+msgctxt "doctor.pam_ok"
+msgid "hyprlock has a PAM service: you will be able to unlock"
+msgstr "hyprlock ha un servizio PAM: potrai sbloccare"
+
+#. doctor.pam_bad
+msgctxt "doctor.pam_bad"
+msgid "/etc/pam.d/hyprlock is missing: you could not unlock the screen"
+msgstr "manca /etc/pam.d/hyprlock: non potresti sbloccare lo schermo"
+
+#. doctor.no_gpu
+msgctxt "doctor.no_gpu"
+msgid "no GPU detected with lspci"
+msgstr "nessuna GPU rilevata con lspci"
+
+#. doctor.offload_ok
+msgctxt "doctor.offload_ok"
+msgid "nvidia-offload available (PRIME offload)"
+msgstr "nvidia-offload disponibile (PRIME offload)"
+
+#. doctor.offload_warn
+msgctxt "doctor.offload_warn"
+msgid "NVIDIA present but nvidia-offload is missing"
+msgstr "NVIDIA presente ma manca nvidia-offload"
+
+#. doctor.nv_ok
+msgctxt "doctor.nv_ok"
+msgid "the NVIDIA driver responds"
+msgstr "il driver NVIDIA risponde"
+
+#. doctor.nv_warn
+msgctxt "doctor.nv_warn"
+msgid "nvidia-smi does not respond (driver not loaded?)"
+msgstr "nvidia-smi non risponde (driver non caricato?)"
+
+#. doctor.disk_full
+msgctxt "doctor.disk_full"
+msgid "%s at %s%%: delete old generations (nix-collect-garbage -d)"
+msgstr "%s al %s%%: elimina le vecchie generazioni (nix-collect-garbage -d)"
+
+#. doctor.disk_warn
+msgctxt "doctor.disk_warn"
+msgid "%s at %s%%"
+msgstr "%s al %s%%"
+
+#. doctor.disk_ok
+msgctxt "doctor.disk_ok"
+msgid "%s mounted (%s%% used)"
+msgstr "%s montato (%s%% usato)"
+
+#. doctor.boot_unmounted
+msgctxt "doctor.boot_unmounted"
+msgid "/boot is not mounted"
+msgstr "/boot non è montato"
+
+#. doctor.root
+msgctxt "doctor.root"
+msgid "/ at %s%%"
+msgstr "/ al %s%%"
+
+#. doctor.font_ok
+msgctxt "doctor.font_ok"
+msgid "font %s installed"
+msgstr "font %s installato"
+
+#. doctor.font_warn
+msgctxt "doctor.font_warn"
+msgid "missing font %s"
+msgstr "manca il font %s"
+
+#. doctor.theme_ok
+msgctxt "doctor.theme_ok"
+msgid "active theme: %s"
+msgstr "tema attivo: %s"
+
+#. doctor.dms_ok
+msgctxt "doctor.dms_ok"
+msgid "DMS theme generated"
+msgstr "tema DMS generato"
+
+#. doctor.dms_warn
+msgctxt "doctor.dms_warn"
+msgid "DMS theme missing: apply a theme again"
+msgstr "manca il tema DMS: applica di nuovo un tema"
+
+#. doctor.theme_none
+msgctxt "doctor.theme_none"
+msgid "no theme applied yet: maxor theme apply maxor-dark"
+msgstr "nessun tema ancora applicato: maxor theme apply maxor-dark"
+
+#. doctor.flake_ok
+msgctxt "doctor.flake_ok"
+msgid "flake at %s"
+msgstr "flake in %s"
+
+#. doctor.git_dirty
+msgctxt "doctor.git_dirty"
+msgid "uncommitted changes in the repository"
+msgstr "modifiche non salvate nel repository"
+
+#. doctor.git_clean
+msgctxt "doctor.git_clean"
+msgid "the repository has no pending changes"
+msgstr "il repository non ha modifiche in sospeso"
+
+#. doctor.flake_missing
+msgctxt "doctor.flake_missing"
+msgid "flake not found at %s (MAXOR_FLAKE)"
+msgstr "flake non trovato in %s (MAXOR_FLAKE)"
+
+#. doctor.hw_ok
+msgctxt "doctor.hw_ok"
+msgid "hardware.json matches this machine"
+msgstr "hardware.json corrisponde a questo computer"
+
+#. doctor.hw_changed
+msgctxt "doctor.hw_changed"
+msgid "the hardware changed since hardware.json: maxor hardware detect --write"
+msgstr "l'hardware è cambiato da hardware.json: maxor hardware detect --write"
+
+#. doctor.hw_missing
+msgctxt "doctor.hw_missing"
+msgid "no hardware.json: maxor hardware detect --write"
+msgstr "nessun hardware.json: maxor hardware detect --write"
+
+#. doctor.n_problems
+msgctxt "doctor.n_problems"
+msgid "%s problem"
+msgid_plural "%s problems"
+msgstr[0] "%s problema"
+msgstr[1] "%s problemi"
+
+#. doctor.n_warnings
+msgctxt "doctor.n_warnings"
+msgid "%s warning"
+msgid_plural "%s warnings"
+msgstr[0] "%s avviso"
+msgstr[1] "%s avvisi"
+
+#. doctor.sum_bad
+msgctxt "doctor.sum_bad"
+msgid "%s and %s"
+msgstr "%s e %s"
+
+#. doctor.sum_warn
+msgctxt "doctor.sum_warn"
+msgid "works, with %s warning"
+msgid_plural "works, with %s warnings"
+msgstr[0] "funziona, con %s avviso"
+msgstr[1] "funziona, con %s avvisi"
+
+#. doctor.sum_ok
+msgctxt "doctor.sum_ok"
+msgid "all good"
+msgstr "tutto a posto"
+
+#. hardware.title
+msgctxt "hardware.title"
+msgid "maxor · hardware"
+msgstr "maxor · hardware"
+
+#. hardware.sec_machine
+msgctxt "hardware.sec_machine"
+msgid "Machine"
+msgstr "Computer"
+
+#. hardware.laptop
+msgctxt "hardware.laptop"
+msgid "laptop"
+msgstr "portatile"
+
+#. hardware.desktop
+msgctxt "hardware.desktop"
+msgid "desktop"
+msgstr "desktop"
+
+#. hardware.vm
+msgctxt "hardware.vm"
+msgid "virtual machine (%s)"
+msgstr "macchina virtuale (%s)"
+
+#. hardware.sec_graphics
+msgctxt "hardware.sec_graphics"
+msgid "Graphics"
+msgstr "Grafica"
+
+#. hardware.no_gpu
+msgctxt "hardware.no_gpu"
+msgid "no GPU detected"
+msgstr "nessuna GPU rilevata"
+
+#. hardware.sec_uses
+msgctxt "hardware.sec_uses"
+msgid "Maxor will use"
+msgstr "Maxor userà"
+
+#. hardware.use_intel
+msgctxt "hardware.use_intel"
+msgid "Intel microcode and thermald"
+msgstr "microcode Intel e thermald"
+
+#. hardware.use_amd
+msgctxt "hardware.use_amd"
+msgid "AMD microcode (amd_pstate is handled by the kernel)"
+msgstr "microcode AMD (amd_pstate è gestito dal kernel)"
+
+#. hardware.use_cpu_other
+msgctxt "hardware.use_cpu_other"
+msgid "no vendor-specific microcode"
+msgstr "nessun microcode specifico del produttore"
+
+#. hardware.use_hybrid
+msgctxt "hardware.use_hybrid"
+msgid "hybrid graphics: integrated GPU on the desktop and NVIDIA on demand (nvidia-offload)"
+msgstr "grafica ibrida: GPU integrata sul desktop e NVIDIA su richiesta (nvidia-offload)"
+
+#. hardware.use_nvidia
+msgctxt "hardware.use_nvidia"
+msgid "NVIDIA driver"
+msgstr "driver NVIDIA"
+
+#. hardware.use_amd_gpu
+msgctxt "hardware.use_amd_gpu"
+msgid "AMD driver (amdgpu, Vulkan and OpenCL)"
+msgstr "driver AMD (amdgpu, Vulkan e OpenCL)"
+
+#. hardware.use_intel_gpu
+msgctxt "hardware.use_intel_gpu"
+msgid "Intel driver (Mesa and video acceleration)"
+msgstr "driver Intel (Mesa e accelerazione video)"
+
+#. hardware.use_mesa
+msgctxt "hardware.use_mesa"
+msgid "generic Mesa drivers"
+msgstr "driver Mesa generici"
+
+#. hardware.use_laptop
+msgctxt "hardware.use_laptop"
+msgid "laptop power profiles and thermal control"
+msgstr "profili energetici e controllo termico del portatile"
+
+#. hardware.use_guest
+msgctxt "hardware.use_guest"
+msgid "guest tools for %s"
+msgstr "strumenti guest per %s"
+
+#. hardware.saved
+msgctxt "hardware.saved"
+msgid "Hardware saved to %s"
+msgstr "Hardware salvato in %s"
+
+#. profile.title
+msgctxt "profile.title"
+msgid "maxor · profiles · %s"
+msgstr "maxor · profili · %s"
+
+#. profile.hint
+msgctxt "profile.hint"
+msgid "Enable: maxor profile enable <name>   Remove: maxor profile disable <name>"
+msgstr "Attiva: maxor profile enable <nome>   Rimuovi: maxor profile disable <nome>"
+
+#. profile.unknown
+msgctxt "profile.unknown"
+msgid "unknown profile: %s (see: maxor profile list)"
+msgstr "profilo sconosciuto: %s (vedi: maxor profile list)"
+
+#. profile.enabled
+msgctxt "profile.enabled"
+msgid "enabled"
+msgstr "attivato"
+
+#. profile.disabled
+msgctxt "profile.disabled"
+msgid "disabled"
+msgstr "disattivato"
+
+#. profile.already
+msgctxt "profile.already"
+msgid "Profile %s was already %s"
+msgstr "Il profilo %s era già %s"
+
+#. profile.changed
+msgctxt "profile.changed"
+msgid "Profile %s %s in %s"
+msgstr "Profilo %s %s in %s"
+
+#. profile.pending
+msgctxt "profile.pending"
+msgid "Saved. It is applied with: maxor update --no-lock"
+msgstr "Salvato. Si applica con: maxor update --no-lock"
+
+#. search.title
+msgctxt "search.title"
+msgid "maxor · search"
+msgstr "maxor · ricerca"
+
+#. search.done
+msgctxt "search.done"
+msgid "done"
+msgstr "fatto"
+
+#. search.searching_in
+msgctxt "search.searching_in"
+msgid "Searching %s"
+msgstr "Ricerca in %s"
+
+#. search.install_hint
+msgctxt "search.install_hint"
+msgid "Install with the id:"
+msgstr "Installa con l'id:"
+
+#. search.none
+msgctxt "search.none"
+msgid "Nothing matches «%s». Try another word, or fewer letters."
+msgstr "Nulla corrisponde a «%s». Prova un'altra parola, o meno lettere."
+
+#. search.installed
+msgctxt "search.installed"
+msgid "installed"
+msgstr "installata"
+
+#. search.results_for
+msgctxt "search.results_for"
+msgid "%s result for “%s”"
+msgid_plural "%s results for “%s”"
+msgstr[0] "%s risultato per “%s”"
+msgstr[1] "%s risultati per “%s”"
+
+#. apps.checking
+msgctxt "apps.checking"
+msgid "Checking %s in nixpkgs"
+msgstr "Controllo di %s in nixpkgs"
+
+#. apps.try_search
+msgctxt "apps.try_search"
+msgid "Try: maxor search %s"
+msgstr "Prova: maxor search %s"
+
+#. apps.installing_nix
+msgctxt "apps.installing_nix"
+msgid "Installing %s (nixpkgs)"
+msgstr "Installazione di %s (nixpkgs)"
+
+#. apps.installing_flatpak
+msgctxt "apps.installing_flatpak"
+msgid "Installing %s (Flathub)"
+msgstr "Installazione di %s (Flathub)"
+
+#. apps.removing
+msgctxt "apps.removing"
+msgid "Removing %s"
+msgstr "Rimozione di %s"
+
+#. apps.notify_title
+msgctxt "apps.notify_title"
+msgid "App updates available"
+msgstr "Aggiornamenti delle app disponibili"
+
+#. apps.notify_body
+msgctxt "apps.notify_body"
+msgid "%s app has a newer version: %s. Open maxor → Store to update it."
+msgid_plural "%s apps have a newer version: %s. Open maxor → Store to update them."
+msgstr[0] "%s app ha una versione più recente: %s. Apri maxor → Negozio per aggiornarla."
+msgstr[1] "%s app hanno una versione più recente: %s. Apri maxor → Negozio per aggiornarle."
+
+#. apps.repaired
+msgctxt "apps.repaired"
+msgid "Flatpak apps are now in the app menu and the terminal (%s checked)"
+msgstr "Le app Flatpak ora sono nel menu delle app e nel terminale (%s controllate)"
+
+#. apps.purge_confirm
+msgctxt "apps.purge_confirm"
+msgid "Delete its data too (%2$s in %1$s folder)?"
+msgid_plural "Delete its data too (%2$s in %1$s folders)?"
+msgstr[0] "Eliminare anche i suoi dati (%2$s in %1$s cartella)?"
+msgstr[1] "Eliminare anche i suoi dati (%2$s in %1$s cartelle)?"
+
+#. apps.purged
+msgctxt "apps.purged"
+msgid "Deleted its data (%s)"
+msgstr "Dati eliminati (%s)"
+
+#. apps.kept
+msgctxt "apps.kept"
+msgid "Kept its data (%s). Delete it with: maxor remove %s --purge"
+msgstr "Dati mantenuti (%s). Eliminali con: maxor remove %s --purge"
+
+#. apps.not_installed
+msgctxt "apps.not_installed"
+msgid "%s is not installed with maxor (see: maxor apps)"
+msgstr "%s non è installata con maxor (vedi: maxor apps)"
+
+#. backup.title
+msgctxt "backup.title"
+msgid "maxor · backup · %s"
+msgstr "maxor · backup · %s"
+
+#. backup.step_pack
+msgctxt "backup.step_pack"
+msgid "Packing your setup"
+msgstr "Impacchettamento della tua configurazione"
+
+#. backup.saved
+msgctxt "backup.saved"
+msgid "Saved %s (%s)"
+msgstr "Salvato %s (%s)"
+
+#. backup.n_apps
+msgctxt "backup.n_apps"
+msgid "%s app"
+msgid_plural "%s apps"
+msgstr[0] "%s app"
+msgstr[1] "%s app"
+
+#. backup.n_themes
+msgctxt "backup.n_themes"
+msgid "%s of your own theme"
+msgid_plural "%s of your own themes"
+msgstr[0] "%s tema tuo"
+msgstr[1] "%s temi tuoi"
+
+#. backup.contents
+msgctxt "backup.contents"
+msgid "It holds %s and %s"
+msgstr "Contiene %s e %s"
+
+#. backup.hint
+msgctxt "backup.hint"
+msgid "Bring it back with: maxor restore <file>"
+msgstr "Ripristinalo con: maxor restore <file>"
+
+#. backup.failed
+msgctxt "backup.failed"
+msgid "Could not write the backup"
+msgstr "Impossibile scrivere il backup"
+
+#. backup.no_file
+msgctxt "backup.no_file"
+msgid "There is no file called «%s»"
+msgstr "Non c'è nessun file chiamato «%s»"
+
+#. backup.bad_file
+msgctxt "backup.bad_file"
+msgid "«%s» is not a Maxor backup (or it is damaged)"
+msgstr "«%s» non è un backup di Maxor (o è danneggiato)"
+
+#. backup.show_title
+msgctxt "backup.show_title"
+msgid "maxor · backup of %s"
+msgstr "maxor · backup di %s"
+
+#. backup.sec_about
+msgctxt "backup.sec_about"
+msgid "About this backup"
+msgstr "Informazioni su questo backup"
+
+#. backup.sec_profiles
+msgctxt "backup.sec_profiles"
+msgid "Profiles"
+msgstr "Profili"
+
+#. backup.sec_apps
+msgctxt "backup.sec_apps"
+msgid "Apps"
+msgstr "App"
+
+#. backup.none
+msgctxt "backup.none"
+msgid "none"
+msgstr "nessuno"
+
+#. restore.title
+msgctxt "restore.title"
+msgid "maxor · restore · %s"
+msgstr "maxor · ripristino · %s"
+
+#. restore.confirm
+msgctxt "restore.confirm"
+msgid "Bring this backup back?"
+msgstr "Ripristinare questo backup?"
+
+#. restore.profiles
+msgctxt "restore.profiles"
+msgid "Profiles restored: apply them with maxor update --no-lock"
+msgstr "Profili ripristinati: applicali con maxor update --no-lock"
+
+#. restore.theme
+msgctxt "restore.theme"
+msgid "Theme %s restored"
+msgstr "Tema %s ripristinato"
+
+#. restore.dms
+msgctxt "restore.dms"
+msgid "Shell settings restored (the old ones are kept as settings.json.before-restore)"
+msgstr "Impostazioni della shell ripristinate (le vecchie restano come settings.json.before-restore)"
+
+#. restore.applied_theme
+msgctxt "restore.applied_theme"
+msgid "Theme %s applied"
+msgstr "Tema %s applicato"
+
+#. restore.apps_hint
+msgctxt "restore.apps_hint"
+msgid "The backup lists apps: add --apps to install them too"
+msgstr "Il backup elenca delle app: aggiungi --apps per installarle"
+
+#. restore.app_failed
+msgctxt "restore.app_failed"
+msgid "Could not install %s"
+msgstr "Impossibile installare %s"
+
+#. restore.done
+msgctxt "restore.done"
+msgid "Done"
+msgstr "Fatto"
+
+#. apps.title
+msgctxt "apps.title"
+msgid "maxor · installed apps"
+msgstr "maxor · app installate"
+
+#. apps.empty
+msgctxt "apps.empty"
+msgid "nothing installed with maxor yet"
+msgstr "ancora nulla installato con maxor"
+
+#. apps.version
+msgctxt "apps.version"
+msgid "version %s"
+msgstr "versione %s"
+
+#. apps.loading
+msgctxt "apps.loading"
+msgid "Loaded your apps"
+msgstr "App caricate"
+
+#. apps.sec_installed
+msgctxt "apps.sec_installed"
+msgid "Installed with maxor"
+msgstr "Installate con maxor"
+
+#. apps.upd_title
+msgctxt "apps.upd_title"
+msgid "maxor apps update"
+msgstr "maxor apps update"
+
+#. apps.no_json
+msgctxt "apps.no_json"
+msgid "update does not support --json"
+msgstr "update non supporta --json"
+
+#. apps.upd_nix
+msgctxt "apps.upd_nix"
+msgid "Updating nixpkgs packages"
+msgstr "Aggiornamento dei pacchetti nixpkgs"
+
+#. apps.upd_flatpak
+msgctxt "apps.upd_flatpak"
+msgid "Updating Flatpak apps"
+msgstr "Aggiornamento delle app Flatpak"
+
+#. apps.up_to_date
+msgctxt "apps.up_to_date"
+msgid "Apps are up to date"
+msgstr "Le app sono aggiornate"

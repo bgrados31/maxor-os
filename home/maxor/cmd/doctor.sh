@@ -159,7 +159,10 @@ cmd_doctor() {
   fi
   local txt
   if [ "$fails" -gt 0 ]; then
-    msg txt @doctor.sum_bad "$fails" "$warns"
+    local np nw
+    msg np @doctor.n_problems "$fails"
+    msg nw @doctor.n_warnings "$warns"
+    msg txt @doctor.sum_bad "$np" "$nw"
     ui_outro "${E_BAD}${txt}${E_RST}"
     echo
     return 1

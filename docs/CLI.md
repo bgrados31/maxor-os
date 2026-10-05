@@ -5,9 +5,11 @@ más frecuencia: cambiar de tema, actualizar, instalar apps, elegir perfiles y d
 sistema. Es también la **frontera** sobre la que se construirán las apps gráficas: cada comando
 que consulta acepta `--json` (ver [APPS.md](APPS.md)).
 
-> **Idioma.** Hoy la salida de la CLI está en inglés. Los mensajes viven en un catálogo
-> (`home/maxor/lib/lang/en.sh`) y el código solo usa claves, de modo que añadir español es crear
-> `lang/es.sh`, sin tocar ningún comando. La documentación del repositorio sigue en español.
+> **Idioma.** La salida de la CLI está en español, portugués, francés, alemán, italiano e inglés
+> (`--lang`, `MAXOR_LANG` o el idioma del sistema). Los mensajes en inglés viven en un catálogo
+> (`home/maxor/lib/lang/en.sh`), el código solo usa claves, y cada idioma es un archivo gettext
+> `home/maxor/po/<código>.po`: añadir uno no toca ningún comando ni el paquete. Cómo traducir:
+> [TRANSLATING.md](TRANSLATING.md). La documentación del repositorio sigue en español.
 
 ```
 maxor                             comandos agrupados, con su resumen
@@ -230,8 +232,8 @@ en scripts.
 home/maxor/
 ├── lib/
 │   ├── core.sh        rutas, códigos de salida, registro, errores, nombre del sistema
-│   ├── i18n.sh        msg / t: mensajes por clave
-│   ├── lang/en.sh     catálogo de mensajes (inglés)
+│   ├── i18n.sh        msg / t: mensajes por clave, plurales y carga de los .po
+│   ├── lang/en.sh     catálogo de mensajes (inglés); los demás idiomas están en po/
 │   ├── term.sh        capacidades, paleta del tema, texto, repintado en el sitio
 │   ├── frame.sh       el riel, las líneas, las filas y los mensajes
 │   ├── loaders.sh     el cargador único (ui_run) y la barra de avance

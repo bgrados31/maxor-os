@@ -58,18 +58,23 @@ Also on branch `claude/vigilant-ptolemy-ng8e4i` (2026-10-04, evening; not yet me
 outline, dims at 150 s); wallpaper signature (vignette, `ac2` glow top-right with three orbits, grain; light themes
 softer). None of this was seen on a real screen yet: check it on the laptop before the release.
 
-Translations (same branch), two catalogs with one workflow (docs/TRANSLATING.md): the TUI (`tui/internal/i18n`,
-English text as key, `lang/<code>.json`, `go test ./internal/i18n -update` syncs them) and the `maxor` CLI
-(`home/maxor/lib/lang/<code>.sh`, id as key, `scripts/i18n.sh new|missing|status`; the package picks up every file of
-that folder, no Nix edit). Everything the user reads is translated: installer, every TUI screen, palette, help, and
-all 304 CLI messages (help texts included). Languages: `es` reviewed by me, `pt fr de it` machine translations
-awaiting native review. Tests (apply to any future language): same `%s` in the same order, no stale keys, help example
-commands unchanged, shellcheck-safe quoting (no typographic apostrophes), reviewed languages complete, every installer
-step and every tab fits a small window in each language. The TUI runs the CLI with `MAXOR_LANG=<its language>` and
-reads Doctor advice by check `id`, not by text; `sudo`/`nixos-rebuild` streams run with `LC_MESSAGES=C` because the
-runner recognises their English lines. Palette command words (`go`, `theme`, `search`, `open`) stay English on
-purpose. Not translated on purpose: the engine/nixos-rebuild log, keyboard layout and language names (system data).
-Still open: the live ISO's boot menu; the maxor man page / completions if they ever carry text.
+Translations (same branch): standard gettext `.po` for both programs, one workflow (docs/TRANSLATING.md,
+`scripts/i18n.sh new|update|status|check`). TUI: `tui/internal/i18n/lang/<code>.po` + `maxor-tui.pot` (English text is
+the msgid; `tr`/`trn`/`trc`; `go test ./internal/i18n -update` extracts and merges; Go parser + CLDR plural evaluator in
+`po.go`/`plural.go`, no new dependency). CLI: `home/maxor/po/<code>.po` + `maxor-cli.pot` (msgctxt = id, msgid =
+English; `lib/lang/en.sh` stays the English source; `lib/i18n.sh` reads the active .po with an embedded POSIX awk,
+plurals via bash arithmetic on the Plural-Forms rule validated to `n`/digits/operators; counted keys have a `key#1`
+form and their FIRST argument is the number; `%2$s` positional placeholders work; the package sets `MAXOR_PO`, no IFD,
+so adding a language touches neither Nix nor tests). All 718 TUI texts and 308 CLI messages translated in es (reviewed
+by me) and pt fr de it (machine translations awaiting native review); real plurals everywhere a count appears. Tests
+for any future language: placeholders, plural forms/rule validity, stale keys, template up to date, help example
+commands intact, layout of every installer step and tab at a small size in each language AND in a 40%-longer
+pseudo-language (`i18n.SetPseudo`), fuzzy ignored, hostile Plural-Forms rejected. The TUI runs the CLI with
+`MAXOR_LANG=<its language>` and reads Doctor advice by check `id`; `sudo`/`nixos-rebuild` streams run with
+`LC_MESSAGES=C`. In bash never name a caller's variable like an internal local (`msg`/`i18n_format` use `__`
+names; a collision silently swallowed the result once). Not translated on purpose: engine/nixos-rebuild log,
+keyboard layout and language names (system data). Still open: the ISO's boot menu; setting up Weblate (Bryan: create
+the project at hosted.weblate.org with the two components listed in docs/TRANSLATING.md, "For maintainers").
 
 Next, in order:
 1. **Verify the latest ISO** (`nix build .#iso`) with a full install in a VM (Spanish, offline) to the desktop.
