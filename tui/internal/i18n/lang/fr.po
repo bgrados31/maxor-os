@@ -293,6 +293,10 @@ msgid "%s%d updated   "
 msgstr "%s%d mis à jour   "
 
 #: screens/installer_steps.go
+msgid ", with its drivers"
+msgstr ", avec ses pilotes"
+
+#: screens/installer_steps.go
 msgid "1-9 edits that step (the numbers in the list on the left)"
 msgstr "1-9 modifie cette étape (les numéros de la liste à gauche)"
 
@@ -1089,6 +1093,10 @@ msgid "Maxor OS (%s)"
 msgstr "Maxor OS (%s)"
 
 #: screens/installer_steps.go
+msgid "Maxor OS is installed on %s"
+msgstr "Maxor OS est installé sur %s"
+
+#: screens/installer_steps.go
 msgid "Maxor OS needs at least 2 GB of memory to install."
 msgstr "Maxor OS a besoin d'au moins 2 Go de mémoire pour s'installer."
 
@@ -1283,6 +1291,10 @@ msgstr "Rien : quand la mémoire est pleine, des programmes sont fermés."
 #: screens/installer_steps.go
 msgid "Off"
 msgstr "Non"
+
+#: screens/installer_steps.go
+msgid "On"
+msgstr "Oui"
 
 #: screens/doctor.go
 msgid "Only shows information: nothing changes."
@@ -2272,6 +2284,10 @@ msgstr "fait"
 msgid "drivers chosen while installing"
 msgstr "pilotes choisis pendant l'installation"
 
+#: install/disks.go
+msgid "empty"
+msgstr "vide"
+
 #: screens/installer_steps.go
 msgid "encrypted"
 msgstr "chiffré"
@@ -2311,6 +2327,10 @@ msgstr "terminer"
 #: screens/doctor.go
 msgid "fix ⏎ "
 msgstr "corriger ⏎ "
+
+#: install/diskmap.go
+msgid "free"
+msgstr "libre"
 
 #: screens/store.go
 msgid "frees %s"
@@ -2595,6 +2615,10 @@ msgstr "obsolète : appuyez sur r"
 #: screens/installer_steps.go
 msgid "passphrase"
 msgstr "phrase secrète"
+
+#: screens/installer_steps.go
+msgid "password"
+msgstr "mot de passe"
 
 #: screens/runner.go
 msgid "password  "

@@ -1,6 +1,7 @@
 package app
 
 import (
+	"fmt"
 	"context"
 	"encoding/json"
 	"errors"
@@ -874,5 +875,46 @@ func TestEveryStepFitsInAPseudoLanguage(t *testing.T) {
 			t.Fatalf("step %d: %d rows in a %d-row window:\n%s", i, len(lines), m.h, out)
 		}
 		send(m, key("ctrl+n"))
+	}
+}
+
+// A label never touches its value: the storage choice and the review keep a space after a long label (Spanish
+// «Sistema de archivos», «Almacenamiento»), and the review's list numbers the steps to edit while a step the installer
+// skipped shows a dash, in a wide and a narrow window.
+func TestLabelsKeepASpaceBeforeTheirValueAndTheReviewListMarksSkippedSteps(t *testing.T) {
+	for _, lang := range []string{"es_PE", "pseudo"} {
+		for _, size := range [][2]int{{64, 24}, {110, 34}} {
+			t.Run(fmt.Sprintf("%s_%dx%d", lang, size[0], size[1]), func(t *testing.T) {
+				m := installModel(t, newInstallEnv(emptyDisk()))
+				m.Update(tea.WindowSizeMsg{Width: size[0], Height: size[1]})
+				if lang == "pseudo" {
+					i18n.SetPseudo(true)
+					t.Cleanup(func() { i18n.SetPseudo(false) })
+					send(m, key("enter")) // welcome
+				} else {
+					typeText(m, lang)
+					send(m, key("enter"))
+				}
+				enter(m, 4) // keyboard, network, region, disk → storage
+				if out := view(m); !has(out, i18n.T("Filesystem")+"  ") {
+					t.Fatalf("the storage label touches its choice:\n%s", out)
+				}
+				enter(m, 3)
+				fillAccount(m, "Ana", "ana", "pc", "correct-horse-1")
+				enter(m, 3) // look, hardware → review
+				out := view(m)
+				for _, label := range []string{"Method", "Storage", "Account", "Time zone"} {
+					if !has(out, i18n.T(label)+"  ") {
+						t.Fatalf("the review label %q touches its value:\n%s", i18n.T(label), out)
+					}
+				}
+				if size[0] >= 100 && !has(out, "–  "+i18n.T("How to install")) {
+					t.Fatalf("the skipped step shows a dash in the list:\n%s", out)
+				}
+				if lines := strings.Split(out, "\n"); len(lines) != m.h {
+					t.Fatalf("%d rows in a %d-row window:\n%s", len(lines), m.h, out)
+				}
+			})
+		}
 	}
 }

@@ -38,10 +38,10 @@ func (d Disk) Layout() []Span {
 		if !known {
 			start = int64(len(d.Partitions)) + f.Start
 		}
-		out = append(out, Span{Kind: "free", Label: "free", Bytes: f.Sectors * 512, start: start})
+		out = append(out, Span{Kind: "free", Label: tr("free"), Bytes: f.Sectors * 512, start: start})
 	}
 	if len(out) == 0 {
-		return []Span{{Kind: "free", Label: "free", Bytes: d.Size}}
+		return []Span{{Kind: "free", Label: tr("free"), Bytes: d.Size}}
 	}
 	sort.SliceStable(out, func(i, j int) bool { return out[i].start < out[j].start })
 	return out

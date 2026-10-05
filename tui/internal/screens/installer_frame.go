@@ -170,6 +170,8 @@ func (w *Installer) railLines(env *core.Env) []ui.Line {
 			}
 			if n >= 1 && n <= 9 {
 				label = fmt.Sprintf("%d  %s", n, label) // the review lets you edit a step by its number
+			} else if n == 0 {
+				label = "–  " + label // a step the installer settled on by itself: no number, names stay aligned
 			}
 		}
 		segs := []ui.Seg{mark, ui.S(name, label)}

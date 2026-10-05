@@ -62,7 +62,7 @@ func (d Disk) Label() string {
 // Contents is what is on the disk, in a few words, so the user is never asked to pick blind.
 func (d Disk) Contents() string {
 	if len(d.Partitions) == 0 {
-		return "empty"
+		return tr("empty")
 	}
 	var kinds []string
 	if d.Windows {

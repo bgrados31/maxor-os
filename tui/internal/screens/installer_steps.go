@@ -1041,7 +1041,7 @@ func (s *storageStep) Lines(w *Installer, env *core.Env, width int) []ui.Line {
 	if w.st.Encrypt {
 		enc = "on"
 	}
-	lines = append(lines, gap(), choice(env, tr("Encryption"), []string{"off", "on"}, []string{tr("Off"), "On"}, enc, row == rEnc))
+	lines = append(lines, gap(), choice(env, tr("Encryption"), []string{"off", "on"}, []string{tr("Off"), tr("On")}, enc, row == rEnc))
 	if w.st.Encrypt {
 		lines = append(lines, field(env, tr("    Passphrase"), &s.pass, row == rPass, width))
 		if s.pass.Text() != "" {
@@ -1113,7 +1113,7 @@ func choice(env *core.Env, label string, ids, names []string, cur string, focuse
 	if focused {
 		lst, mark = p.Ac.Bold(true), ui.G.Sel+" "
 	}
-	segs := []ui.Seg{ui.S(p.Ac, mark), ui.S(lst, fmt.Sprintf("%-*s", optCol-2, label))}
+	segs := []ui.Seg{ui.S(p.Ac, mark), ui.S(lst, label+strings.Repeat(" ", max(optCol-2-ansi.StringWidth(label), 1)))}
 	for i, id := range ids {
 		if i > 0 {
 			segs = append(segs, ui.S(p.Mu, " "))
@@ -1161,7 +1161,7 @@ func (s *accountStep) Enter(w *Installer, env *core.Env) tea.Cmd {
 	s.full = ui.Input{Placeholder: tr("your name")}
 	s.user = ui.Input{Placeholder: tr("login name"), Filter: install.UserRune}
 	s.host = ui.Input{Placeholder: tr("computer name"), Filter: install.HostRune}
-	s.pass = ui.Input{Mask: true, Placeholder: "password"}
+	s.pass = ui.Input{Mask: true, Placeholder: tr("password")}
 	s.conf = ui.Input{Mask: true, Placeholder: tr("again")}
 	s.full.Set(w.st.Fullname)
 	s.user.Set(w.st.Username)
@@ -1725,7 +1725,14 @@ func (s *summaryStep) Lines(w *Installer, env *core.Env, width int) []ui.Line {
 		}
 		return append(lines, gap(), muted(env, tr("ctrl+p goes back to the summary")))
 	}
-	kv := func(k, v string) ui.Line { return ui.Of(ui.S(p.Mu, fmt.Sprintf("%-14s", k)), ui.S(p.Text, v)) }
+	// the label column fits the longest label (translations vary) plus two spaces, never less than 14
+	col := 14
+	for _, k := range []string{tr("Disk"), tr("Method"), tr("Storage"), tr("Account"), tr("Language"), tr("Time zone"), tr("Keyboard"), tr("Look"), tr("Graphics"), tr("Network")} {
+		col = max(col, ansi.StringWidth(k)+2)
+	}
+	kv := func(k, v string) ui.Line {
+		return ui.Of(ui.S(p.Mu, k+strings.Repeat(" ", col-ansi.StringWidth(k))), ui.S(p.Text, v))
+	}
 	var lines []ui.Line
 	if d, ok := w.currentDisk(); ok {
 		lines = append(lines, kv(tr("Disk"), d.Label()))
@@ -2003,7 +2010,7 @@ func (s *doneStep) Done(w *Installer, env *core.Env, d task.DoneMsg) tea.Cmd {
 func (s *doneStep) Lines(w *Installer, env *core.Env, width int) []ui.Line {
 	p := env.P
 	lines := []ui.Line{
-		ui.Of(ui.S(p.Ok.Bold(true), ui.G.Tick+"  Maxor OS is installed on "+w.st.Disk)),
+		ui.Of(ui.S(p.Ok.Bold(true), ui.G.Tick+"  "+tr("Maxor OS is installed on %s", w.st.Disk))),
 		gap(),
 		plain(env, tr("Remove the installation medium (the USB stick), restart,")),
 		plain(env, tr("and sign in as %s.", w.st.Username)),
@@ -2092,7 +2099,7 @@ func graphicsText(env *core.Env, mode string) string {
 	for _, g := range hw.GPUs {
 		names = append(names, install.GPUName(g.Vendor, g.ID))
 	}
-	return strings.Join(names, " + ") + ", with its drivers"
+	return strings.Join(names, " + ") + tr(", with its drivers")
 }
 
 // failureHint reads the end of the log for causes the installer knows and says, in words, what happened and what to
