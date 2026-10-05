@@ -1,6 +1,6 @@
 # Translating Maxor OS
 
-The installer (and, soon, the rest of `maxor-tui`) can speak your language. You do not need to know Go:
+`maxor-tui` (the installer and every screen of the full-screen app) can speak your language. You do not need to know Go:
 a translation is one JSON file.
 
 ## How it works
@@ -17,7 +17,8 @@ The English text is the key. A catalog maps each English text to its translation
 - Catalogs live in `tui/internal/i18n/lang/<code>.json` (`es`, `pt`, `fr`…). A regional one (`pt_BR`) wins over
   the language one (`pt`) when both exist.
 - A text a catalog leaves empty or does not have is shown **in English**, so a partial translation is fine.
-- When someone picks a language in the first step of the installer, the rest of the installer switches to it.
+- When someone picks a language in the first step of the installer, the rest of the installer switches to it. Outside
+  the installer the app follows the system language (`LC_ALL`, `LANG`), or `MAXOR_LANG` to force one.
 
 ## Add or improve a language
 
@@ -46,6 +47,8 @@ The English text is the key. A catalog maps each English text to its translation
   *different* ones stays the same (the test checks it).
 - **Keep it short.** The installer must fit in a small terminal; the tests run every step in a small window in
   every language and fail if one overflows.
+- **Command words stay English** in the command palette (`go`, `theme`, `search`, `open`), and so does anything that is
+  a command (`maxor logs --last`). Keep those inside your translated sentence.
 - **Do not translate** commands, paths, key names you must press as typed (`ctrl+p`, `esc`, `r`) when the word is
   literal, or the word the user must type to confirm (`INSTALL`, `ERASE`): those are the same in every language.
   Brand names (Maxor OS, NVIDIA, Windows, LUKS2) stay as they are.

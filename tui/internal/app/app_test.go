@@ -1,18 +1,19 @@
 package app
 
 import (
-	"time"
 	"context"
 	"fmt"
 	"os"
 	"strings"
 	"sync"
 	"testing"
+	"time"
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/x/ansi"
 
 	"github.com/bgrados31/maxor-os/tui/internal/core"
+	"github.com/bgrados31/maxor-os/tui/internal/i18n"
 	"github.com/bgrados31/maxor-os/tui/internal/maxor"
 	"github.com/bgrados31/maxor-os/tui/internal/screens"
 	"github.com/bgrados31/maxor-os/tui/internal/task"
@@ -101,21 +102,21 @@ const testNow = 1790000600
 
 func newCLI() *fakeCLI {
 	return &fakeCLI{resp: map[string]string{
-		"theme list --json": themesJSON,
-		"apps --json":       `[{"source":"nix","id":"vscode","name":"vscode","version":"vscode-1.119.0"}]`,
-		"doctor --json":     `{"ok":true,"fails":0,"warns":1,"groups":[{"title":"System","items":[{"level":"ok","text":"no failed system services","id":"sys_ok","fix":null,"confirm":false},{"level":"ok","text":"the running kernel is the installed one","id":"kernel_ok","fix":null,"confirm":false}]},{"title":"Configuration","items":[{"level":"warn","text":"uncommitted changes in the repository","id":"git_dirty","fix":"git -C /home/b/nixos-config status","confirm":false},{"level":"ok","text":"hardware.json matches this machine","id":"hw_ok","fix":null,"confirm":false}]}]}`,
-		"update --status":   `{"flake":"/home/b/nixos-config","branch":"development","commit":"9b80dfd","dirty":true,"files":5,"fingerprint":"fp1","channel":"nixos-26.05","nixpkgs_rev":"774debe","nixpkgs_date":1789000000,"generation":28}`,
-		"update --cached":   `null`,
-		"hardware detect":   `{"version":1,"cpu":{"vendor":"intel","model":"13th Gen Intel(R) Core(TM) i5-13500H"},"gpus":[{"vendor":"intel","id":"8086:a7a0","bus":"PCI:0:2:0","primary":true},{"vendor":"nvidia","id":"10de:28e1","bus":"PCI:1:0:0","primary":false}],"laptop":true,"virt":"none","bluetooth":true}`,
-		"profile list --json": `[{"id":"gaming","title":"Gaming","description":"Steam, Proton and GameMode. More.","includes":["Steam","Proton","GameMode","MangoHud"],"enabled":false},{"id":"office","title":"Office","description":"LibreOffice and Thunderbird.","includes":["LibreOffice","Thunderbird"],"enabled":false}]`,
-		"search brave --json": `[{"source":"nix","id":"brave","name":"brave","version":"1.96.59","description":"Privacy-oriented browser"},{"source":"flatpak","id":"com.brave.Browser","name":"Brave Browser","version":"","description":"Fast Internet, AI, Adblock"}]`,
-		"install --nix brave --json": `[{"id":"brave","source":"nix","ok":true}]`,
-		"release status --json":      releaseJSON("ok", "", false),
-		"release check --json":       releaseJSON("ok", "", false),
-		"update --json":              scanJSON(true),
-		"update --json --no-lock":    scanJSON(false),
-		"theme apply alba":           ``,
-		"theme apply brasa":          ``,
+		"theme list --json":                themesJSON,
+		"apps --json":                      `[{"source":"nix","id":"vscode","name":"vscode","version":"vscode-1.119.0"}]`,
+		"doctor --json":                    `{"ok":true,"fails":0,"warns":1,"groups":[{"title":"System","items":[{"level":"ok","text":"no failed system services","id":"sys_ok","fix":null,"confirm":false},{"level":"ok","text":"the running kernel is the installed one","id":"kernel_ok","fix":null,"confirm":false}]},{"title":"Configuration","items":[{"level":"warn","text":"uncommitted changes in the repository","id":"git_dirty","fix":"git -C /home/b/nixos-config status","confirm":false},{"level":"ok","text":"hardware.json matches this machine","id":"hw_ok","fix":null,"confirm":false}]}]}`,
+		"update --status":                  `{"flake":"/home/b/nixos-config","branch":"development","commit":"9b80dfd","dirty":true,"files":5,"fingerprint":"fp1","channel":"nixos-26.05","nixpkgs_rev":"774debe","nixpkgs_date":1789000000,"generation":28}`,
+		"update --cached":                  `null`,
+		"hardware detect":                  `{"version":1,"cpu":{"vendor":"intel","model":"13th Gen Intel(R) Core(TM) i5-13500H"},"gpus":[{"vendor":"intel","id":"8086:a7a0","bus":"PCI:0:2:0","primary":true},{"vendor":"nvidia","id":"10de:28e1","bus":"PCI:1:0:0","primary":false}],"laptop":true,"virt":"none","bluetooth":true}`,
+		"profile list --json":              `[{"id":"gaming","title":"Gaming","description":"Steam, Proton and GameMode. More.","includes":["Steam","Proton","GameMode","MangoHud"],"enabled":false},{"id":"office","title":"Office","description":"LibreOffice and Thunderbird.","includes":["LibreOffice","Thunderbird"],"enabled":false}]`,
+		"search brave --json":              `[{"source":"nix","id":"brave","name":"brave","version":"1.96.59","description":"Privacy-oriented browser"},{"source":"flatpak","id":"com.brave.Browser","name":"Brave Browser","version":"","description":"Fast Internet, AI, Adblock"}]`,
+		"install --nix brave --json":       `[{"id":"brave","source":"nix","ok":true}]`,
+		"release status --json":            releaseJSON("ok", "", false),
+		"release check --json":             releaseJSON("ok", "", false),
+		"update --json":                    scanJSON(true),
+		"update --json --no-lock":          scanJSON(false),
+		"theme apply alba":                 ``,
+		"theme apply brasa":                ``,
 		"profile enable gaming --no-apply": ``,
 	}}
 }
@@ -1799,5 +1800,27 @@ func TestLaReleaseSePideUnaSolaVezPorSesion(t *testing.T) {
 	send(m, core.GoMsg{ID: "update"}, core.GoMsg{ID: "exit"}, core.GoMsg{ID: "home"})
 	if f.n("release check --json") != 1 || f.n("release status --json") != 1 {
 		t.Fatalf("una sola consulta y una sola lectura por sesión: %v", f.calls)
+	}
+}
+
+// Translations are longer than English: no tab and no help screen may overflow the window in any language.
+func TestEveryTabFitsInEveryLanguage(t *testing.T) {
+	for _, lang := range []string{"es", "pt", "fr", "de", "it"} {
+		t.Run(lang, func(t *testing.T) {
+			i18n.Set(lang)
+			t.Cleanup(func() { i18n.Set("en") })
+			m, _ := setup(t, Options{})
+			for i := 0; i < len(m.screens); i++ {
+				out := view(m)
+				if lines := strings.Split(out, "\n"); len(lines) != m.h {
+					t.Fatalf("%s: %d rows in a %d-row window:\n%s", m.screens[m.active].ID(), len(lines), m.h, out)
+				}
+				send(m, key("tab"))
+			}
+			send(m, key("?"))
+			if lines := strings.Split(view(m), "\n"); len(lines) != m.h {
+				t.Fatalf("help: %d rows in a %d-row window", len(lines), m.h)
+			}
+		})
 	}
 }

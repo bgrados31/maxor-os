@@ -9,6 +9,7 @@ import (
 	"github.com/charmbracelet/lipgloss"
 
 	"github.com/bgrados31/maxor-os/tui/internal/core"
+	"github.com/bgrados31/maxor-os/tui/internal/i18n"
 	"github.com/bgrados31/maxor-os/tui/internal/maxor"
 	"github.com/bgrados31/maxor-os/tui/internal/task"
 	"github.com/bgrados31/maxor-os/tui/internal/ui"
@@ -37,9 +38,9 @@ type Setup struct {
 func NewSetup() *Setup { return &Setup{chosen: map[string]bool{}} }
 
 func (s *Setup) ID() string    { return "setup" }
-func (s *Setup) Title() string { return "Setup" }
+func (s *Setup) Title() string { return tr("Setup") }
 
-var setupSteps = []string{"Welcome", "Look", "Profiles", "Review", "Done"}
+var setupSteps = []string{i18n.Mark("Welcome"), i18n.Mark("Look"), i18n.Mark("Profiles"), i18n.Mark("Review"), i18n.Mark("Done")}
 
 func (s *Setup) Init(env *core.Env) tea.Cmd {
 	return tea.Batch(LoadHardware(env, false), LoadThemes(env, false), LoadProfiles(env, false))
@@ -91,7 +92,7 @@ func (s *Setup) apply(env *core.Env) tea.Cmd {
 		want[k] = v
 	}
 	profiles := env.Data.Profiles
-	return env.Tasks.Start(task.Task{ID: "setup.apply", Label: "Saving your choices", Run: func(ctx context.Context) (any, error) {
+	return env.Tasks.Start(task.Task{ID: "setup.apply", Label: tr("Saving your choices"), Run: func(ctx context.Context) (any, error) {
 		var done []string
 		if look != "" && look != look0 {
 			if err := env.Client.ApplyTheme(ctx, look); err != nil {
@@ -129,22 +130,22 @@ func (s *Setup) Update(env *core.Env, msg tea.Msg) (core.Screen, tea.Cmd) {
 			kind, id, _ := strings.Cut(d, ":")
 			switch kind {
 			case "theme":
-				s.results = append(s.results, "Applied theme "+id)
-				cmds = append(cmds, core.Note("ok", "Applied theme "+id), func() tea.Msg { return core.ThemeChangedMsg{} })
+				s.results = append(s.results, tr("Applied theme %s", id))
+				cmds = append(cmds, core.Note("ok", tr("Applied theme %s", id)), func() tea.Msg { return core.ThemeChangedMsg{} })
 			case "profile+":
 				s.changed = true
-				s.results = append(s.results, "Enabled profile "+id)
+				s.results = append(s.results, tr("Enabled profile %s", id))
 			case "profile-":
 				s.changed = true
-				s.results = append(s.results, "Disabled profile "+id)
+				s.results = append(s.results, tr("Disabled profile %s", id))
 			}
 		}
 		if s.changed {
-			cmds = append(cmds, core.Note("info", "Profiles saved: apply them with maxor update --no-lock"))
+			cmds = append(cmds, core.Note("info", tr("Profiles saved: apply them with maxor update --no-lock")))
 		}
 		if m.Err != nil {
 			s.failed = true
-			s.results = append(s.results, "Stopped: "+oneLine(m.Err.Error()))
+			s.results = append(s.results, tr("Stopped: %s", oneLine(m.Err.Error())))
 		}
 		s.step = 4
 		cmds = append(cmds, LoadThemes(env, true), LoadProfiles(env, true))
@@ -154,10 +155,10 @@ func (s *Setup) Update(env *core.Env, msg tea.Msg) (core.Screen, tea.Cmd) {
 			return s, nil
 		}
 		if m.Err != nil {
-			return s, core.Toast("bad", "The build did not finish: maxor logs --last")
+			return s, core.Toast("bad", tr("The build did not finish: maxor logs --last"))
 		}
 		s.changed = false
-		return s, tea.Batch(core.Note("ok", "Built and applied the system"), core.Quit())
+		return s, tea.Batch(core.Note("ok", tr("Built and applied the system")), core.Quit())
 	case tea.KeyMsg:
 		return s.key(env, m)
 	}
@@ -236,7 +237,7 @@ func (s *Setup) dots(env *core.Env) ui.Line {
 			segs = append(segs, ui.S(p.Mu, ui.G.Info+" "))
 		}
 	}
-	segs = append(segs, ui.S(p.Mu, fmt.Sprintf(" %d of %d · ", s.step+1, len(setupSteps))), ui.S(p.Text, setupSteps[s.step]))
+	segs = append(segs, ui.S(p.Mu, fmt.Sprintf(tr(" %d of %d · "), s.step+1, len(setupSteps))), ui.S(p.Text, tr(setupSteps[s.step])))
 	return ui.Of(segs...)
 }
 
@@ -248,11 +249,11 @@ func (s *Setup) Main(env *core.Env, w, h int) []ui.Line {
 	lines := []ui.Line{s.dots(env), gap()}
 	switch s.step {
 	case 0:
-		lines = append(lines, ui.T(p.Bold, "Welcome to Maxor OS"), muted(env, "Let's set it up for this computer."), gap(), heading(env, "Detected"))
+		lines = append(lines, ui.T(p.Bold, tr("Welcome to Maxor OS")), muted(env, tr("Let's set it up for this computer.")), gap(), heading(env, tr("Detected")))
 		hw := env.Data.Hardware
 		if hw == nil {
 			if err := env.Data.Err["hardware"]; err != nil {
-				lines = append(lines, muted(env, "Could not detect the hardware: "+oneLine(err.Error())))
+				lines = append(lines, muted(env, tr("Could not detect the hardware: %s", oneLine(err.Error()))))
 			} else {
 				lines = append(lines, skeletonRows(env, 3, 16, 12)...)
 			}
@@ -266,15 +267,15 @@ func (s *Setup) Main(env *core.Env, w, h int) []ui.Line {
 			}
 			lines = append(lines, plain(env, hw.CPU.Model), muted(env, kind))
 			for _, g := range hw.GPUs {
-				lines = append(lines, plain(env, g.Vendor+" graphics "+g.ID))
+				lines = append(lines, plain(env, tr("%s graphics %s", g.Vendor, g.ID)))
 			}
 			if hybrid(hw) {
-				lines = append(lines, ui.T(p.Ok, ui.G.Tick+" hybrid graphics: the integrated GPU for the desktop, NVIDIA on demand"))
+				lines = append(lines, ui.T(p.Ok, ui.G.Tick+" "+tr("hybrid graphics: the integrated GPU for the desktop, NVIDIA on demand")))
 			}
 		}
-		lines = append(lines, gap(), ui.Of(button(env, true, "Continue  ⏎")))
+		lines = append(lines, gap(), ui.Of(button(env, true, tr("Continue  ⏎"))))
 	case 1:
-		lines = append(lines, ui.T(p.Bold, "Pick a look"), muted(env, "Moving over a look previews it right here."), gap())
+		lines = append(lines, ui.T(p.Bold, tr("Pick a look")), muted(env, tr("Moving over a look previews it right here.")), gap())
 		if !env.Data.ThemesLoaded {
 			return append(lines, skeletonRows(env, 5, 14, 10)...)
 		}
@@ -290,7 +291,7 @@ func (s *Setup) Main(env *core.Env, w, h int) []ui.Line {
 			})
 		}
 	case 2:
-		lines = append(lines, ui.T(p.Bold, "What will you use it for?"), muted(env, "Pick any. You can change this later."), gap())
+		lines = append(lines, ui.T(p.Bold, tr("What will you use it for?")), muted(env, tr("Pick any. You can change this later.")), gap())
 		ps := env.Data.Profiles
 		if len(ps) == 0 {
 			return append(lines, skeletonRows(env, 4, 10, 30)...)
@@ -305,9 +306,9 @@ func (s *Setup) Main(env *core.Env, w, h int) []ui.Line {
 			lines = append(lines, ui.Line{L: []ui.Seg{mark, ui.S(p.Text, pr.Title)}, R: []ui.Seg{ui.S(p.Mu, firstSentence(pr.Description)+" ")}, Sel: i == s.prof.sel})
 		}
 	case 3:
-		lines = append(lines, ui.T(p.Bold, "Review"), gap())
+		lines = append(lines, ui.T(p.Bold, tr("Review")), gap())
 		look := s.lookID(env)
-		lines = append(lines, ui.Of(ui.S(p.Mu, "look      "), ui.S(p.Text, look)))
+		lines = append(lines, ui.Of(ui.S(p.Mu, tr("look      ")), ui.S(p.Text, look)))
 		var names []string
 		for _, pr := range env.Data.Profiles {
 			if s.chosen[pr.ID] {
@@ -318,30 +319,30 @@ func (s *Setup) Main(env *core.Env, w, h int) []ui.Line {
 		if len(names) > 0 {
 			pl = strings.Join(names, ", ")
 		}
-		lines = append(lines, ui.Of(ui.S(p.Mu, "profiles  "), ui.S(p.Text, pl)), gap(),
-			muted(env, "Your choices are saved now. Building the system with the"), muted(env, "new profiles happens next, and needs your password."), gap())
-		if l, ok := working(env, "setup.apply", "Saving your choices"); ok {
+		lines = append(lines, ui.Of(ui.S(p.Mu, tr("profiles  ")), ui.S(p.Text, pl)), gap(),
+			muted(env, tr("Your choices are saved now. Building the system with the")), muted(env, tr("new profiles happens next, and needs your password.")), gap())
+		if l, ok := working(env, "setup.apply", tr("Saving your choices")); ok {
 			lines = append(lines, l)
 		} else {
-			lines = append(lines, ui.Of(button(env, true, "Save  ⏎"), space(1), button(env, false, "Back  esc")))
+			lines = append(lines, ui.Of(button(env, true, tr("Save  ⏎")), space(1), button(env, false, tr("Back  esc"))))
 		}
 	case 4:
 		if s.failed {
-			lines = append(lines, ui.T(p.Warn.Bold(true), ui.G.Warn+"  Some choices were not saved"), gap())
+			lines = append(lines, ui.T(p.Warn.Bold(true), ui.G.Warn+"  "+tr("Some choices were not saved")), gap())
 		} else {
-			lines = append(lines, ui.T(p.Ok.Bold(true), ui.G.Tick+"  All saved"), gap())
+			lines = append(lines, ui.T(p.Ok.Bold(true), ui.G.Tick+"  "+tr("All saved")), gap())
 		}
 		if len(s.results) == 0 {
-			lines = append(lines, muted(env, "Nothing needed to change."))
+			lines = append(lines, muted(env, tr("Nothing needed to change.")))
 		}
 		for _, r := range s.results {
 			lines = append(lines, ui.Of(ui.S(p.Ok, ui.G.OK+"  "), ui.S(p.Text, r)))
 		}
 		lines = append(lines, gap())
 		if s.changed {
-			lines = append(lines, ui.Of(button(env, true, "Build the system now  b"), space(1), button(env, false, "Later  ⏎")))
+			lines = append(lines, ui.Of(button(env, true, tr("Build the system now  b")), space(1), button(env, false, tr("Later  ⏎"))))
 		} else {
-			lines = append(lines, ui.Of(button(env, true, "Finish  ⏎")))
+			lines = append(lines, ui.Of(button(env, true, tr("Finish  ⏎"))))
 		}
 	}
 	return lines
@@ -373,15 +374,15 @@ func firstSentence(d string) string {
 func (s *Setup) Hints(env *core.Env) []ui.Hint {
 	switch s.step {
 	case 0:
-		return []ui.Hint{{Key: "⏎", Action: "continue"}, {Key: "q", Action: "quit"}}
+		return []ui.Hint{{Key: "⏎", Action: tr("continue")}, {Key: "q", Action: tr("quit")}}
 	case 1:
-		return []ui.Hint{{Key: "↑↓", Action: "preview"}, {Key: "⏎", Action: "choose"}, {Key: "esc", Action: "back"}}
+		return []ui.Hint{{Key: "↑↓", Action: tr("preview")}, {Key: "⏎", Action: tr("choose")}, {Key: "esc", Action: tr("back")}}
 	case 2:
-		return []ui.Hint{{Key: "↑↓", Action: "move"}, {Key: "space", Action: "mark"}, {Key: "⏎", Action: "next"}, {Key: "esc", Action: "back"}}
+		return []ui.Hint{{Key: "↑↓", Action: tr("move")}, {Key: "space", Action: tr("mark")}, {Key: "⏎", Action: tr("next")}, {Key: "esc", Action: tr("back")}}
 	case 3:
-		return []ui.Hint{{Key: "⏎", Action: "save"}, {Key: "esc", Action: "back"}}
+		return []ui.Hint{{Key: "⏎", Action: tr("save")}, {Key: "esc", Action: tr("back")}}
 	}
-	return []ui.Hint{{Key: "⏎", Action: "finish"}}
+	return []ui.Hint{{Key: "⏎", Action: tr("finish")}}
 }
 
 func (s *Setup) Wheel(env *core.Env, dy int) tea.Cmd {

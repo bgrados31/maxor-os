@@ -31,7 +31,7 @@ type Themes struct {
 func NewThemes() *Themes { return &Themes{} }
 
 func (t *Themes) ID() string    { return "themes" }
-func (t *Themes) Title() string { return "Themes" }
+func (t *Themes) Title() string { return tr("Themes") }
 
 func (t *Themes) Init(env *core.Env) tea.Cmd {
 	if env.Data.ThemesLoaded {
@@ -80,9 +80,9 @@ func (t *Themes) layout(env *core.Env) []themeRow {
 				rows = append(rows, themeRow{idx: -1}) // aire entre oscuros y claros
 			}
 			last = th.Mode
-			name := "Dark"
+			name := tr("Dark")
 			if th.Mode == "light" {
-				name = "Light"
+				name = tr("Light")
 			}
 			rows = append(rows, themeRow{header: fmt.Sprintf("%s · %d", strings.ToUpper(name), counts[th.Mode]), idx: -1})
 		}
@@ -122,11 +122,11 @@ func (t *Themes) Update(env *core.Env, msg tea.Msg) (core.Screen, tea.Cmd) {
 		switch m.ID {
 		case "themes.apply", "themes.undo":
 			if m.Err != nil {
-				return t, core.Toast("bad", "Could not change the theme: "+oneLine(m.Err.Error()))
+				return t, core.Toast("bad", tr("Could not change the theme: %s", oneLine(m.Err.Error())))
 			}
-			note := "Went back to the previous theme"
+			note := tr("Went back to the previous theme")
 			if s, ok := m.Value.(string); ok && m.ID == "themes.apply" {
-				note = "Applied theme " + s
+				note = tr("Applied theme %s", s)
 			}
 			return t, tea.Batch(func() tea.Msg { return core.ThemeChangedMsg{} }, LoadThemes(env, true), core.Toast("ok", note), core.Note("ok", note))
 		}
@@ -139,11 +139,11 @@ func (t *Themes) Update(env *core.Env, msg tea.Msg) (core.Screen, tea.Cmd) {
 		switch {
 		case isKey(m, "enter") && len(list) > 0 && t.list.sel < len(list):
 			id := list[t.list.sel].ID
-			return t, env.Tasks.Start(task.Task{ID: "themes.apply", Label: "Applying " + id, Run: func(ctx context.Context) (any, error) {
+			return t, env.Tasks.Start(task.Task{ID: "themes.apply", Label: tr("Applying %s", id), Run: func(ctx context.Context) (any, error) {
 				return id, env.Client.ApplyTheme(ctx, id)
 			}})
 		case isKey(m, "u"):
-			return t, env.Tasks.Start(task.Task{ID: "themes.undo", Label: "Going back", Run: func(ctx context.Context) (any, error) {
+			return t, env.Tasks.Start(task.Task{ID: "themes.undo", Label: tr("Going back"), Run: func(ctx context.Context) (any, error) {
 				return nil, env.Client.UndoTheme(ctx)
 			}})
 		case isKey(m, "esc"):
@@ -158,9 +158,9 @@ func (t *Themes) Main(env *core.Env, w, h int) []ui.Line {
 	t.rows = h - 3
 	if !env.Data.ThemesLoaded {
 		if err := env.Data.Err["themes"]; err != nil {
-			return failed(env, "Could not load the themes", err)
+			return failed(env, tr("Could not load the themes"), err)
 		}
-		lines := []ui.Line{heading(env, "Themes"), gap()}
+		lines := []ui.Line{heading(env, tr("Themes")), gap()}
 		for i := 0; i < 8; i++ {
 			lines = append(lines, ui.Skeleton(p, env.Frame+i*2, 2, 14+i%3*4))
 		}
@@ -195,10 +195,10 @@ func (t *Themes) Main(env *core.Env, w, h int) []ui.Line {
 	}
 
 	var lines []ui.Line
-	if l, ok := working(env, "themes.apply", "Applying the theme"); ok {
+	if l, ok := working(env, "themes.apply", tr("Applying the theme")); ok {
 		lines = append(lines, l)
 	} else {
-		lines = append(lines, heading(env, fmt.Sprintf("%d themes", len(list))))
+		lines = append(lines, heading(env, fmt.Sprintf(tr("%d themes"), len(list))))
 	}
 	lines = append(lines, gap())
 	for i := t.top; i < len(rows) && i < t.top+avail; i++ {
@@ -215,7 +215,7 @@ func (t *Themes) Main(env *core.Env, w, h int) []ui.Line {
 		dot := ui.S(p.Fill.Foreground(lipgloss.Color(th.Colors.Ac)).Bold(true), ui.G.Swatch+"  ")
 		right := []ui.Seg{ui.S(p.Mu, th.Mode+" ")}
 		if th.Active {
-			right = []ui.Seg{ui.S(p.Ok, ui.G.Tick+" in use  "), ui.S(p.Mu, th.Mode+" ")}
+			right = []ui.Seg{ui.S(p.Ok, ui.G.Tick+" "+tr("in use")+"  "), ui.S(p.Mu, th.Mode+" ")}
 		}
 		lines = append(lines, ui.Line{L: []ui.Seg{dot, ui.S(p.Text, th.Name)}, R: right, Sel: r.idx == t.list.sel})
 	}
@@ -226,7 +226,7 @@ func (t *Themes) Side(env *core.Env, w, h int) []ui.Line {
 	t.settle(env)
 	list := ordered(env)
 	if len(list) == 0 || t.list.sel >= len(list) {
-		return []ui.Line{heading(env, "Preview")}
+		return []ui.Line{heading(env, tr("Preview"))}
 	}
 	th := list[t.list.sel]
 	pt := ToTheme(th)
@@ -252,7 +252,7 @@ func (t *Themes) Side(env *core.Env, w, h int) []ui.Line {
 	}
 	p := env.P
 	lines := []ui.Line{
-		heading(env, "Preview"), gap(),
+		heading(env, tr("Preview")), gap(),
 		ui.Of(ui.S(p.Fill.Foreground(lipgloss.Color(th.Colors.Ac)).Bold(true), ui.G.Swatch+"  "), ui.S(p.Bold, th.Name)),
 		muted(env, "   "+th.Mode+" theme"), gap(),
 	}
@@ -270,9 +270,9 @@ func (t *Themes) Side(env *core.Env, w, h int) []ui.Line {
 	default:
 		lines = append(lines, sample...)
 	}
-	lines = append(lines, gap(), ui.Of(button(env, true, "Apply  ⏎"), space(1), button(env, false, "Undo  u")))
+	lines = append(lines, gap(), ui.Of(button(env, true, tr("Apply  ⏎")), space(1), button(env, false, tr("Undo  u"))))
 	if th.Active {
-		lines = append(lines, gap(), ui.T(p.Ok, ui.G.Tick+" this is the theme in use"))
+		lines = append(lines, gap(), ui.T(p.Ok, ui.G.Tick+" "+tr("this is the theme in use")))
 	}
 	return lines
 }
@@ -303,10 +303,10 @@ func fetchCard(env *core.Env, th maxor.Theme) []ui.Line {
 	rows := [][]ui.Seg{
 		{ui.S(p.Ac.Bold(true), user), ui.S(p.Mu, "@"), ui.S(p.Ac.Bold(true), host)},
 		{ui.S(p.Mu, strings.Repeat("─", len(user)+len(host)+1))},
-		info("OS", "Maxor OS"),
-		info("WM", "Hyprland"),
-		info("Shell", "fish"),
-		info("Theme", th.Name),
+		info("OS", tr("Maxor OS")),
+		info("WM", tr("Hyprland")),
+		info(tr("Shell"), "fish"),
+		info(tr("Theme"), th.Name),
 	}
 	var out []ui.Line
 	for i, r := range rows {
@@ -319,7 +319,7 @@ func fetchCard(env *core.Env, th maxor.Theme) []ui.Line {
 }
 
 func (t *Themes) Hints(env *core.Env) []ui.Hint {
-	return []ui.Hint{{Key: "↑↓", Action: "preview"}, {Key: "⏎", Action: "apply"}, {Key: "u", Action: "undo"}, {Key: "esc", Action: "back to current"}}
+	return []ui.Hint{{Key: "↑↓", Action: "preview"}, {Key: "⏎", Action: "apply"}, {Key: "u", Action: "undo"}, {Key: "esc", Action: tr("back to current")}}
 }
 
 func (t *Themes) Click(env *core.Env, x, y int) tea.Cmd {
@@ -343,15 +343,15 @@ func (t *Themes) Brief(env *core.Env, w int) []ui.Line {
 	t.settle(env)
 	list := ordered(env)
 	if len(list) == 0 || t.list.sel >= len(list) {
-		return []ui.Line{muted(env, "Waiting for the themes.")}
+		return []ui.Line{muted(env, tr("Waiting for the themes."))}
 	}
 	th := list[t.list.sel]
 	acc := func(c string) lipgloss.Style { return p.Fill.Foreground(lipgloss.Color(c)) }
 	head := []ui.Seg{ui.S(acc(th.Colors.Ac).Bold(true), ui.G.Swatch+"  "), ui.S(p.Bold, th.Name), ui.S(p.Mu, "  "+th.Mode)}
 	if th.Active {
-		head = append(head, ui.S(p.Ok, "  "+ui.G.Tick+" in use"))
+		head = append(head, ui.S(p.Ok, "  "+ui.G.Tick+" "+tr("in use")))
 	}
-	strip := []ui.Seg{ui.S(p.Ac.Bold(true), "▄ maxor  "), ui.S(p.Mu, "Hyprland · fish  ")}
+	strip := []ui.Seg{ui.S(p.Ac.Bold(true), "▄ maxor  "), ui.S(p.Mu, tr("Hyprland · fish  "))}
 	for _, c := range []string{th.Colors.Ac, th.Colors.Ac2} {
 		strip = append(strip, ui.S(acc(c), "███"))
 	}
@@ -359,5 +359,5 @@ func (t *Themes) Brief(env *core.Env, w int) []ui.Line {
 		strip = append(strip, ui.S(st, "███"))
 	}
 	return []ui.Line{ui.Of(head...), ui.Of(strip...),
-		ui.Of(ui.S(p.Ok, ui.G.Tick+" done  "), ui.S(p.Warn, ui.G.Warn+" careful  "), ui.S(p.Bad, ui.G.Bad+" failed  "), button(env, true, "Apply  ⏎"), space(1), button(env, false, "Undo  u"))}
+		ui.Of(ui.S(p.Ok, ui.G.Tick+" "+tr("done")+"  "), ui.S(p.Warn, ui.G.Warn+" "+tr("careful")+"  "), ui.S(p.Bad, ui.G.Bad+" "+tr("failed")+"  "), button(env, true, tr("Apply  ⏎")), space(1), button(env, false, tr("Undo  u")))}
 }

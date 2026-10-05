@@ -19,36 +19,36 @@ func load(env *core.Env, name, label string, quiet bool, run func(context.Contex
 }
 
 func LoadApps(env *core.Env, quiet bool) tea.Cmd {
-	return load(env, "apps", "Loading your apps", quiet, func(ctx context.Context) (any, error) { return env.Client.Apps(ctx) })
+	return load(env, "apps", tr("Loading your apps"), quiet, func(ctx context.Context) (any, error) { return env.Client.Apps(ctx) })
 }
 func LoadDoctor(env *core.Env, quiet bool) tea.Cmd {
-	return load(env, "doctor", "Running checks", quiet, func(ctx context.Context) (any, error) { return env.Client.Doctor(ctx) })
+	return load(env, "doctor", tr("Running checks"), quiet, func(ctx context.Context) (any, error) { return env.Client.Doctor(ctx) })
 }
 func LoadThemes(env *core.Env, quiet bool) tea.Cmd {
-	return load(env, "themes", "Loading themes", quiet, func(ctx context.Context) (any, error) { return env.Client.Themes(ctx) })
+	return load(env, "themes", tr("Loading themes"), quiet, func(ctx context.Context) (any, error) { return env.Client.Themes(ctx) })
 }
 func LoadHardware(env *core.Env, quiet bool) tea.Cmd {
-	return load(env, "hardware", "Detecting your hardware", quiet, func(ctx context.Context) (any, error) { return env.Client.Hardware(ctx) })
+	return load(env, "hardware", tr("Detecting your hardware"), quiet, func(ctx context.Context) (any, error) { return env.Client.Hardware(ctx) })
 }
 func LoadProfiles(env *core.Env, quiet bool) tea.Cmd {
-	return load(env, "profiles", "Loading profiles", quiet, func(ctx context.Context) (any, error) { return env.Client.Profiles(ctx) })
+	return load(env, "profiles", tr("Loading profiles"), quiet, func(ctx context.Context) (any, error) { return env.Client.Profiles(ctx) })
 }
 
 func LoadUpdateStatus(env *core.Env, quiet bool) tea.Cmd {
-	return load(env, "updatestatus", "Reading the configuration", quiet, func(ctx context.Context) (any, error) { return env.Client.UpdateStatus(ctx) })
+	return load(env, "updatestatus", tr("Reading the configuration"), quiet, func(ctx context.Context) (any, error) { return env.Client.UpdateStatus(ctx) })
 }
 func LoadUpdateCache(env *core.Env, quiet bool) tea.Cmd {
-	return load(env, "updatecache", "Reading the last scan", quiet, func(ctx context.Context) (any, error) { return env.Client.UpdateCached(ctx) })
+	return load(env, "updatecache", tr("Reading the last scan"), quiet, func(ctx context.Context) (any, error) { return env.Client.UpdateCached(ctx) })
 }
 
 // LoadReleaseStatus lee al instante lo último que se supo de las releases (sin red).
 func LoadReleaseStatus(env *core.Env) tea.Cmd {
-	return load(env, "releasecache", "Reading the release state", true, func(ctx context.Context) (any, error) { return env.Client.ReleaseStatus(ctx) })
+	return load(env, "releasecache", tr("Reading the release state"), true, func(ctx context.Context) (any, error) { return env.Client.ReleaseStatus(ctx) })
 }
 
 // LoadReleaseCheck pregunta al canal de releases; la CLI verifica la firma.
 func LoadReleaseCheck(env *core.Env, force, quiet bool) tea.Cmd {
-	return load(env, "release", "Checking for a new Maxor OS release", quiet, func(ctx context.Context) (any, error) { return env.Client.ReleaseCheck(ctx, force) })
+	return load(env, "release", tr("Checking for a new Maxor OS release"), quiet, func(ctx context.Context) (any, error) { return env.Client.ReleaseCheck(ctx, force) })
 }
 
 // ReleaseInit pide el estado de las releases una sola vez por sesión: primero lo guardado (al
@@ -62,12 +62,12 @@ func ReleaseInit(env *core.Env) []tea.Cmd {
 }
 
 func LoadAppUpdates(env *core.Env, quiet bool) tea.Cmd {
-	return load(env, "appupdates", "Looking for new versions", quiet, func(ctx context.Context) (any, error) { return env.Client.AppUpdates(ctx) })
+	return load(env, "appupdates", tr("Looking for new versions"), quiet, func(ctx context.Context) (any, error) { return env.Client.AppUpdates(ctx) })
 }
 
 // LoadAppUpdatesFresh mira otra vez si hay versiones nuevas, ignorando lo guardado.
 func LoadAppUpdatesFresh(env *core.Env) tea.Cmd {
-	return load(env, "appupdates", "Checking for new versions", false, func(ctx context.Context) (any, error) { return env.Client.AppUpdatesFresh(ctx) })
+	return load(env, "appupdates", tr("Checking for new versions"), false, func(ctx context.Context) (any, error) { return env.Client.AppUpdatesFresh(ctx) })
 }
 
 // ApplyData guarda en env.Data el resultado de una carga. Devuelve false si el

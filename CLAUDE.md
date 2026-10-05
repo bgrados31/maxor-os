@@ -59,12 +59,14 @@ outline, dims at 150 s); wallpaper signature (vignette, `ac2` glow top-right wit
 softer). None of this was seen on a real screen yet: check it on the laptop before the release.
 
 Translations (same branch): `tui/internal/i18n` (the English text is the key; catalogs `lang/<code>.json`, fallback
-to English, `go test ./internal/i18n -update` syncs them, tests check placeholders and that every installer step fits
-in a small window in each language). The installer is fully wrapped in `tr(...)` and switches language when the
-user picks it in the first step. `es` is reviewed by me, `pt fr de it` are machine translations awaiting native
-review (docs/TRANSLATING.md invites the community by pull request). NOT yet translated: the rest of maxor-tui
-(Home, Store, Themes, Update, Doctor, palette, help: `app/` and the other `screens/*.go`), keyboard layout names
-(`install/catalog.go`), the `maxor` CLI (still `lib/lang/en.sh` only), the engine's messages, the live ISO's boot menu.
+to English, `go test ./internal/i18n -update` syncs them; tests check placeholders, that no text is built with `+`,
+and that every installer step and every tab fits a small window in each language). All of maxor-tui is wrapped in
+`tr(...)` (installer, Home, Store, Themes, Update, Doctor, Profiles, Setup, palette, help); the installer switches
+language when the user picks it, the rest follows `MAXOR_LANG`/`LC_ALL`/`LANG` at start. `es` is reviewed by me,
+`pt fr de it` are machine translations awaiting native review (docs/TRANSLATING.md invites the community by pull
+request). Palette command words (`go`, `theme`, `search`, `open`) stay English on purpose. NOT yet translated: keyboard
+layout names (`install/catalog.go`), the `maxor` CLI (still `lib/lang/en.sh` only: its output shows inside the TUI,
+e.g. doctor results), the engine's messages, the live ISO's boot menu, the tab mock-up in the theme preview.
 
 Next, in order:
 1. **Verify the latest ISO** (`nix build .#iso`) with a full install in a VM (Spanish, offline) to the desktop.
